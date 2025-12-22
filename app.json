@@ -1,22 +1,27 @@
 {
   "expo": {
-    "name": "myministories",
+    "name": "PaintedMiniStories",
     "slug": "myministories",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/mainLogo.png",
     "scheme": "myministories",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "newArchEnabled": true,
+      "supportsTablet": true,
+      "icon": "./assets/images/mainLogo.png",
+      "bundleIdentifier": "com.anonymous.myministories"
     },
     "android": {
+      "newArchEnabled": true,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/mainLogo.png",
+        "backgroundColor": "#FFFFFF"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.myministories"
     },
     "web": {
       "bundler": "metro",

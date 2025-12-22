@@ -1,0 +1,202 @@
+[
+  { "name": "Citadel", "colorName": "White Scar", "colorHex": "#FFFFFF" },
+  { "name": "Citadel", "colorName": "Averland Sunset", "colorHex": "#FBBA00" },
+  { "name": "Citadel", "colorName": "Yriel Yellow", "colorHex": "#FFDA00" },
+  {
+    "name": "Citadel",
+    "colorName": "Flash Gitz Yellow",
+    "colorHex": "#FFEE00"
+  },
+  { "name": "Citadel", "colorName": "Jokaero Orange", "colorHex": "#E6200F" },
+  {
+    "name": "Citadel",
+    "colorName": "Troll Slayer Orange",
+    "colorHex": "#EB641B"
+  },
+  {
+    "name": "Citadel",
+    "colorName": "Fire Dragon Bright",
+    "colorHex": "#F1844A"
+  },
+  { "name": "Citadel", "colorName": "Mephiston Red", "colorHex": "#9B0E05" },
+  {
+    "name": "Citadel",
+    "colorName": "Evil Suns Scarlet",
+    "colorHex": "#C00B0C"
+  },
+  { "name": "Citadel", "colorName": "Wild Rider Red", "colorHex": "#E21516" },
+  { "name": "Citadel", "colorName": "Khorne Red", "colorHex": "#6A0A01" },
+  { "name": "Citadel", "colorName": "Wazdakka Red", "colorHex": "#8D0D01" },
+  { "name": "Citadel", "colorName": "Screamer Pink", "colorHex": "#831740" },
+  { "name": "Citadel", "colorName": "Pink Horror", "colorHex": "#96325C" },
+  {
+    "name": "Citadel",
+    "colorName": "Emperor's Children",
+    "colorHex": "#BD3F75"
+  },
+  { "name": "Citadel", "colorName": "Naggaroth Night", "colorHex": "#433656" },
+  { "name": "Citadel", "colorName": "Xereus Purple", "colorHex": "#4B205C" },
+  {
+    "name": "Citadel",
+    "colorName": "Genestealer Purple",
+    "colorHex": "#7C5CA4"
+  },
+  { "name": "Citadel", "colorName": "Kantor Blue", "colorHex": "#06234F" },
+  { "name": "Citadel", "colorName": "Macragge Blue", "colorHex": "#14397A" },
+  {
+    "name": "AK Interactive",
+    "colorName": "Sky Grey (AK11012)",
+    "colorHex": "#C8CDD4"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Pale Grey (AK11013)",
+    "colorHex": "#D8DDE3"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Medium Sea Grey (AK11014)",
+    "colorHex": "#7B858C"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Dark Sea Grey (AK11015)",
+    "colorHex": "#4F5860"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Grey-Green (AK11016)",
+    "colorHex": "#67756A"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Beige (AK11030)",
+    "colorHex": "#D2B48C"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Buff (AK11031)",
+    "colorHex": "#D0C38C"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Pale Sand (AK11032)",
+    "colorHex": "#E9D8A6"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Dark Sand (AK11033)",
+    "colorHex": "#C2A670"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Sand Yellow (AK11035)",
+    "colorHex": "#E1C16E"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Ice Yellow (AK11036)",
+    "colorHex": "#FFF7B2"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Golden Yellow (AK11041)",
+    "colorHex": "#FFCC33"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Lemon Yellow (AK11047)",
+    "colorHex": "#FFF44F"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Light Flesh (AK11050)",
+    "colorHex": "#F4C9A3"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Basic Skin Tone (AK11052)",
+    "colorHex": "#E8B58A"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Vampiric Flesh (AK11057)",
+    "colorHex": "#F7E5D5"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Salmon (AK11061)",
+    "colorHex": "#FA8072"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Magenta (AK11067)",
+    "colorHex": "#D81B60"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Scarlet Red (AK11087)",
+    "colorHex": "#C62828"
+  },
+  {
+    "name": "AK Interactive",
+    "colorName": "Deep Green (AK11142)",
+    "colorHex": "#00695C"
+  },
+  { "name": "Scale75", "colorName": "Brown Leather", "colorHex": "#3A2217" },
+  { "name": "Scale75", "colorName": "Black Leather", "colorHex": "#322121" },
+  { "name": "Scale75", "colorName": "Sunset Purple", "colorHex": "#4E2143" },
+  { "name": "Scale75", "colorName": "Fuchsia", "colorHex": "#961F55" },
+  { "name": "Scale75", "colorName": "Deep Red", "colorHex": "#5B1219" },
+  { "name": "Scale75", "colorName": "Blood Red", "colorHex": "#7D191E" },
+  { "name": "Scale75", "colorName": "Antares Red", "colorHex": "#B00A1A" },
+  { "name": "Scale75", "colorName": "Aldebaran Red", "colorHex": "#B02119" },
+  { "name": "Scale75", "colorName": "Mars Orange", "colorHex": "#9F5125" },
+  { "name": "Scale75", "colorName": "Sol Yellow", "colorHex": "#E5C40A" },
+  {
+    "name": "Scale75",
+    "colorName": "Black Forest Green",
+    "colorHex": "#083927"
+  },
+  { "name": "Scale75", "colorName": "Boreal Green", "colorHex": "#094631" },
+  { "name": "Scale75", "colorName": "Irati Green", "colorHex": "#11771A" },
+  { "name": "Scale75", "colorName": "Sherwood Green", "colorHex": "#6D752F" },
+  { "name": "Scale75", "colorName": "Ardenes Green", "colorHex": "#455235" },
+  { "name": "Scale75", "colorName": "Field Gray", "colorHex": "#546057" },
+  { "name": "Scale75", "colorName": "Spring Green", "colorHex": "#6EB041" },
+  { "name": "Scale75", "colorName": "Fall Green", "colorHex": "#BFCA50" },
+  { "name": "Scale75", "colorName": "Caribbean Blue", "colorHex": "#62A99D" },
+  { "name": "Scale75", "colorName": "Sky Blue", "colorHex": "#2283BC" },
+  { "name": "Vallejo", "colorName": "Sunset Red", "colorHex": "#C22C5F" },
+  { "name": "Vallejo", "colorName": "Brown Rose", "colorHex": "#CF8774" },
+  { "name": "Vallejo", "colorName": "Beige Red", "colorHex": "#C79166" },
+  { "name": "Vallejo", "colorName": "German Orange", "colorHex": "#F05426" },
+  { "name": "Vallejo", "colorName": "German Yellow", "colorHex": "#E8E589" },
+  { "name": "Vallejo", "colorName": "Oxford Blue", "colorHex": "#3A465F" },
+  { "name": "Vallejo", "colorName": "Blue Green", "colorHex": "#1A9496" },
+  { "name": "Vallejo", "colorName": "Royal Blue", "colorHex": "#41558D" },
+  { "name": "Vallejo", "colorName": "Royal Purple", "colorHex": "#4B2967" },
+  { "name": "Vallejo", "colorName": "Blue Violet", "colorHex": "#795C9A" },
+  { "name": "Vallejo", "colorName": "Violet Red", "colorHex": "#6B2946" },
+  {
+    "name": "Vallejo",
+    "colorName": "Burnt Cadmium Red",
+    "colorHex": "#623535"
+  },
+  { "name": "Vallejo", "colorName": "Basic Skintone", "colorHex": "#FBBC8C" },
+  {
+    "name": "Vallejo",
+    "colorName": "Luftwaffe Uniform WW2",
+    "colorHex": "#3D474F"
+  },
+  { "name": "Vallejo", "colorName": "Scarlet", "colorHex": "#DA3630" },
+  { "name": "Vallejo", "colorName": "Red Leather", "colorHex": "#93453D" },
+  { "name": "Vallejo", "colorName": "Iraqi Sand", "colorHex": "#B89972" },
+  { "name": "Vallejo", "colorName": "Offwhite", "colorHex": "#EFEEE2" },
+  {
+    "name": "Vallejo",
+    "colorName": "German Cam. Beige WW2",
+    "colorHex": "#9C8D70"
+  },
+  { "name": "Vallejo", "colorName": "Emerald", "colorHex": "#00906A" }
+]

@@ -1,0 +1,266 @@
+import { StyleSheet } from 'react-native';
+export const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#EDE3DC',
+    alignItems: 'center',
+  },
+  paper: {
+    flex: 1,
+    width: '100%',
+    marginTop: 0,
+    marginBottom: -30,
+    borderRadius: 5,
+    backgroundColor: '#F5F0EB',
+    overflow: 'hidden',
+  },
+  paperContent: {
+    flex: 1,
+    padding: 30,
+  },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarWrap: { marginRight: 10 },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#E6DFD8',
+    borderWidth: 2,
+    borderColor: '#121212',
+  },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  userName: {
+    fontFamily: 'Anton',
+    fontSize: 24,
+    color: '#0E2B6D',
+    lineHeight: 30,
+  },
+  userPlan: { marginTop: 2, fontSize: 14, color: '#333' },
+
+  gemLabelWrap: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  gemLabel: {
+    fontFamily: 'Anton',
+    fontSize: 14,
+    color: '#F8FAFF',
+    letterSpacing: 1,
+  },
+
+  bottomNav: {
+    position: 'absolute',
+    left: 30,
+    right: 30,
+    bottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    pointerEvents: 'box-none',
+  },
+
+  hexShadow: {
+    position: 'absolute',
+    left: 2,
+    top: 4,
+    right: 0,
+    bottom: 0,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  hexIcon: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  projectContainer: {
+    paddingHorizontal: 0,
+    paddingTop: 4, // was 10
+    paddingBottom: 40, // was 140; smaller bottom space
+  },
+  projectTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  projectSubtitle: {
+    color: '#666',
+  },
+  carouselSection: {
+    alignItems: 'center',
+    marginTop: 0,
+    marginBottom: 20,
+  },
+  carouselWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slide: {
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+    borderRadius: 8,
+    backgroundColor: '#111',
+  },
+  controlsRow: {
+    display: 'none',
+  },
+  arrowBtn: {
+    backgroundColor: '#0b3f6d',
+    borderRadius: 60,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  counterText: {
+    color: '#222',
+    fontWeight: '600',
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slideImageWrap: {
+    flex: 1,
+  },
+  marker: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+  },
+  editBtnWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 8,
+    alignItems: 'center',
+    zIndex: 5,
+    pointerEvents: 'box-none',
+  },
+  counterOverlay: {
+    position: 'absolute',
+    right: 12,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    zIndex: 10,
+  },
+  counterRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+  },
+  // modal + form
+  formRow: {
+    marginBottom: 12,
+  },
+  formLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#F8FAFF',
+    marginBottom: 4,
+  },
+  formInput: {
+    backgroundColor: '#F5F0EB',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#121212',
+    borderWidth: 1,
+    borderColor: '#1D3652',
+  },
+  formActions: {
+    marginTop: 8,
+    alignItems: 'flex-end',
+  },
+  // color chain
+  markerChainCircle: {
+    position: 'absolute',
+    width: 35,
+    height: 35,
+    borderRadius: 9999,
+    borderWidth: 2,
+    borderColor: '#000',
+  },
+  // === Marker list / accordion ===
+  markerListContainer: {
+    width: '100%',
+    marginTop: 20,
+    gap: 10,
+  },
+  markerItem: {
+    borderWidth: 2,
+    borderColor: '#1D3652',
+    borderRadius: 10,
+    backgroundColor: '#F5F0EB',
+    overflow: 'hidden',
+  },
+  markerItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    justifyContent: 'space-between',
+  },
+  markerItemTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0E2B6D',
+  },
+  markerItemArrow: {
+    fontSize: 18,
+    color: '#0E2B6D',
+  },
+  markerItemBody: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    gap: 10,
+  },
+  markerFieldRow: {
+    gap: 6,
+  },
+  markerFieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+  },
+  markerFieldInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#999',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#121212',
+  },
+});
