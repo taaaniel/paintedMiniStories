@@ -127,7 +127,7 @@ export function CarouselWithMarkers({
                   },
                 ]}
               >
-                {/* usuń wcześniejszy overlay-border */}
+                {/* remove previous overlay-border */}
                 <SlideImageWithMarkers
                   photo={item}
                   width={width - PADDING * 2}
@@ -164,10 +164,10 @@ export function CarouselWithMarkers({
             pointerEvents="none"
             style={{
               position: 'absolute',
-              top: PADDING, // na górze zdjęcia (wewnątrz głównego wrappera)
+              top: PADDING, // at the top of the image (inside the main wrapper)
               left: PADDING,
               right: PADDING,
-              zIndex: 260, // nad zdjęciem i ramką
+              zIndex: 260, // above the image and border
               backgroundColor: '#d0175e',
               paddingHorizontal: 10,
               paddingVertical: 6,
@@ -296,7 +296,7 @@ export function CarouselWithMarkers({
           />
         )}
 
-      {/* Przywrócony prosty overlay dla trybu Move: tap w dowolne miejsce wychodzi z trybu */}
+      {/* Restored simple overlay for Move mode: tap anywhere to exit */}
       {!!editingPhotoMove &&
         photos.length > 0 &&
         photos[activeIndex] === editingPhotoMove && (

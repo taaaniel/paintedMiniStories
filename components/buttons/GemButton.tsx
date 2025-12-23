@@ -233,7 +233,7 @@ const GemButton: React.FC<GemButtonProps> = ({
         }
         soundRef.current = s;
       } catch {
-        // ignoruj błędy audio – UI ma działać bez dźwięku
+        // ignore audio errors — UI should work without sound
       }
     })();
     return () => {

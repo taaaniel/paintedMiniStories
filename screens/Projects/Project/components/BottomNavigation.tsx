@@ -1,5 +1,5 @@
 import { Router } from 'expo-router';
-import { ArrowLeft, ArrowRight, Home } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Home, Wrench } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
 import GemButton from '../../../../components/buttons/GemButton';
@@ -11,23 +11,40 @@ export function BottomNavigation({
   goPrev,
   goNext,
   router,
+  onOpenWorkshop,
 }: {
   photosLength: number;
   activeIndex: number;
   goPrev: () => void;
   goNext: () => void;
   router: Router;
+  onOpenWorkshop?: () => void;
 }) {
   if (!photosLength) return null;
   return (
     <View style={extraStyles.bottomNavContainer}>
-      <GemButton
-        color="#47B0D7"
-        active={false}
-        Icon={Home}
-        size={55}
-        onPress={() => router.push('/(tabs)/projects')}
-      />
+      {/* Left group: Home + Workshop (2nd button) */}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+        <GemButton
+          color="#47B0D7"
+          active={false}
+          Icon={Home}
+          size={55}
+          onPress={() => router.push('/(tabs)/projects')}
+        />
+        {!!onOpenWorkshop && <View style={{ width: 12 }} />}
+        {!!onOpenWorkshop && (
+          <GemButton
+            color="#d0175e"
+            active={false}
+            Icon={Wrench}
+            size={55}
+            onPress={onOpenWorkshop}
+          />
+        )}
+      </View>
+
+      {/* Right group: arrows */}
       {photosLength > 1 && (
         <View style={{ flexDirection: 'row' }}>
           <GemButton

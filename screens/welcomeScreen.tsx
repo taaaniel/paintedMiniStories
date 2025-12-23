@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import MainLogo from '../assets/images/mainLogo.svg'; // <— import komponentu SVG
+import MainLogo from '../assets/images/mainLogo.svg'; // <— import SVG component
 import { ComicButton } from '../components/buttons/Button';
 
 export default function WelcomeScreen() {
@@ -23,7 +23,7 @@ export default function WelcomeScreen() {
   const [ready, setReady] = useState(false);
   const [showSpinner, setShowSpinner] = useState(true);
   const [finishSpinner, setFinishSpinner] = useState(false);
-  // wymuszenie ponownego mountu spinnnera aby pierwszy gem dostał animację
+  // force spinner remount so the first gem gets animation
   const [spinnerKey, setSpinnerKey] = useState(0);
   useEffect(() => {
     if (showSpinner) {
@@ -31,7 +31,7 @@ export default function WelcomeScreen() {
     }
   }, [showSpinner]);
 
-  // preload assetów
+  // preload assets
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -51,7 +51,7 @@ export default function WelcomeScreen() {
     };
   }, []);
 
-  // fallback timeout do "domknięcia" spinnnera
+  // fallback timeout to "close" the spinner
   useEffect(() => {
     const timer = setTimeout(() => {
       setFinishSpinner(true);

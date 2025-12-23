@@ -14,7 +14,7 @@ export const getAllProjects = async (): Promise<Project[]> => {
     const jsonValue = await AsyncStorage.getItem(PROJECTS_KEY);
     return jsonValue ? JSON.parse(jsonValue) : [];
   } catch (error) {
-    console.error('Błąd odczytu projektów:', error);
+    console.error('Error reading projects:', error);
     return [];
   }
 };
@@ -25,7 +25,7 @@ export const saveProject = async (project: Project): Promise<void> => {
     const updatedProjects = [...existingProjects, project];
     await AsyncStorage.setItem(PROJECTS_KEY, JSON.stringify(updatedProjects));
   } catch (error) {
-    console.error('Błąd zapisu projektu:', error);
+    console.error('Error saving project:', error);
     throw error;
   }
 };

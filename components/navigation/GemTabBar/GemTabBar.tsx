@@ -1,27 +1,42 @@
 import GemButton from '@/components/buttons/GemButton';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { usePathname, useSegments } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import {
+  Camera,
   Grid2X2PlusIcon,
-  Home,
-  LayoutGrid,
-  Settings,
+  Image as ImageIcon,
+  Images,
+  LayoutDashboard,
+  Save,
+  Settings as SettingsIcon,
 } from 'lucide-react-native';
 import React, { useMemo } from 'react';
 import type { ViewStyle } from 'react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// definicje ikon po kluczach
+import { MAIN_TAB_ROUTES, PRIMARY_ICON_TAB_ROUTES, TabRoutes } from './routes';
+
+// icon definitions by key
 const DEFINITIONS: Record<
   string,
   { color: string; Icon: any; iconRotation?: number }
 > = {
-  projects: { color: '#47B0D7', Icon: Home },
-  addNewProject: { color: '#6BA8E3', Icon: Grid2X2PlusIcon, iconRotation: 180 },
-  dashboard: { color: '#6BA8E3', Icon: LayoutGrid },
-  settings: { color: '#8BC1F7', Icon: Settings },
+  projects: { color: '#cd0000', Icon: Images },
+  dashboard: { color: '#00a4bd', Icon: LayoutDashboard },
+  settings: { color: '#2ccb00', Icon: SettingsIcon },
+  addNewProject: { color: '#0072e4', Icon: Grid2X2PlusIcon, iconRotation: 180 },
+  fromGallery: { color: '#6BA8E3', Icon: ImageIcon },
+  fromCamera: { color: '#d30051', Icon: Camera },
+  saveProject: { color: '#A100C2', Icon: Save },
 };
+
+// Only these are REAL tab routes. Everything else in state.routes is ignored in UI.
+const TAB_ROUTE_KEYS: ReadonlySet<string> = new Set([
+  ...Array.from(PRIMARY_ICON_TAB_ROUTES),
+  TabRoutes.Dashboard,
+  TabRoutes.Settings,
+]);
 
 export default function GemTabBar({
   state,
@@ -29,21 +44,77 @@ export default function GemTabBar({
   descriptors,
 }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const pathname = usePathname();
+  const router = useRouter();
   const segments = useSegments();
 
-  // ZAWSZE wywołaj wszystkie hooki przed jakimkolwiek return
-  const items = useMemo(() => {
-    return state.routes.map((route) => {
-      const def = DEFINITIONS[route.name] ?? { color: '#666', Icon: Home };
-      return { key: route.name, def, route };
-    });
-  }, [state.routes]);
+  // Hide main tab bar on project details screen: /(tabs)/projects/[id]
+  const isProjectDetail =
+    segments[0] === '(tabs)' &&
+    segments[1] === 'projects' &&
+    segments.length >= 3;
 
-  // Tymczasowe wymuszenie widoczności paska (ustaw na false gdy naprawisz routing)
+  const currentRouteName = state.routes[state.index]?.name as
+    | string
+    | undefined;
+
+  const hideAddNewProjectIcon = currentRouteName === TabRoutes.AddNewProject;
+
+  const isOnMainView =
+    !!currentRouteName && MAIN_TAB_ROUTES.has(currentRouteName as any);
+
+  // On addNewProject we want the "6 buttons row" (with save at the end), not mainRow
+  const renderMainRow =
+    isOnMainView && currentRouteName !== TabRoutes.AddNewProject;
+
+  const items = useMemo(() => {
+    const filtered = state.routes.filter((route) => {
+      const ok = TAB_ROUTE_KEYS.has(route.name);
+      if (__DEV__ && !ok) {
+        console.warn(
+          `[GemTabBar] skipping extra tab route "${route.name}" (not in TAB_ROUTE_KEYS)`,
+        );
+      }
+      return ok;
+    });
+
+    return filtered
+      .filter(
+        (route) =>
+          !(hideAddNewProjectIcon && route.name === TabRoutes.AddNewProject),
+      )
+      .map((route) => {
+        const def = DEFINITIONS[route.name]; // must exist for allowed routes
+        return { key: route.name, def, route };
+      });
+  }, [state.routes, hideAddNewProjectIcon]);
+
+  // Add custom buttons (gallery/camera) to items
+  const customButtons = useMemo(() => {
+    const base = [
+      { key: 'fromGallery', def: DEFINITIONS.fromGallery, route: null as any },
+      { key: 'fromCamera', def: DEFINITIONS.fromCamera, route: null as any },
+    ];
+    return hideAddNewProjectIcon
+      ? [
+          ...base,
+          {
+            key: 'saveProject',
+            def: DEFINITIONS.saveProject,
+            route: null as any,
+          },
+        ]
+      : base;
+  }, [hideAddNewProjectIcon]);
+
+  // Merge real routes with custom buttons
+  const allItems = useMemo(() => {
+    return [...items, ...customButtons];
+  }, [items, customButtons]);
+
+  // Temporary enforcement of bar visibility (set to false once routing is fixed)
   const forceVisible = false;
 
-  // 1) Respectuj tabBarStyle: { display: 'none' }
+  // 1) Respect tabBarStyle: { display: 'none' }
   const focusedKey = state.routes[state.index]?.key;
   const focusedOptions = focusedKey
     ? descriptors[focusedKey]?.options
@@ -60,23 +131,7 @@ export default function GemTabBar({
   }
   if (!forceVisible && focusedDisplay === 'none') {
     if (__DEV__)
-      console.warn('[GemTabBar] ukryty przez tabBarStyle.display === none');
-    return null;
-  }
-
-  // 2) Ukryj na stronach szczegółów projektu (segments)
-  const isInTabs = segments[0] === '(tabs)';
-  const projIdx = segments.findIndex((s) => s === 'projects');
-  const deeperThanProjectsRoot =
-    isInTabs && projIdx !== -1 && segments.length > projIdx + 1;
-  if (!forceVisible && deeperThanProjectsRoot) {
-    if (__DEV__) console.warn('[GemTabBar] ukryty (deeperThanProjectsRoot)');
-    return null;
-  }
-
-  // 3) Fallback regex na pathname
-  if (!forceVisible && /^\/\(tabs\)\/projects\/.+/.test(pathname)) {
-    if (__DEV__) console.warn('[GemTabBar] ukryty przez regex pathname');
+      console.warn('[GemTabBar] hidden by tabBarStyle.display === none');
     return null;
   }
 
@@ -88,9 +143,20 @@ export default function GemTabBar({
       state.routes.map((r) => r.name),
     );
     console.log('[GemTabBar] activeIndex:', state.index);
+    console.log('[GemTabBar] currentRouteName:', currentRouteName);
+    console.log('[GemTabBar] isOnMainView:', isOnMainView);
+    console.log(
+      '[GemTabBar] 📊 Total buttons:',
+      allItems.length,
+      '(real routes:',
+      items.length,
+      '+ custom:',
+      customButtons.length,
+      ')',
+    );
   }
 
-  // Jeśli z jakiegoś powodu routes są puste – pokaż komunikat
+  // If for some reason routes are empty — show a message
   if (!items.length) {
     return (
       <View
@@ -105,11 +171,61 @@ export default function GemTabBar({
         ]}
       >
         <Text style={{ color: '#900' }}>
-          GemTabBar: brak routes (czy na pewno jesteś na trasie z grupy (tabs)?)
+          GemTabBar: no routes (are you sure you are on a (tabs) route?)
         </Text>
       </View>
     );
   }
+
+  if (renderMainRow) {
+    const go = (name: string) => navigation.navigate(name as never);
+
+    const mainKeys = [
+      TabRoutes.Dashboard,
+      TabRoutes.Projects,
+      TabRoutes.AddNewProject,
+      TabRoutes.Settings,
+    ] as const;
+
+    const visibleMainKeys = hideAddNewProjectIcon
+      ? mainKeys.filter((k) => k !== TabRoutes.AddNewProject)
+      : mainKeys;
+
+    return (
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.wrap,
+          {
+            paddingBottom: Math.max(insets.bottom, 16),
+            backgroundColor: 'transparent',
+            borderTopWidth: 0,
+            borderColor: 'transparent',
+          },
+        ]}
+      >
+        <View style={styles.mainRow}>
+          {visibleMainKeys.map((key) => {
+            const def = DEFINITIONS[key];
+            return (
+              <GemButton
+                key={key}
+                color={def.color}
+                Icon={def.Icon}
+                iconRotation={def.iconRotation}
+                size={56}
+                active={currentRouteName === key}
+                onPress={() => go(key)}
+              />
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
+
+  // ✅ after hooks: safe to early-return
+  if (isProjectDetail) return null;
 
   return (
     <View
@@ -125,9 +241,31 @@ export default function GemTabBar({
       ]}
     >
       <View style={styles.row}>
-        {items.map(({ key, def, route }, idx) => {
-          const focused = state.index === idx;
+        {allItems.map(({ key, def, route }) => {
+          // FIX: nie porównuj indeksów z przefiltrowanej tablicy; porównuj route.key
+          const focused =
+            !!route && route.key === state.routes[state.index]?.key;
+
           const onPress = () => {
+            if (key === 'saveProject') {
+              // emituj jako broadcast (bez target), bo screen może słuchać na parent/self
+              navigation.emit({ type: 'gemSaveProject' } as any);
+              return;
+            }
+
+            if (key === 'fromGallery' || key === 'fromCamera') {
+              router.push({
+                pathname: '/(tabs)/addNewProject',
+                params: {
+                  action: key === 'fromGallery' ? 'gallery' : 'camera',
+                },
+              });
+              return;
+            }
+
+            // safety: shouldn't happen, but prevents runtime crash
+            if (!route) return;
+
             const evt = navigation.emit({
               type: 'tabPress',
               target: route.key,
@@ -136,6 +274,7 @@ export default function GemTabBar({
             if (!focused && !evt.defaultPrevented)
               navigation.navigate(route.name as never);
           };
+
           return (
             <GemButton
               key={key}
@@ -158,16 +297,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: -5,
     paddingHorizontal: 24,
     paddingTop: 8,
     zIndex: 50, // iOS
-    elevation: 20, // Android – aby taby były NAD treścią
+    elevation: 20, // Android — keep tabs ABOVE content
     backgroundColor: 'transparent',
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
+  },
+  mainRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
   },
 });

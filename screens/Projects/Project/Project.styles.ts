@@ -36,7 +36,7 @@ export const styles = StyleSheet.create({
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   userName: {
     fontFamily: 'Anton',
-    fontSize: 24,
+    fontSize: 18,
     color: '#0E2B6D',
     lineHeight: 30,
   },
@@ -68,6 +68,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     pointerEvents: 'box-none',
+    // ensure it stays above dropdowns
+    zIndex: 300,
+    elevation: 12,
   },
 
   hexShadow: {

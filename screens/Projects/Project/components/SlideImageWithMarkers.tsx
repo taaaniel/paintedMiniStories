@@ -70,7 +70,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return () => clearTimeout(id);
   }, [updateContainerRect, width, height]);
 
-  // przesuwanie markera — używaj pageX/pageY oraz containerRect
+  // moving marker — use pageX/pageY and containerRect
   const handleMove = (markerId: string) => (e: GestureResponderEvent) => {
     if (!moveOnly || !onMoveMarker || !containerRect) return;
     const { pageX, pageY } = e.nativeEvent;
@@ -90,7 +90,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   const MARKER_ICON_SIZE = 18;
   const START_OFFSET = 8 + DOT_RADIUS;
   const MAIN_DOT_SPACING = 18;
-  // stałe dla wysokości etykiety (linia + padding)
+  // constants for label height (line + padding)
   const LABEL_LINE_H = 12; // ~fontSize 9 + marginesy
   const LABEL_PAD_V = 8; // paddingVertical: 4*2
 
@@ -103,15 +103,15 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return m;
   }, []);
 
-  // klucz storage per zdjęcie
+  // storage key per photo
   const storageKey = React.useMemo(
     () => `SlideImageWithMarkers:${photo}`,
     [photo],
   );
 
-  // lokalny stan z kątami (deg) dla markerów
+  // local state with angles (deg) for markers
   const [angles, setAngles] = React.useState<Record<string, number>>({});
-  const getAngle = (id: string) => angles[id] ?? 45; // domyślnie 45°
+  const getAngle = (id: string) => angles[id] ?? 45; // default 45°
   const adjustAngle = (id: string, delta: number) =>
     setAngles((prev) => {
       const current = prev[id] ?? 45;
@@ -119,7 +119,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       return { ...prev, [id]: next };
     });
 
-  // rozmiary etykiet (dla dokładnego odsunięcia o 5px od krawędzi ostatniego kółka)
+  // label sizes (to keep 5px from the edge of the last circle)
   const [labelSizes, setLabelSizes] = React.useState<
     Record<string, { w: number; h: number }>
   >({});
@@ -130,7 +130,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       return { ...prev, [key]: { w, h } };
     });
 
-  // pomoc: kolizja prostokąt (etykieta) vs koło (kółko koloru)
+  // helper: collision rectangle (label) vs circle (color dot)
   const rectOverlapsCircle = (
     left: number,
     top: number,
@@ -149,7 +149,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return dx * dx + dy * dy < r * r - 0.01; // minimalny luz
   };
 
-  // NOWE: kolizja prostokąt (etykieta) vs prostokąt (etykieta)
+  // NEW: collision rectangle (label) vs rectangle (label)
   const rectOverlapsRect = (
     l1: number,
     t1: number,
@@ -167,16 +167,16 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return l1 < r2 && r1 > l2 && t1 < b2 && b1 > t2;
   };
 
-  // wyznacz pozycję etykiety przy ostatnim kółku:
-  // - minimalny dystans od krawędzi kółka = 5px (kontakt)
-  // - skanowanie kątów wokół kotwicy (preferencja: normalny; dla 90° strona przeciwna)
-  // - w razie kolizji z kołami lub innymi etykietami zwiększaj kąt i promień
+  // determine label position at the last circle:
+  // - minimum distance from circle edge = 5px (contact)
+  // - scan angles around the anchor (preference: normal; for 90° use opposite side)
+  // - on collisions with circles or other labels, increase angle and radius
   const placeLabel = (
     anchorX: number,
     anchorY: number,
     w: number,
     h: number,
-    preferredAngleRad: number, // kąt w układzie matematycznym (0=prawo, 90=góra)
+    preferredAngleRad: number, // angle in math coords (0=right, 90=up)
     angleDeg: number,
     allCircles: [number, number][],
     placedRects: { l: number; t: number; w: number; h: number }[],
@@ -184,26 +184,26 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     const R = DOT_RADIUS;
     const gap = 5;
 
-    // kolejność kandydatów kątowych względem preferencji
+    // candidate angle order relative to preference
     const degSteps = [
       0, 15, -15, 30, -30, 45, -45, 60, -60, 75, -75, 90, -90, 120, -120, 150,
       -150, 180,
     ];
-    // dla 90° chcemy preferować "drugą stronę"
+    // for 90° we prefer the opposite side
     const is90 = Math.abs((((angleDeg % 360) + 360) % 360) - 90) < 0.5;
     const basePref = is90 ? preferredAngleRad + Math.PI : preferredAngleRad;
 
-    const maxRadiusBoost = 120; // maksymalne odsunięcie, gdy dużo kolizji
+    const maxRadiusBoost = 120; // maximum offset when there are many collisions
     const radiusStep = 4;
 
     const tryPlaceAtAngle = (phi: number) => {
-      // unit vector (math) -> na ekran: y ma znak przeciwny
+      // unit vector (math) -> to screen: y has opposite sign
       const ux = Math.cos(phi);
       const uyMath = Math.sin(phi);
       const uScrX = ux;
       const uScrY = -uyMath;
 
-      // projekcja "półwymiaru" prostokąta na kierunek, aby trzymać krawędź 5px od koła
+      // projection of rectangle half-dimension onto direction to keep edge 5px from circle
       const projHalf = Math.abs(uScrX) * (w / 2) + Math.abs(uScrY) * (h / 2);
       const baseD = R + gap + projHalf;
 
@@ -234,11 +234,11 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       if (placed) return placed;
     }
 
-    // awaryjnie: preferowany kąt z dużym promieniem
-    const fallback = tryPlaceAtAngle(basePref + Math.PI); // spróbuj jeszcze po przeciwnej
+    // fallback: preferred angle with a large radius
+    const fallback = tryPlaceAtAngle(basePref + Math.PI); // try the opposite side too
     if (fallback) return fallback;
 
-    // ostateczny fallback: ustaw obok kotwicy bez korekt
+    // final fallback: place next to the anchor without adjustments
     const ux = Math.cos(basePref);
     const uy = Math.sin(basePref);
     const cx = anchorX + ux * (R + gap + w / 2);
@@ -246,14 +246,14 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return { left: cx - w / 2, top: cy - h / 2 };
   };
 
-  // preferencje kątów dla etykiet (per marker-kind), w radianach
+  // angle preferences for labels (per marker-kind), in radians
   const [labelOverrides, setLabelOverrides] = React.useState<
     Record<string, { angleRad: number }>
   >({});
   const setLabelAngle = (key: string, angleRad: number) =>
     setLabelOverrides((prev) => ({ ...prev, [key]: { angleRad } }));
 
-  // NOWE: kąty labelki tytułu (po okręgu, w radianach)
+  // NEW: title label angles (around a circle, in radians)
   const [titleAngles, setTitleAngles] = React.useState<Record<string, number>>(
     {},
   );
@@ -262,7 +262,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   const setTitleAngleRad = (id: string, rad: number) =>
     setTitleAngles((prev) => ({ ...prev, [id]: rad }));
 
-  // Wczytaj stan globalny dla bieżącego zdjęcia
+  // Load global state for the current photo
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -292,7 +292,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     };
   }, [storageKey]);
 
-  // Zapisuj stan globalnie (debounce)
+  // Persist state globally (debounce)
   React.useEffect(() => {
     const payload = { angles, labelOverrides, titleAngles }; // NEW
     const id = setTimeout(() => {
@@ -301,7 +301,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return () => clearTimeout(id);
   }, [angles, labelOverrides, titleAngles, storageKey]); // NEW
 
-  // Reset ustawień (dla bieżącego zdjęcia)
+  // Reset settings (for the current photo)
   const resetAdjustments = React.useCallback(() => {
     setAngles({});
     setLabelOverrides({});
@@ -309,7 +309,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     AsyncStorage.removeItem(storageKey).catch(() => {});
   }, [storageKey]);
 
-  // ZMIANA: renderColorDots przyjmuje seedRects, aby omijać tytuł
+  // CHANGE: renderColorDots accepts seedRects to avoid the title label
   const renderColorDots = (
     m: Marker,
     angleDeg: number,
@@ -350,7 +350,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       },
     ];
 
-    // pomoc: pełna lista kół (wszystkie grupy) dla kolizji etykiet
+    // helper: full list of circles (all groups) for label collisions
     const allCircles: [number, number][] = [];
     entries.forEach((e, idx) => {
       const shift = START_OFFSET + idx * MAIN_DOT_SPACING;
@@ -360,11 +360,11 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       const mixCount = Math.min(e.mixes?.length ?? 0, 2);
       for (let i = 0; i < mixCount; i++) {
         const step = (i + 1) * 20;
-        allCircles.push([mainCX + step, mainCY]); // domieszki poziomo
+        allCircles.push([mainCX + step, mainCY]); // mixes horizontally
       }
     });
 
-    // lista już osadzonych etykiet dla TEGO markera (zapobieganie nachodzeniu etykiet)
+    // list of already placed labels for THIS marker (prevent label overlaps)
     const placedLabelRects: { l: number; t: number; w: number; h: number }[] = [
       ...seedRects,
     ];
@@ -373,11 +373,11 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       const { kind, mainHex, mixes = [], note } = entry;
       const shift = START_OFFSET + idx * MAIN_DOT_SPACING;
 
-      // środek głównego kółka względem (0,0) markera
+      // center of the main circle relative to the marker's (0,0)
       const mainCX = shift * dirX;
       const mainCY = -shift * dirY;
 
-      // nazwy i etykiety
+      // names and labels
       const resolvedName =
         (mainHex && hexToName.get(mainHex.trim().toUpperCase())) || kind;
       const mainNameLine = `${kind}: ${resolvedName}`;
@@ -392,27 +392,27 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       ];
       const labelHeight = LABEL_PAD_V + labelLines.length * LABEL_LINE_H;
 
-      // ostatnie kółko (mixy POZIOMO względem main)
+      // last circle (mixes HORIZONTALLY relative to main)
       const mixCount = Math.min(mixes.length, 2);
       const lastCX = mainCX + (mixCount > 0 ? 20 * mixCount : 0);
       const lastCY = mainCY;
 
-      // PRZYLEGANIE: kotwica etykiety do głównego kółka koloru (nie do ostatniej domieszki)
+      // ADHESION: label anchored to the MAIN color dot (not the last mix)
       const anchorCX = mainCX;
       const anchorCY = mainCY;
 
-      // klucz rozmiaru etykiety
+      // label size key
       const sizeKey = `${m.id}-${kind}`;
       const measured = labelSizes[sizeKey];
       const labelW = measured?.w ?? 120;
       const labelH = measured?.h ?? labelHeight;
 
-      // preferowany kąt: normalny do głównego kierunku, z uwzględnieniem DRAG override
+      // preferred angle: normal to the main direction, honoring DRAG override
       const basePreferredAngleRad = Math.atan2(normY, normX);
       const override = labelOverrides[sizeKey];
       const preferredAngleRad = override?.angleRad ?? basePreferredAngleRad;
 
-      // pozycja etykiety: 5px od głównego kółka (anchor), bez kolizji
+      // label position: 5px from the main dot (anchor), without collisions
       const { left: labelLeft, top: labelTop } = placeLabel(
         anchorCX,
         anchorCY,
@@ -424,7 +424,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         placedLabelRects,
       );
 
-      // zarejestruj prostokąt etykiety
+      // register label rectangle
       placedLabelRects.push({
         l: labelLeft,
         t: labelTop,
@@ -432,18 +432,18 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         h: labelH,
       });
 
-      // handler przeciągania etykiety -> aktualizacja kąta względem GŁÓWNEGO kółka
+      // label drag handler -> update angle relative to the MAIN dot
       const handleLabelDrag = (e: GestureResponderEvent) => {
         if (!moveOnly || !containerRect) return;
         const { pageX, pageY } = e.nativeEvent;
 
-        // położenie kotwicy (główne kółko) w koord. ekranu
+        // anchor position (main dot) in screen coordinates
         const anchorAbsX = (containerRect.x ?? 0) + groupLeft + anchorCX;
         const anchorAbsY = (containerRect.y ?? 0) + groupTop + anchorCY;
 
-        const dx = pageX - anchorAbsX; // ekran
+        const dx = pageX - anchorAbsX; // screen
         const dyScreen = pageY - anchorAbsY;
-        const dyMath = -dyScreen; // na układ matematyczny
+        const dyMath = -dyScreen; // to math coordinate system
         const phi = Math.atan2(dyMath, dx);
 
         setLabelAngle(sizeKey, phi);
@@ -472,7 +472,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
             />
           ) : null}
 
-          {/* etykieta przyklejona do ostatniego kółka (drag & drop w moveOnly) */}
+          {/* label attached to the last dot (drag & drop in moveOnly) */}
           {showLabels && mainHex ? (
             <View
               pointerEvents={moveOnly ? 'auto' : 'none'}
@@ -500,7 +500,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                 justifyContent: 'flex-start',
               }}
             >
-              {/* uchwyt DnD: czarna ikona na białym okrągłym tle w prawym dolnym rogu */}
+              {/* DnD handle: black icon on a white circular background in bottom-right corner */}
               {moveOnly ? (
                 <View
                   style={{
@@ -538,7 +538,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
             </View>
           ) : null}
 
-          {/* mix dots POZIOMO (niezależnie od kąta) */}
+          {/* mix dots HORIZONTALLY (independent of angle) */}
           {mainHex &&
             mixes.slice(0, 2).map((mixHex, i) => {
               const step = (i + 1) * 20;
@@ -572,10 +572,10 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     });
   };
 
-  // pomocnicze: czy string z HEX nie jest pusty
+  // helper: check if HEX string is non-empty
   const isNonEmptyHex = (hex?: string) => !!hex && hex.trim().length > 0;
 
-  // pomocnicze: czy marker ma jakikolwiek kolor (główny lub domieszkę)
+  // helper: whether the marker has any color (main or mix)
   const hasAnyColors = (m: Marker) => {
     if (
       isNonEmptyHex(m.baseColor) ||
@@ -597,7 +597,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       onLayout={updateContainerRect}
       style={{ width, height, position: 'relative' }}
     >
-      {/* Przyciski globalne dla trybu Move marker */}
+      {/* Global buttons for Move marker mode */}
       {moveOnly ? (
         <Pressable
           onPress={resetAdjustments}
@@ -637,15 +637,15 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         const cy = m.y * height;
         const angleDeg = getAngle(m.id);
 
-        // kierunek (w radianach) do inicjalizacji kąta labelki tytułu
+        // direction (in radians) to initialize the title label angle
         const radDir = (angleDeg * Math.PI) / 180;
 
-        // pozycja i środek ikonki strzałki względem kotwicy markera
+        // position and center of arrow icon relative to the marker's anchor
         const ARROW_CENTER_OFFSET_X = -6;
         const ARROW_CENTER_OFFSET_Y = 6;
         const TIP_RADIUS = MARKER_ICON_SIZE / 2;
 
-        // NOWE: kąt labelki tytułu po okręgu (domyślnie zgodny z kierunkiem strzałki)
+        // NEW: title label angle around a ring (defaults to arrow direction)
         const titleKey = `${m.id}__title__`;
         const titleMeasured = labelSizes[titleKey];
         const titleW = titleMeasured?.w ?? 80;
@@ -654,7 +654,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         const titlePhi = getTitleAngleRad(m.id, radDir);
         const TITLE_RING_R = TIP_RADIUS + 10;
 
-        // środek labelki na okręgu wokół środka strzałki
+        // label center on the ring around the arrow center
         const titleCenterX =
           ARROW_CENTER_OFFSET_X + Math.cos(titlePhi) * TITLE_RING_R;
         const titleCenterY =
@@ -664,7 +664,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         const titleLeft = titleCenterX - titleW / 2;
         const titleTop = titleCenterY - titleH / 2;
 
-        // handler DnD labelki tytułu – ruch tylko po okręgu
+        // DnD handler for title label — motion along the circle only
         const handleTitleDrag = (e: GestureResponderEvent) => {
           if (!moveOnly || !containerRect) return;
           const { pageX, pageY } = e.nativeEvent;
@@ -679,7 +679,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           setTitleAngleRad(m.id, phi);
         };
 
-        // prostokąt tytułu do przekazania, aby etykiety kolorów go omijały
+        // title rectangle to pass so color labels avoid it
         const seedRects = [{ l: titleLeft, t: titleTop, w: titleW, h: titleH }];
 
         return (
@@ -690,7 +690,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
             onResponderMove={handleMove(m.id)}
             onResponderRelease={handleMove(m.id)}
           >
-            {/* przyciski +/- do zmiany kąta tylko w moveOnly */}
+            {/* +/- buttons to change angle, only in moveOnly */}
             {moveOnly ? (
               <View
                 style={{
@@ -702,7 +702,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                   elevation: 20,
                 }}
               >
-                {/* LEWY: redo (+10) */}
+                {/* LEFT: redo (+10) */}
                 <Pressable
                   onPress={() => adjustAngle(m.id, +10)}
                   style={{
@@ -716,11 +716,11 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                     name="undo"
                     size={16}
                     color="#fff"
-                    style={{ transform: [{ rotate: '-30deg' }] }} // zmiana z 30deg na -30deg
+                    style={{ transform: [{ rotate: '-30deg' }] }} // changed from 30deg to -30deg
                   />
                 </Pressable>
 
-                {/* PRAWY: undo (-10) */}
+                {/* RIGHT: undo (-10) */}
                 <Pressable
                   onPress={() => adjustAngle(m.id, -10)}
                   style={{
@@ -739,7 +739,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
               </View>
             ) : null}
 
-            {/* marker: strzałka podążająca za kątem markera (grot przeciwny do poprzedniej logiki) */}
+            {/* marker: arrow following marker angle (tip opposite to previous logic) */}
             <MaterialCommunityIcons
               name="arrow-left-bold"
               size={MARKER_ICON_SIZE}
@@ -754,7 +754,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
               }}
             />
 
-            {/* NEW: labelka tytułu – DnD po okręgu + ikona drag, bez nachodzenia na etykiety kolorów */}
+            {/* NEW: title label — DnD along circle + drag icon, avoids overlapping color labels */}
             {showLabels && m.title ? (
               <View
                 pointerEvents={moveOnly ? 'auto' : 'none'}
@@ -780,7 +780,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                   elevation: 10,
                 }}
               >
-                {/* uchwyt DnD: czarna ikona na białym okrągłym tle w prawym dolnym rogu */}
+                {/* DnD handle: black icon on white circular background in bottom-right corner */}
                 {moveOnly ? (
                   <View
                     style={{
@@ -809,7 +809,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
               </View>
             ) : null}
 
-            {/* kółka kolorów z uwzględnieniem kąta ORAZ pozycji grupy (etykiety kolorów ominą tytuł) */}
+            {/* color dots respecting the angle AND group position (color labels avoid the title) */}
             {renderColorDots(m, angleDeg, cx, cy, seedRects)}
           </View>
         );

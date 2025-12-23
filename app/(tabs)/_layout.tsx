@@ -11,9 +11,17 @@ export default function TabsLayout() {
       }}
       tabBar={(props) => <GemTabBar {...props} />}
     >
-      <Tabs.Screen name="projects" />
       <Tabs.Screen name="dashboard" />
+      <Tabs.Screen name="projects" />
+      <Tabs.Screen name="addNewProject" />
       <Tabs.Screen name="settings" />
+      {/* Hide dynamic [id] route from tabs */}
+      <Tabs.Screen
+        name="projects/[id]"
+        options={{
+          href: null, // This removes it from tab navigation
+        }}
+      />
     </Tabs>
   );
 }

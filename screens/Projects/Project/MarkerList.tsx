@@ -57,7 +57,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
     [],
   );
 
-  // Sanityzacja wyświetlanego tytułu (usuwa tagi HEX typu #ABC lub #AABBCCDD)
+  // Sanitize displayed title (remove HEX tags like #ABC or #AABBCCDD)
   const stripHexTags = React.useCallback(
     (s?: string) => (s || '').replace(/\s*#([0-9A-F]{3,8})\b/gi, '').trim(),
     [],
@@ -65,7 +65,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
 
   const ensureArray = (arr?: string[]) => (Array.isArray(arr) ? arr : []);
 
-  // chips jak w dialogu
+  // chips like in the dialog
   const ColorChips: React.FC<{ colors: string[] }> = ({ colors }) => (
     <View
       style={{
@@ -84,7 +84,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
             borderRadius: 8,
             backgroundColor: hex,
             borderWidth: 1,
-            borderColor: '#4A2E1B', // ciemnobrązowy border jak w dialogu
+            borderColor: '#4A2E1B', // dark-brown border like in the dialog
           }}
         />
       ))}
@@ -95,7 +95,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
     <View
       style={[
         markerListStyles.container,
-        { maxWidth, marginTop: 30, zIndex: 1 },
+        { maxWidth, marginTop: 30, zIndex: 0 }, // lowered from 1
       ]}
     >
       {markers.map((m, idx) => {

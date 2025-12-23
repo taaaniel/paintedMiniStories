@@ -94,7 +94,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
   setMShadowBlendNote,
   mHighlightBlendNote,
   setMHighlightBlendNote,
-  // nowe propsy — opcjonalne
+  // new props — optional
   mixBaseEnabled,
   setMixBaseEnabled,
   baseMixes,
@@ -116,7 +116,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
   highlightMixesNote,
   setHighlightMixesNote,
 }) => {
-  // Kontrolowane z fallbackiem do lokalnego state (bez łamania obecnych wywołań)
+  // Controlled with fallback to local state (without breaking current calls)
   const [mixBaseEnabledL, setMixBaseEnabledL] = React.useState(
     mixBaseEnabled ?? false,
   );
@@ -168,7 +168,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
   const setHighlightMixesNoteV =
     setHighlightMixesNote ?? setHighlightMixesNoteL;
 
-  // Gdy główny kolor zostanie usunięty — resetuj mieszanki
+  // When the main color is removed — reset blends
   React.useEffect(() => {
     if (!mBase) {
       setMixBaseEnabledV(false);
@@ -211,7 +211,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
         })),
       );
       setLoadingColors(false);
-    }, 0); // mikro opóźnienie dla pokazania dropdownu natychmiast
+    }, 0); // micro delay to show the dropdown immediately
     return () => clearTimeout(id);
   }, []);
 
@@ -461,9 +461,9 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
               {/* ColorChips + label row */}
               {baseMixesV.filter(Boolean).length > 0 ? (
                 <>
-                  {/* ColorChips nad etykietą */}
+                  {/* ColorChips above the label */}
                   <ColorChips colors={[mBase, ...baseMixesV]} />
-                  {/* Etykieta z wartością po ":" gdy istnieje */}
+                  {/* Label with value after ":" when present */}
                   <Text style={[dialogStyles.formLabel, { color: '#ffffff' }]}>
                     {`Mix notes (base)${
                       baseMixesNoteV?.trim() ? `: ${baseMixesNoteV.trim()}` : ''

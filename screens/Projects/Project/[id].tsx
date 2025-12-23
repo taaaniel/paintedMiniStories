@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   LayoutAnimation,
   Platform,
@@ -13,13 +13,15 @@ import {
   View,
 } from 'react-native';
 import 'react-native-gesture-handler';
+
 import RectangleGemButton from '../../../components/buttons/RectangleGemButton';
 import MainView from '../../MainView';
 import AddColorMarkerDialog from './AddColorMarkerDialog';
 import { BottomNavigation } from './components/BottomNavigation';
 import { CarouselWithMarkers } from './components/CarouselWithMarkers';
+import WorkshopPopup from './components/WorkshopPopup';
 import { useProjectMarkers } from './hooks/useProjectMarkers';
-import MarkerList from './MarkerList'; // nowy import
+import MarkerList from './MarkerList'; // new import
 import { styles } from './Project.styles';
 import { extraStyles } from './ProjectExtras.styles';
 import ProjectTitleDescryption from './ProjectTitleDescryption';
@@ -31,33 +33,12 @@ type Project = {
   photos: string[];
 };
 
-type Marker = {
-  id: string;
-  x: number;
-  y: number;
-  title?: string;
-  baseColor?: string;
-  shadowColor?: string;
-  highlightColor?: string;
-  baseBlendColor?: string;
-  shadowBlendColor?: string;
-  highlightBlendColor?: string;
-  // old single note (kept for back-compat)
-  blendNote?: string;
-  // new per-blend notes
-  baseBlendNote?: string;
-  shadowBlendNote?: string;
-  highlightBlendNote?: string;
-};
-
-const DEFAULT_COLOR = '#808080';
-
 export default function SingleProjectScreen() {
   const { id, idx } = useLocalSearchParams();
   const router = useRouter();
-  const navigation = useNavigation();
   const [project, setProject] = useState<Project | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0); // uproszczenie
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeIndex, setActiveIndex] = useState(0); // simplification
   const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
   const [editingPhotoMove, setEditingPhotoMove] = useState<string | null>(null); // NEW
   // pending marker coord before form submit
@@ -75,7 +56,6 @@ export default function SingleProjectScreen() {
   const [mBaseBlend, setMBaseBlend] = useState('');
   const [mShadowBlend, setMShadowBlend] = useState('');
   const [mHighlightBlend, setMHighlightBlend] = useState('');
-  const [mBlendNote, setMBlendNote] = useState(''); // new
   // new: per-blend notes
   const [mBaseBlendNote, setMBaseBlendNote] = useState('');
   const [mShadowBlendNote, setMShadowBlendNote] = useState('');
@@ -86,7 +66,7 @@ export default function SingleProjectScreen() {
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
   const contentWidth = Math.min(screenWidth - 40, 1000);
-  const carouselHeight = Math.round(screenHeight / 2); // 1/2 wysokości ekranu
+  const carouselHeight = Math.round(screenHeight / 2); // half of the screen height
 
   const [imageWindowRect, setImageWindowRect] = useState<{
     x: number;
@@ -95,55 +75,54 @@ export default function SingleProjectScreen() {
     height: number;
   } | null>(null);
 
-  // helper do korekcji indeksu
+  // NEW: workshop popup state
+  const [showWorkshop, setShowWorkshop] = useState(false);
+
+  // helper to adjust index
   const clampIndex = (i: number, arr: any[]) =>
     arr && arr.length ? Math.min(Math.max(i, 0), arr.length - 1) : 0;
 
-  // Nawiga cja slajdów
+  // Slide navigation
   const goTo = (i: number) => {
     if (!project?.photos?.length) return;
     const target = clampIndex(i, project.photos);
-    setActiveIndex(target); // już bez bezpośredniego scrollTo
+    setActiveIndex(target); // without direct scrollTo anymore
   };
   const goPrev = () => goTo(activeIndex - 1);
   const goNext = () => goTo(activeIndex + 1);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      let parent: any = navigation.getParent();
-      while (parent && parent.getState && parent.getState().type !== 'tab') {
-        parent = parent.getParent();
-      }
-      parent?.setOptions({ tabBarStyle: { display: 'none' } });
-      return () => {
-        // czyść, zamiast wymuszać 'flex'
-        parent?.setOptions({ tabBarStyle: undefined });
-      };
-    }, [navigation]),
-  );
-
   useEffect(() => {
+    let alive = true;
+    setIsLoading(true);
+
     (async () => {
       try {
         const raw = await AsyncStorage.getItem('projects');
         if (!raw) {
-          setProject(null);
+          if (alive) setProject(null);
           return;
         }
         const all: Project[] = JSON.parse(raw);
         const p = all.find((x) => x.id === id) ?? null;
+        if (!alive) return;
+
         setProject(p);
         if (p?.photos?.length) {
-          // korekcja activeIndex po załadowaniu
           setActiveIndex((prev) => clampIndex(prev, p.photos));
         } else {
           setActiveIndex(0);
         }
       } catch (e) {
         console.error('Failed to load project:', e);
-        setProject(null);
+        if (alive) setProject(null);
+      } finally {
+        if (alive) setIsLoading(false);
       }
     })();
+
+    return () => {
+      alive = false;
+    };
   }, [id]);
 
   useEffect(() => {
@@ -244,163 +223,182 @@ export default function SingleProjectScreen() {
     setExpandedMarkers((curr) => ({ ...curr, [id]: !curr[id] }));
   };
 
-  if (!project) {
-    return (
-      <MainView
-        user={{ name: 'Taaniel', plan: 'Free', avatar: null }}
-        headerAction={
-          <RectangleGemButton
-            width={150}
-            fontSize={16}
-            label="BACK"
-            onPress={() => router.back()}
-            color="#C2B39A"
-          />
-        }
-      >
-        <View style={styles.center}>
-          <Text>Ładowanie projektu…</Text>
-        </View>
-      </MainView>
-    );
-  }
+  // OPTIONAL: jeśli po załadowaniu dalej nie ma projektu, cofnij po chwili
+  useEffect(() => {
+    if (isLoading) return;
+    if (project) return;
+
+    const t = setTimeout(() => {
+      router.back();
+    }, 500);
+
+    return () => clearTimeout(t);
+  }, [isLoading, project, router]);
+
+  const headerAction = project ? (
+    <RectangleGemButton
+      width={150}
+      fontSize={16}
+      label="BACK"
+      onPress={() => router.back()}
+      color="#C2B39A"
+    />
+  ) : undefined;
 
   return (
     <MainView
       user={{ name: 'Taaniel', plan: 'Free', avatar: null }}
-      headerAction={
-        <RectangleGemButton
-          width={150}
-          fontSize={16}
-          label="BACK"
-          onPress={() => router.back()}
-          color="#C2B39A"
-        />
-      }
+      headerAction={headerAction}
     >
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            // minimal padding to prevent overlap with BottomNavigation
-            paddingBottom: 40,
+      {isLoading || !project ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" />
+          <Text style={{ marginTop: 12 }}>
+            {isLoading ? 'Loading project…' : 'Project not found. Returning…'}
+          </Text>
+        </View>
+      ) : (
+        <View
+          style={{
+            flex: 1,
+
+            paddingBottom: 60,
+            zIndex: 1,
           }}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={!editingPhotoMove}
         >
-          <View style={styles.header}>
-            <View style={{ flexShrink: 1, flexGrow: 1 }}>
-              <ProjectTitleDescryption
-                title={project.name}
-                description={project.description}
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              // minimal padding to prevent overlap with BottomNavigation
+              paddingBottom: 40,
+            }}
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={!editingPhotoMove}
+          >
+            <View style={styles.header}>
+              <View style={{ flexShrink: 1, flexGrow: 1 }}>
+                <ProjectTitleDescryption
+                  title={project.name}
+                  description={project.description}
+                />
+              </View>
+            </View>
+            <View style={styles.carouselSection}>
+              <CarouselWithMarkers
+                photos={project.photos}
+                activeIndex={activeIndex}
+                setActiveIndex={setActiveIndex}
+                width={contentWidth}
+                height={carouselHeight}
+                markersByPhoto={markersByPhoto}
+                editingPhoto={editingPhoto}
+                setEditingPhoto={setEditingPhoto}
+                onPlaceMarker={(photo, x, y) => openMarkerForm(photo, x, y)}
+                onImageWindowRectChange={setImageWindowRect}
+                onMoveMarker={(photoId, markerId, xRel, yRel) => {
+                  const clamp = (v: number) => Math.max(0, Math.min(1, v));
+                  updateMarker(photoId, markerId, {
+                    x: clamp(xRel),
+                    y: clamp(yRel),
+                  });
+                }}
+                editingPhotoMove={editingPhotoMove}
+                setEditingPhotoMove={setEditingPhotoMove}
               />
             </View>
-          </View>
-          <View style={styles.carouselSection}>
-            <CarouselWithMarkers
-              photos={project.photos}
-              activeIndex={activeIndex}
-              setActiveIndex={setActiveIndex}
-              width={contentWidth}
-              height={carouselHeight}
-              markersByPhoto={markersByPhoto}
-              editingPhoto={editingPhoto}
-              setEditingPhoto={setEditingPhoto}
-              onPlaceMarker={(photo, x, y) => openMarkerForm(photo, x, y)}
-              onImageWindowRectChange={setImageWindowRect}
-              onMoveMarker={(photoId, markerId, xRel, yRel) => {
-                const clamp = (v: number) => Math.max(0, Math.min(1, v));
-                updateMarker(photoId, markerId, {
-                  x: clamp(xRel),
-                  y: clamp(yRel),
-                });
-              }}
-              editingPhotoMove={editingPhotoMove}
-              setEditingPhotoMove={setEditingPhotoMove}
-            />
-          </View>
 
-          {/* Lista markerów przeniesiona tutaj – pełna szerokość i scroll działa */}
-          {project.photos[activeIndex] && (
-            <MarkerList
-              photoId={project.photos[activeIndex]}
-              markers={markersByPhoto[project.photos[activeIndex]] || []}
-              expanded={expandedMarkers}
-              onToggle={toggleMarkerAccordion}
-              onUpdate={(markerId, patch) =>
-                updateMarker(project.photos[activeIndex], markerId, patch)
-              }
-              maxWidth={contentWidth}
-            />
-          )}
-        </ScrollView>
-
-        {/* REPLACE the non-interactive overlay with a full-screen Pressable */}
-        {!!editingPhoto &&
-          !!imageWindowRect &&
-          editingPhotoMove !== editingPhoto && (
-            <Pressable
-              style={[
-                extraStyles.overlayCapture,
-                { zIndex: 260 }, // above carousel overlay (250)
-              ]}
-              onPress={(e: any) => {
-                const r = imageWindowRect;
-                if (!r || !editingPhoto) return;
-
-                const { pageX, pageY } = e.nativeEvent;
-                const insideX = pageX >= r.x && pageX <= r.x + r.width;
-                const insideY = pageY >= r.y && pageY <= r.y + r.height;
-                const inside = insideX && insideY;
-
-                if (inside) {
-                  const xRel = (pageX - r.x) / r.width;
-                  const yRel = (pageY - r.y) / r.height;
-                  openMarkerForm(editingPhoto, xRel, yRel);
-                } else {
-                  cancelMarkerForm();
+            {/* Marker list moved here — full width and scrolling works */}
+            {project.photos[activeIndex] && (
+              <MarkerList
+                photoId={project.photos[activeIndex]}
+                markers={markersByPhoto[project.photos[activeIndex]] || []}
+                expanded={expandedMarkers}
+                onToggle={toggleMarkerAccordion}
+                onUpdate={(markerId, patch) =>
+                  updateMarker(project.photos[activeIndex], markerId, patch)
                 }
-              }}
+                maxWidth={contentWidth}
+              />
+            )}
+          </ScrollView>
+
+          {/* REPLACE the non-interactive overlay with a full-screen Pressable */}
+          {!!editingPhoto &&
+            !!imageWindowRect &&
+            editingPhotoMove !== editingPhoto && (
+              <Pressable
+                style={[
+                  extraStyles.overlayCapture,
+                  { zIndex: 260 }, // above carousel overlay (250)
+                ]}
+                onPress={(e: any) => {
+                  const r = imageWindowRect;
+                  if (!r || !editingPhoto) return;
+
+                  const { pageX, pageY } = e.nativeEvent;
+                  const insideX = pageX >= r.x && pageX <= r.x + r.width;
+                  const insideY = pageY >= r.y && pageY <= r.y + r.height;
+                  const inside = insideX && insideY;
+
+                  if (inside) {
+                    const xRel = (pageX - r.x) / r.width;
+                    const yRel = (pageY - r.y) / r.height;
+                    openMarkerForm(editingPhoto, xRel, yRel);
+                  } else {
+                    cancelMarkerForm();
+                  }
+                }}
+              />
+            )}
+
+          {project.photos?.length > 0 && (
+            <BottomNavigation
+              photosLength={project.photos.length}
+              activeIndex={activeIndex}
+              goPrev={goPrev}
+              goNext={goNext}
+              router={router}
+              onOpenWorkshop={() => setShowWorkshop(true)} // NEW
             />
           )}
 
-        {project.photos?.length > 0 && (
-          <BottomNavigation
-            photosLength={project.photos.length}
-            activeIndex={activeIndex}
-            goPrev={goPrev}
-            goNext={goNext}
-            router={router}
+          {/* NEW: Workshop popup */}
+          <WorkshopPopup
+            visible={showWorkshop}
+            projectName={project?.name || ''}
+            photos={project?.photos || []}
+            onClose={() => setShowWorkshop(false)}
           />
-        )}
-        <AddColorMarkerDialog
-          visible={!!pendingCoord}
-          onSubmit={submitMarkerForm}
-          onCancel={cancelMarkerForm}
-          mTitle={mTitle}
-          setMTitle={setMTitle}
-          mBase={mBase}
-          setMBase={setMBase}
-          mShadow={mShadow}
-          setMShadow={setMShadow}
-          mHighlight={mHighlight}
-          setMHighlight={setMHighlight}
-          // new: blend colors
-          mBaseBlend={mBaseBlend}
-          setMBaseBlend={setMBaseBlend}
-          mShadowBlend={mShadowBlend}
-          setMShadowBlend={setMShadowBlend}
-          mHighlightBlend={mHighlightBlend}
-          setMHighlightBlend={setMHighlightBlend}
-          // new: per-blend notes
-          mBaseBlendNote={mBaseBlendNote}
-          setMBaseBlendNote={setMBaseBlendNote}
-          mShadowBlendNote={mShadowBlendNote}
-          setMShadowBlendNote={setMShadowBlendNote}
-          mHighlightBlendNote={mHighlightBlendNote}
-          setMHighlightBlendNote={setMHighlightBlendNote}
-        />
-      </View>
+
+          <AddColorMarkerDialog
+            visible={!!pendingCoord}
+            onSubmit={submitMarkerForm}
+            onCancel={cancelMarkerForm}
+            mTitle={mTitle}
+            setMTitle={setMTitle}
+            mBase={mBase}
+            setMBase={setMBase}
+            mShadow={mShadow}
+            setMShadow={setMShadow}
+            mHighlight={mHighlight}
+            setMHighlight={setMHighlight}
+            // new: blend colors
+            mBaseBlend={mBaseBlend}
+            setMBaseBlend={setMBaseBlend}
+            mShadowBlend={mShadowBlend}
+            setMShadowBlend={setMShadowBlend}
+            mHighlightBlend={mHighlightBlend}
+            setMHighlightBlend={setMHighlightBlend}
+            // new: per-blend notes
+            mBaseBlendNote={mBaseBlendNote}
+            setMBaseBlendNote={setMBaseBlendNote}
+            mShadowBlendNote={mShadowBlendNote}
+            setMShadowBlendNote={setMShadowBlendNote}
+            mHighlightBlendNote={mHighlightBlendNote}
+            setMHighlightBlendNote={setMHighlightBlendNote}
+          />
+        </View>
+      )}
     </MainView>
   );
 }

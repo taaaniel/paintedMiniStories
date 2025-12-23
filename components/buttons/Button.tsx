@@ -83,7 +83,7 @@ export const ComicButton: React.FC<ComicButtonProps> = ({
           },
         ]}
       >
-        {/* Tło SVG przycisku */}
+        {/* Button SVG background */}
         <SimplyButtonBg
           width="100%"
           height="100%"
@@ -92,7 +92,7 @@ export const ComicButton: React.FC<ComicButtonProps> = ({
           pointerEvents="none"
         />
 
-        {/* Tekst na środku */}
+        {/* Centered text */}
         <Text style={[styles.text, { color: textColor, fontSize }]}>
           {label}
         </Text>

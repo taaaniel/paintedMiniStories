@@ -1,5 +1,12 @@
 import React from 'react';
-import { Pressable, Text, TextStyle, View, ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleProp,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
+} from 'react-native';
 import SimplyButtonShortBg from '../../assets/images/simplyButtonShortBg.svg';
 
 type Props = {
@@ -11,7 +18,7 @@ type Props = {
   borderColor?: string;
   width?: number;
   height?: number;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   textStyle?: TextStyle;
   Icon?: React.ComponentType<any>;
   iconNode?: React.ReactNode;

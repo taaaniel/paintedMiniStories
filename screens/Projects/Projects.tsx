@@ -4,7 +4,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, FlatList, Image, Pressable, Text, View } from 'react-native';
-import RectangleGemButton from '../../components/buttons/RectangleGemButton';
 import CustomDialog from '../../components/CustomDialog/CustomDialog';
 import DropdownItem from '../../components/DropdownItem/DropdownItem';
 import MainView from '../MainView';
@@ -75,21 +74,15 @@ export default function ProjectsScreen() {
     }
   };
 
-  console.log('Projects in state:', projects);
-
   return (
     <MainView
       user={{ name: 'Taaniel', plan: 'Free', avatar: null }}
-      headerAction={
-        <RectangleGemButton
-          width={150}
-          fontSize={16}
-          label="ADD PROJECT"
-          onPress={() => router.push('/(tabs)/addNewProject')}
-          active
-          color="#d0175e"
-        />
-      }
+      showDashboard
+      dashboard={{
+        onAddProject: () => router.push('/(tabs)/addNewProject'),
+        projectsCount: projects.length,
+        plan: 'Free',
+      }}
     >
       <View style={styles.listClip}>
         <FlatList

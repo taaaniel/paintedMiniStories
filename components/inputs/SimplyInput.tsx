@@ -31,8 +31,8 @@ type Props = {
   iconSize?: number;
   style?: ViewStyle;
   inputStyle?: TextStyle;
-  inputFieldColor?: string; // kolor SVG tła, np. '#FFFFFF'
-  useLightBg?: boolean; // true => jasne tło SVG
+  inputFieldColor?: string; // SVG background color, e.g. '#FFFFFF'
+  useLightBg?: boolean; // true => light SVG background
   /**
    * Show a tiny stacked color preview with labels and a ratio note in parentheses under the input.
    * Rendered only if both mainHex and blendHex are provided.

@@ -1,11 +1,16 @@
-import { MaterialIcons } from '@expo/vector-icons'; // Dodaj do dependencies jeśli nie masz
+import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 import * as Crypto from 'expo-crypto';
 import * as FileSystem from 'expo-file-system';
-import { Image } from 'expo-image'; // switched to expo-image
-import { launchImageLibraryAsync } from 'expo-image-picker';
+import { Image } from 'expo-image';
+import {
+  launchCameraAsync,
+  launchImageLibraryAsync,
+  requestCameraPermissionsAsync,
+} from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -23,21 +28,27 @@ import MainView from '../MainView';
 import { styles } from './AddNewProject.styles';
 
 export default function AddNewProjectScreen() {
+  const MAX_PHOTOS = 8;
+
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [nameError, setNameError] = useState('');
   const router = useRouter();
-  const params = useLocalSearchParams<{ projectId?: string }>();
+  const params = useLocalSearchParams<{
+    projectId?: string;
+    action?: string;
+  }>();
   const editingId = useMemo(
     () => (typeof params.projectId === 'string' ? params.projectId : undefined),
     [params.projectId],
   );
   const [initialName, setInitialName] = useState(''); // track original name in edit mode
+  const navigation = useNavigation();
 
   useEffect(() => {
     if (!editingId) {
-      // tryb dodawania: wyczyść formularz i zdjęcia
+      // add mode: clear form and photos
       setName('');
       setInitialName('');
       setDesc('');
@@ -64,46 +75,49 @@ export default function AddNewProjectScreen() {
     })();
   }, [editingId]);
 
-  const validateProjectName = async (projectName: string) => {
-    const trimmed = projectName.trim();
-    if (!trimmed) {
-      setNameError('Nazwa projektu nie może być pusta');
-      return false;
-    }
-
-    try {
-      // In edit mode: if name didn't change, skip duplicate check.
-      if (
-        editingId &&
-        trimmed.toLowerCase() === initialName.trim().toLowerCase()
-      ) {
-        setNameError('');
-        return true;
-      }
-
-      const existingProjects = await getAllProjects();
-      const normalized = trimmed.toLowerCase();
-
-      const isDuplicate = existingProjects.some(
-        (project) =>
-          project.name.trim().toLowerCase() === normalized &&
-          project.id !== editingId,
-      );
-
-      if (isDuplicate) {
-        setNameError('Projekt o tej nazwie już istnieje');
-        Alert.alert('Błąd', 'Projekt o tej nazwie już istnieje');
+  const validateProjectName = useCallback(
+    async (projectName: string) => {
+      const trimmed = projectName.trim();
+      if (!trimmed) {
+        setNameError('Project name cannot be empty');
         return false;
       }
 
-      setNameError('');
-      return true;
-    } catch (error) {
-      console.error('Błąd podczas sprawdzania nazwy projektu:', error);
-      setNameError('Błąd podczas sprawdzania nazwy projektu');
-      return false;
-    }
-  };
+      try {
+        // In edit mode: if name didn't change, skip duplicate check.
+        if (
+          editingId &&
+          trimmed.toLowerCase() === initialName.trim().toLowerCase()
+        ) {
+          setNameError('');
+          return true;
+        }
+
+        const existingProjects = await getAllProjects();
+        const normalized = trimmed.toLowerCase();
+
+        const isDuplicate = existingProjects.some(
+          (project) =>
+            project.name.trim().toLowerCase() === normalized &&
+            project.id !== editingId,
+        );
+
+        if (isDuplicate) {
+          setNameError('A project with this name already exists');
+          Alert.alert('Error', 'A project with this name already exists');
+          return false;
+        }
+
+        setNameError('');
+        return true;
+      } catch (error) {
+        console.error('Error checking project name:', error);
+        setNameError('Error checking project name');
+        return false;
+      }
+    },
+    [editingId, initialName],
+  );
 
   const handleNameChange = (text: string) => {
     setName(text);
@@ -114,7 +128,7 @@ export default function AddNewProjectScreen() {
   const ensurePersistentUri = async (srcUri: string) => {
     try {
       const baseDir =
-        // dostęp przez rzutowanie, aby uniknąć błędów typów
+        // access via casting to avoid type errors
         (FileSystem as any).cacheDirectory ??
         (FileSystem as any).documentDirectory ??
         '';
@@ -132,7 +146,7 @@ export default function AddNewProjectScreen() {
   };
 
   const pickImage = async () => {
-    if (photos.length >= 3) return;
+    if (photos.length >= MAX_PHOTOS) return;
     const result = await launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
@@ -141,6 +155,32 @@ export default function AddNewProjectScreen() {
     if (!result.canceled && result.assets && result.assets[0]?.uri) {
       const persistent = await ensurePersistentUri(result.assets[0].uri);
       setPhotos([...photos, persistent]);
+    }
+  };
+
+  // NEW: capture from device camera
+  const takePhoto = async () => {
+    try {
+      if (photos.length >= MAX_PHOTOS) return;
+      const perm = await requestCameraPermissionsAsync();
+      if (perm.status !== 'granted') {
+        Alert.alert(
+          'Permission needed',
+          'Camera access is required to take a photo.',
+        );
+        return;
+      }
+      const result = await launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.7,
+      });
+      if (!result.canceled && result.assets && result.assets[0]?.uri) {
+        const persistent = await ensurePersistentUri(result.assets[0].uri);
+        setPhotos((prev) => [...prev, persistent]);
+      }
+    } catch (e) {
+      console.error('Camera error:', e);
+      Alert.alert('Error', 'Failed to take a photo');
     }
   };
 
@@ -165,7 +205,7 @@ export default function AddNewProjectScreen() {
       }
     } catch (e) {
       console.error('Failed to edit photo:', e);
-      Alert.alert('Błąd', 'Nie udało się zmienić zdjęcia');
+      Alert.alert('Error', 'Failed to change the photo');
     }
   };
 
@@ -177,14 +217,17 @@ export default function AddNewProjectScreen() {
       await AsyncStorage.setItem('projects', JSON.stringify(next));
       router.back();
     } catch (e) {
-      console.error('Błąd podczas usuwania:', e);
-      Alert.alert('Błąd', 'Nie udało się usunąć projektu');
+      console.error('Error while deleting:', e);
+      Alert.alert('Error', 'Failed to delete the project');
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     try {
-      const isValidName = await validateProjectName(name);
+      const trimmedName = name.trim();
+      const trimmedDesc = desc.trim();
+
+      const isValidName = await validateProjectName(trimmedName);
       if (!isValidName) return;
 
       if (editingId) {
@@ -193,8 +236,8 @@ export default function AddNewProjectScreen() {
         const idx = all.findIndex((p) => p.id === editingId);
         const updated = {
           id: editingId,
-          name,
-          description: desc,
+          name: trimmedName,
+          description: trimmedDesc,
           photos,
         };
         let next = all;
@@ -205,28 +248,66 @@ export default function AddNewProjectScreen() {
           next = [...all, updated];
         }
         await AsyncStorage.setItem('projects', JSON.stringify(next));
-        router.push(`/(tabs)/projects/${editingId}`);
+
+        // ważne: replace jest bardziej niezawodny przy wywołaniu z headera/eventu
+        router.replace(`/(tabs)/projects/${editingId}`);
         return;
       }
 
       // create new
+      const newId = Crypto.randomUUID();
       const projectToSave = {
-        id: Crypto.randomUUID(),
-        name,
-        description: desc,
+        id: newId,
+        name: trimmedName,
+        description: trimmedDesc,
         photos,
       };
       await saveProject(projectToSave);
-      if (projectToSave.photos && projectToSave.photos.length > 0) {
-        router.push(`/(tabs)/projects/${projectToSave.id}`);
-      } else {
-        router.back();
-      }
+
+      // ✅ zawsze przejdź do nowoutworzonego projektu
+      router.replace(`/(tabs)/projects/${newId}`);
     } catch (error) {
-      console.error('Błąd podczas zapisywania:', error);
-      Alert.alert('Błąd', 'Nie udało się zapisać projektu');
+      console.error('Error while saving:', error);
+      Alert.alert('Error', 'Failed to save the project');
     }
-  };
+  }, [desc, editingId, name, photos, router, validateProjectName]);
+
+  useEffect(() => {
+    const navAny = navigation as any;
+    const parent = navAny.getParent?.();
+
+    const subs: any[] = [];
+
+    const subSelf = navAny.addListener?.('gemSaveProject', () => {
+      void handleSave();
+    });
+    if (subSelf) subs.push(subSelf);
+
+    const subParent = parent?.addListener?.('gemSaveProject', () => {
+      void handleSave();
+    });
+    if (subParent) subs.push(subParent);
+
+    return () =>
+      subs.forEach((unsub) =>
+        typeof unsub === 'function' ? unsub() : undefined,
+      );
+  }, [navigation, handleSave]);
+
+  // NEW: Handle action parameter from navigation
+  useEffect(() => {
+    if (!params.action) return;
+
+    const handleAction = async () => {
+      if (params.action === 'gallery') {
+        await pickImage();
+      } else if (params.action === 'camera') {
+        await takePhoto();
+      }
+    };
+
+    handleAction();
+  }, [params.action]);
 
   return (
     <MainView
@@ -248,7 +329,7 @@ export default function AddNewProjectScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerRow}>
-            {editingId && ( // show delete only in edit mode
+            {editingId && (
               <RectangleGemButton
                 fontSize={16}
                 label="DELETE PROJECT"
@@ -282,7 +363,24 @@ export default function AddNewProjectScreen() {
             onChangeText={setDesc}
             placeholder="Describe your project"
           />
-          <Text style={styles.sectionSubtitle}>Photos</Text>
+
+          <View style={styles.galleryRow}>
+            <RectangleGemButton
+              label="FROM GALLERY"
+              color="#A100C2"
+              width={160}
+              onPress={pickImage}
+            />
+            <RectangleGemButton
+              label="FROM CAMERA"
+              color="#A100C2"
+              width={160}
+              onPress={takePhoto}
+            />
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            Photos ({photos.length}/{MAX_PHOTOS})
+          </Text>
           <View style={styles.photosList}>
             {photos.map((uri, idx) => (
               <View
@@ -314,7 +412,7 @@ export default function AddNewProjectScreen() {
                 </Pressable>
               </View>
             ))}
-            {photos.length < 3 && (
+            {photos.length < MAX_PHOTOS && (
               <Pressable
                 style={[
                   styles.addPhotoCard,
@@ -334,23 +432,6 @@ export default function AddNewProjectScreen() {
                 </View>
               </Pressable>
             )}
-          </View>
-
-          <View style={styles.galleryRow}>
-            <RectangleGemButton
-              label="FROM GALLERY"
-              color="#A100C2"
-              width={160}
-              onPress={pickImage}
-            />
-            <RectangleGemButton
-              label="FROM CAMERA"
-              color="#A100C2"
-              width={160}
-              onPress={() => {
-                /* obsługa kamery */
-              }}
-            />
           </View>
         </ScrollView>
       </View>

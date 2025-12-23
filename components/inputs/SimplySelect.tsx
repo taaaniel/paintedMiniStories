@@ -40,7 +40,7 @@ type Props = {
   size?: 'small' | 'medium' | 'large';
   borderless?: boolean;
   showColorSwatch?: boolean;
-  inputFieldColor?: string; // kolor SVG tła, np. '#FFFFFF'
+  inputFieldColor?: string; // SVG background color, e.g. '#FFFFFF'
   useLightBg?: boolean;
   loading?: boolean;
   loadingIndicatorColor?: string;
@@ -65,7 +65,7 @@ export default function SimplySelect({
   labelStyle,
   dropdownMaxHeight = 180,
   searchable = false,
-  searchPlaceholder = 'Szukaj koloru…',
+  searchPlaceholder = 'Search color…',
   size = 'medium',
   borderless = true,
   showColorSwatch = true,
@@ -94,7 +94,7 @@ export default function SimplySelect({
   const fieldHeight = size === 'small' ? Math.min(40, Number(height)) : height;
   const swatchSize = 16;
   const swatchMargin = 8;
-  const itemHeight = 36; // stała wysokość elementu listy
+  const itemHeight = 36; // fixed list item height
   const VISIBLE_COUNT = 5;
   const computedMaxHeight = Math.max(
     dropdownMaxHeight || 0,
@@ -108,7 +108,7 @@ export default function SimplySelect({
   const dataToRender = searchable ? filteredOptions : options;
   const useVirtualized = allowVirtualized && dataToRender.length > 30;
 
-  // wyliczany top (bez procentów) dla kółek
+  // computed top (without percentages) for circles
   const fieldSwatchTop = (fieldHeight - swatchSize) / 2;
   const itemSwatchTop = (itemHeight - swatchSize) / 2;
 
@@ -229,7 +229,7 @@ export default function SimplySelect({
               width: swatchSize,
               height: swatchSize,
               borderRadius: swatchSize / 2,
-              // używaj tylko poprawnego HEX, inaczej fallback
+              // use only a valid HEX, otherwise fallback
               backgroundColor: normalizeHex(selected.value) ?? '#00000000',
               borderWidth: 1,
               borderColor: '#00000022',
@@ -265,12 +265,13 @@ export default function SimplySelect({
               borderWidth: borderless ? 0 : 1,
               borderColor,
               overflow: 'hidden',
-              zIndex: 50,
+              // lower stacking so BottomNavigation stays on top
+              zIndex: 40,
               shadowColor: '#000',
               shadowOpacity: 0.25,
               shadowOffset: { width: 0, height: 6 },
               shadowRadius: 8,
-              elevation: 6,
+              elevation: 4,
             }}
           >
             {/* Search bar */}

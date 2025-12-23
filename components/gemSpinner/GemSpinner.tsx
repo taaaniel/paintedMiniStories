@@ -9,7 +9,7 @@ import {
   ViewStyle,
 } from 'react-native';
 
-// Warianty SVG (react-native-svg + transformer)
+// SVG variants (react-native-svg + transformer)
 import BlueGem from '../../assets/images/BlueGem.svg';
 import PinkGem from '../../assets/images/PinkGem.svg';
 import VioletGem from '../../assets/images/VioletGem.svg';
@@ -17,30 +17,30 @@ import WhiteGem from '../../assets/images/WhiteGem.svg';
 
 type Props = {
   size?: number;
-  speed?: number; // pełny cykl (sek.)
-  gap?: number; // odstęp między diamentami (px)
-  amplitude?: number; // wysokość podskoku (px)
-  colors?: [string, string, string]; // jeśli SVG wspiera currentColor
+  speed?: number; // full cycle (sec)
+  gap?: number; // gap between diamonds (px)
+  amplitude?: number; // jump height (px)
+  colors?: [string, string, string]; // if SVG supports currentColor
   style?: ViewStyle;
   accessibilityLabel?: string;
   shuffleKey?: number | string;
 
-  // domknięcie (zapadanie)
+  // closing (sinking)
   finish?: boolean;
   onFinish?: () => void;
   groundDepth?: number;
 
-  // ── Nowe, niezależne sterowanie UI:
-  showBar?: boolean; // pokazuje pasek postępu
-  showLoadingText?: boolean; // pokazuje napis „loading …”
+  // ── New, independent UI controls:
+  showBar?: boolean; // shows the progress bar
+  showLoadingText?: boolean; // shows the "loading …" text
 
-  // ── Wsteczna zgodność: włącza JEDNOCZEŚNIE pasek + tekst
-  // (możesz stopniowo wygasić w projekcie)
+  // ── Backward compatibility: enables BOTH bar + text at once
+  // (you can phase it out in the project)
   showProgressBar?: boolean;
 
   /** 0..1 = tryb sterowany; undefined = indeterminate (loop) */
   progress?: number;
-  progressDurationMs?: number; // dla indeterminate
+  progressDurationMs?: number; // for indeterminate mode
   barHeight?: number;
   barSkewDeg?: number;
   loadingText?: string;
@@ -81,11 +81,11 @@ const GemSpinner: React.FC<Props> = ({
   onFinish,
   groundDepth = 28,
 
-  // nowe:
+  // new:
   showBar,
   showLoadingText,
 
-  // backward-compat (włącza oba):
+  // backward-compat (enables both):
   showProgressBar,
 
   progress,
@@ -95,17 +95,17 @@ const GemSpinner: React.FC<Props> = ({
   loadingText = 'loading',
   progressColor,
 }) => {
-  // mapowanie zgodności wstecznej
+  // backward-compat mapping
   const showBarFinal =
     typeof showBar === 'boolean' ? showBar : !!showProgressBar;
   const showTextFinal =
     typeof showLoadingText === 'boolean' ? showLoadingText : !!showProgressBar;
 
-  // opcjonalny warning migracyjny
+  // optional migration warning
   useEffect(() => {
     if (showProgressBar !== undefined) {
       console.warn(
-        '[GemSpinner] `showProgressBar` jest przestarzałe. Użyj `showBar` i/lub `showLoadingText`.',
+        '[GemSpinner] `showProgressBar` is deprecated. Use `showBar` and/or `showLoadingText`.',
       );
     }
   }, [showProgressBar]);
@@ -117,7 +117,7 @@ const GemSpinner: React.FC<Props> = ({
     return [VARIANTS[i1], VARIANTS[i2], VARIANTS[i3]];
   }, [VARIANTS, shuffleKey]);
 
-  // kolory (jeśli SVG wspiera currentColor)
+  // colors (if SVG supports currentColor)
   const [c1, c2, c3] = useMemo<[string, string, string]>(() => {
     if (colors?.length === 3) return colors;
     return [randIcy(), randIcy(), randIcy()];
@@ -128,11 +128,11 @@ const GemSpinner: React.FC<Props> = ({
     [progressColor, shuffleKey],
   );
 
-  // czasy
+  // timings
   const totalMs = Math.max(0.3, speed) * 1000;
-  const phaseDelay = totalMs / 3; // przesunięcie startu 1/3 cyklu
+  const phaseDelay = totalMs / 3; // start offset of 1/3 cycle
 
-  // --- PŁYNNE PĘTLE: 3 niezależne fazy 0..1 (linear), w pełni natywne
+  // --- SMOOTH LOOPS: 3 independent 0..1 phases (linear), fully native
   const p1 = useRef(new Animated.Value(0)).current;
   const p2 = useRef(new Animated.Value(0)).current;
   const p3 = useRef(new Animated.Value(0)).current;
@@ -152,15 +152,15 @@ const GemSpinner: React.FC<Props> = ({
     );
 
   useEffect(() => {
-    if (finish) return; // nie startuj nowych pętli w fazie domykania
+    if (finish) return; // do not start new loops while closing
 
-    // czyść poprzednie
+    // cleanup previous
     loopsRef.current.forEach((l) => l.stop());
     timersRef.current.forEach(clearTimeout);
     loopsRef.current = [];
     timersRef.current = [];
 
-    // reset wartości
+    // reset values
     p1.setValue(0);
     p2.setValue(0);
     p3.setValue(0);
@@ -175,9 +175,9 @@ const GemSpinner: React.FC<Props> = ({
       timersRef.current.push(t);
     };
 
-    // Pierwszy gem rusza NATYCHMIAST (naprawa braku animacji)
+    // First gem starts IMMEDIATELY (fixing no-animation issue)
     startLoop(p1);
-    // Pozostałe dwa z przesunięciem fazy
+    // The other two with phase shift
     startWithDelay(p2, phaseDelay);
     startWithDelay(p3, phaseDelay * 2);
 
@@ -187,9 +187,9 @@ const GemSpinner: React.FC<Props> = ({
       loopsRef.current = [];
       timersRef.current = [];
     };
-  }, [finish, totalMs]); // phaseDelay zależy od totalMs, nie musi być osobno
+  }, [finish, totalMs]); // phaseDelay depends on totalMs, no need separately
 
-  // Trójkątny „bounce”: 0 → szczyt → 0
+  // Triangular bounce: 0 → peak → 0
   const bounce = (p: Animated.Value) => ({
     y: p.interpolate({
       inputRange: [0, 0.5, 1],
@@ -213,7 +213,7 @@ const GemSpinner: React.FC<Props> = ({
   const b2 = bounce(p2);
   const b3 = bounce(p3);
 
-  // --- kanały wyjścia (zapadanie)
+  // --- exit channels (sinking)
   const e1 = useRef(new Animated.Value(0)).current;
   const e2 = useRef(new Animated.Value(0)).current;
   const e3 = useRef(new Animated.Value(0)).current;
@@ -270,7 +270,7 @@ const GemSpinner: React.FC<Props> = ({
     outputRange: [1, 0],
   });
 
-  // domknięcie (stop pętli + zapadanie)
+  // closing (stop loops + sinking)
   useEffect(() => {
     if (!finish) return;
     loopsRef.current.forEach((l) => l.stop());
@@ -316,7 +316,7 @@ const GemSpinner: React.FC<Props> = ({
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
 
-  // pasek – sterowany tryb
+  // bar — controlled mode
   useEffect(() => {
     if (!showBarFinal) return;
     if (typeof progress === 'number') {
@@ -330,7 +330,7 @@ const GemSpinner: React.FC<Props> = ({
     }
   }, [progress, showBarFinal, barProgress]);
 
-  // pasek – indeterminate
+  // bar — indeterminate
   useEffect(() => {
     if (!showBarFinal || typeof progress === 'number') return;
     barProgress.setValue(0);
@@ -347,7 +347,7 @@ const GemSpinner: React.FC<Props> = ({
     return () => loop.stop();
   }, [showBarFinal, progressDurationMs, progress]);
 
-  // kropki do napisu
+  // dots for the text
   useEffect(() => {
     if (!showTextFinal) return;
     let cancelled = false;
@@ -401,7 +401,7 @@ const GemSpinner: React.FC<Props> = ({
     };
   }, [showTextFinal, dot1, dot2, dot3]);
 
-  // fade-out UI (pasek/tekst) przy finish
+  // fade-out UI (bar/text) when finishing
   useEffect(() => {
     if (finish && (showBarFinal || showTextFinal)) {
       Animated.timing(uiOpacity, {
@@ -445,7 +445,7 @@ const GemSpinner: React.FC<Props> = ({
     exitShadowOpacity: any;
   }) => (
     <View style={[styles.slot, mr ? { marginRight: mr } : undefined]}>
-      {/* cień */}
+      {/* shadow */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -464,8 +464,8 @@ const GemSpinner: React.FC<Props> = ({
         style={{
           opacity: gemOpacity,
           transform: [
-            { translateY: tY }, // skok
-            { translateY: exitOffset }, // zapadanie przy końcu
+            { translateY: tY }, // jump
+            { translateY: exitOffset }, // sinking at the end
             { scaleY },
           ],
         }}
@@ -481,7 +481,7 @@ const GemSpinner: React.FC<Props> = ({
       accessibilityRole="image"
       accessibilityLabel={accessibilityLabel}
     >
-      {/* Rząd gemów */}
+      {/* Row of gems */}
       <View style={styles.row}>
         <GemWithShadow
           tY={b1.y}
@@ -523,7 +523,7 @@ const GemSpinner: React.FC<Props> = ({
         />
       </View>
 
-      {/* Pasek + napis (renderowane niezależnie) */}
+      {/* Bar + label (rendered independently) */}
       {(showBarFinal || showTextFinal) && (
         <Animated.View
           style={{
@@ -534,7 +534,7 @@ const GemSpinner: React.FC<Props> = ({
             zIndex: 10,
           }}
         >
-          {/* Pasek postępu */}
+          {/* Progress bar */}
           {showBarFinal && (
             <View
               style={[
@@ -563,10 +563,10 @@ const GemSpinner: React.FC<Props> = ({
             </View>
           )}
 
-          {/* odstęp tylko gdy oba są jednocześnie */}
+          {/* spacing only when both are shown */}
           {showBarFinal && showTextFinal && <View style={{ height: 10 }} />}
 
-          {/* Napis „loading …” */}
+          {/* "loading …" label */}
           {showTextFinal && (
             <View style={styles.loadingRow}>
               <Text style={styles.loadingText}>{loadingText}</Text>
