@@ -158,7 +158,6 @@ export default function AddNewProjectScreen() {
     }
   };
 
-  // NEW: capture from device camera
   const takePhoto = async () => {
     try {
       if (photos.length >= MAX_PHOTOS) return;
@@ -231,7 +230,6 @@ export default function AddNewProjectScreen() {
       if (!isValidName) return;
 
       if (editingId) {
-        // update existing
         const all = await getAllProjects();
         const idx = all.findIndex((p) => p.id === editingId);
         const updated = {
@@ -249,7 +247,6 @@ export default function AddNewProjectScreen() {
         }
         await AsyncStorage.setItem('projects', JSON.stringify(next));
 
-        // ważne: replace jest bardziej niezawodny przy wywołaniu z headera/eventu
         router.replace(`/(tabs)/projects/${editingId}`);
         return;
       }
@@ -264,7 +261,6 @@ export default function AddNewProjectScreen() {
       };
       await saveProject(projectToSave);
 
-      // ✅ zawsze przejdź do nowoutworzonego projektu
       router.replace(`/(tabs)/projects/${newId}`);
     } catch (error) {
       console.error('Error while saving:', error);
@@ -307,46 +303,16 @@ export default function AddNewProjectScreen() {
     };
 
     handleAction();
-  }, [params.action]);
+  }, [params.action, pickImage, takePhoto]);
 
   return (
-    <MainView
-      user={{ name: 'Taaniel', plan: 'Free', avatar: null }}
-      headerAction={
-        <RectangleGemButton
-          width={150}
-          fontSize={16}
-          label="Go back"
-          onPress={() => router.back()}
-          color="#C2B39A"
-        />
-      }
-    >
+    <MainView>
       <View style={styles.contentClip}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.headerRow}>
-            {editingId && (
-              <RectangleGemButton
-                fontSize={16}
-                label="DELETE PROJECT"
-                color="#C2B39A"
-                width={150}
-                onPress={handleDelete}
-              />
-            )}
-            <RectangleGemButton
-              fontSize={16}
-              label={editingId ? 'UPDATE' : 'SAVE'}
-              color="#A100C2"
-              width={150}
-              onPress={handleSave}
-            />
-          </View>
-
           <Text style={styles.sectionTitle}>My project</Text>
           <SimplyInput
             label="Project name"
@@ -378,6 +344,7 @@ export default function AddNewProjectScreen() {
               onPress={takePhoto}
             />
           </View>
+
           <Text style={styles.sectionSubtitle}>
             Photos ({photos.length}/{MAX_PHOTOS})
           </Text>
@@ -432,6 +399,24 @@ export default function AddNewProjectScreen() {
                 </View>
               </Pressable>
             )}
+          </View>
+          <View style={styles.headerRow}>
+            {editingId && (
+              <RectangleGemButton
+                fontSize={16}
+                label="DELETE PROJECT"
+                color="#C2B39A"
+                width={150}
+                onPress={handleDelete}
+              />
+            )}
+            <RectangleGemButton
+              fontSize={16}
+              label={editingId ? 'UPDATE' : 'SAVE'}
+              color="#A100C2"
+              width={180}
+              onPress={handleSave}
+            />
           </View>
         </ScrollView>
       </View>

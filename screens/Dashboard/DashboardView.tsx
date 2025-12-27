@@ -5,7 +5,7 @@ import { styles } from './dashboard.styles';
 
 export default function DashboardView() {
   return (
-    <MainView user={{ name: 'Taaniel', plan: 'Free', avatar: null }}>
+    <MainView>
       <View style={styles.content}>
         <Text style={styles.title}>Dashboard</Text>
       </View>

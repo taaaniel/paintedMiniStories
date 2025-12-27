@@ -76,7 +76,6 @@ export default function ProjectsScreen() {
 
   return (
     <MainView
-      user={{ name: 'Taaniel', plan: 'Free', avatar: null }}
       showDashboard
       dashboard={{
         onAddProject: () => router.push('/(tabs)/addNewProject'),
@@ -97,7 +96,6 @@ export default function ProjectsScreen() {
               onPress={() => {
                 console.log('Open project:', item.id, item.name);
                 if (!item.id) return;
-                // nawiguj do route z app/(tabs)/projects/[id].tsx
                 router.push(`/(tabs)/projects/${item.id}`);
               }}
               isMenuOpen={openMenuId === item.id}

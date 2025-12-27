@@ -1,20 +1,20 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import paletteColors from '../assets/data/palleteColors.json';
 import MainFrame from '../assets/MainFrame.svg';
+import { useUserProfile } from '../src/contexts/UserProfileContext';
 import Header from './Header';
 import { styles } from './MainView.styles';
 
 export default function MainView({
   children,
-  user,
   headerAction,
   showDashboard = false,
   dashboard,
 }: {
   children: React.ReactNode;
-  user: { name: string; plan: string; avatar: string | null };
   headerAction?: React.ReactNode;
   showDashboard?: boolean;
   dashboard?: {
@@ -24,20 +24,58 @@ export default function MainView({
     plan?: string;
   };
 }) {
+  const { profile } = useUserProfile();
+  const user = React.useMemo(
+    () => ({
+      name: profile.username,
+      plan: 'Free',
+      avatar: profile.avatarUrl || null,
+    }),
+    [profile.avatarUrl, profile.username],
+  );
+
   const paintBankCount =
     dashboard?.paintBankCount ??
     (Array.isArray(paletteColors) ? paletteColors.length : 0);
 
-  const effectiveHeaderAction =
-    headerAction ??
-    (showDashboard ? (
-      <MiniDashboard
-        onAddProject={dashboard?.onAddProject}
-        projectsCount={dashboard?.projectsCount ?? 0}
-        paintBankCount={paintBankCount}
-        plan={dashboard?.plan ?? user.plan}
-      />
-    ) : undefined);
+  const [storedProjectsCount, setStoredProjectsCount] = React.useState<
+    number | null
+  >(null);
+
+  React.useEffect(() => {
+    if (dashboard?.projectsCount != null) return;
+
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const raw = await AsyncStorage.getItem('projects');
+        const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+        const count = Array.isArray(parsed) ? parsed.length : 0;
+        if (isMounted) setStoredProjectsCount(count);
+      } catch {
+        if (isMounted) setStoredProjectsCount(0);
+      }
+    };
+
+    void load();
+    return () => {
+      isMounted = false;
+    };
+  }, [dashboard?.projectsCount]);
+
+  const projectsCount = dashboard?.projectsCount ?? storedProjectsCount ?? 0;
+
+  // `MiniDashboard` is the default header action across screens.
+  // You can override it per-screen via `headerAction`.
+  // `showDashboard` is kept only for backward-compat.
+  const effectiveHeaderAction = headerAction ?? (
+    <MiniDashboard
+      onAddProject={dashboard?.onAddProject}
+      projectsCount={projectsCount}
+      paintBankCount={paintBankCount}
+      plan={dashboard?.plan ?? user.plan}
+    />
+  );
 
   return (
     <SafeAreaView style={[styles.screen, { flex: 1 }]}>
@@ -71,7 +109,7 @@ function MiniDashboard({
   onAddProject?: () => void;
   projectsCount: number;
   paintBankCount: number;
-  plan: string; // kept for compat; not shown currently
+  plan?: string; // kept for compat; not shown currently
 }) {
   const Wrap: any = onAddProject ? Pressable : View;
 

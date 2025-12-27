@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginTop: 16,
     marginBottom: 24,
   },

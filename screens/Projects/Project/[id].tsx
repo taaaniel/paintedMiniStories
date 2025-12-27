@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import 'react-native-gesture-handler';
 
-import RectangleGemButton from '../../../components/buttons/RectangleGemButton';
 import MainView from '../../MainView';
 import AddColorMarkerDialog from './AddColorMarkerDialog';
 import { BottomNavigation } from './components/BottomNavigation';
@@ -235,21 +234,8 @@ export default function SingleProjectScreen() {
     return () => clearTimeout(t);
   }, [isLoading, project, router]);
 
-  const headerAction = project ? (
-    <RectangleGemButton
-      width={150}
-      fontSize={16}
-      label="BACK"
-      onPress={() => router.back()}
-      color="#C2B39A"
-    />
-  ) : undefined;
-
   return (
-    <MainView
-      user={{ name: 'Taaniel', plan: 'Free', avatar: null }}
-      headerAction={headerAction}
-    >
+    <MainView>
       {isLoading || !project ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" />

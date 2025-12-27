@@ -3,6 +3,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
+import { UserProfileProvider } from '../src/contexts/UserProfileContext';
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -18,12 +20,14 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="index"
-        options={{ presentation: 'fullScreenModal', animation: 'fade' }}
-      />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <UserProfileProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen
+          name="index"
+          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+        />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </UserProfileProvider>
   );
 }
