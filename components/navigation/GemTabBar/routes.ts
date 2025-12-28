@@ -2,6 +2,7 @@ export const TabRoutes = {
   Dashboard: 'dashboard',
   Projects: 'projects',
   AddNewProject: 'addNewProject',
+  PaintBank: 'paintBank',
   Settings: 'settings',
   ProjectDetail: 'projects/[id]',
 } as const;

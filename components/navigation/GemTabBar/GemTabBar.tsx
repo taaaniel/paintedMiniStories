@@ -90,6 +90,7 @@ export default function GemTabBar({
 
   // Add custom buttons (gallery/camera) to items
   const customButtons = useMemo(() => {
+    if (currentRouteName === TabRoutes.PaintBank) return [];
     const base = [
       { key: 'fromGallery', def: DEFINITIONS.fromGallery, route: null as any },
       { key: 'fromCamera', def: DEFINITIONS.fromCamera, route: null as any },
@@ -104,7 +105,7 @@ export default function GemTabBar({
           },
         ]
       : base;
-  }, [hideAddNewProjectIcon]);
+  }, [hideAddNewProjectIcon, currentRouteName]);
 
   // Merge real routes with custom buttons
   const allItems = useMemo(() => {
