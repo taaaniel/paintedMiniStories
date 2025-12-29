@@ -4,3 +4,10 @@ declare module '*.svg' {
   const content: React.FC<SvgProps>;
   export default content;
 }
+
+declare module 'jpeg-js' {
+  export function decode(
+    data: any,
+    options?: { useTArray?: boolean },
+  ): { width: number; height: number; data: Uint8Array };
+}

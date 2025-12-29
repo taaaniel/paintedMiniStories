@@ -10,6 +10,7 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: '#444',
+    marginBottom: 10,
   },
   // plus/minus icon styles
   iconWrap: {

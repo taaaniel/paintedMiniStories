@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import Svg, { ClipPath, Defs, G, Rect as SvgRect } from 'react-native-svg';
+import PalleteColorsFrame from '../../../../assets/images/palleteColorsFrame.svg';
 import RectangleGemButton from '../../../../components/buttons/RectangleGemButton';
 import { styles } from '../Project.styles';
 import { extraStyles } from '../ProjectExtras.styles';
@@ -12,6 +14,7 @@ export function CarouselWithMarkers({
   setActiveIndex,
   width,
   height,
+  mode,
   markersByPhoto = {},
   editingPhoto,
   setEditingPhoto,
@@ -20,12 +23,23 @@ export function CarouselWithMarkers({
   onMoveMarker,
   editingPhotoMove,
   setEditingPhotoMove,
+
+  paletteColorsByPhoto,
+  paletteMarkersByPhoto,
+  paletteEditingPhotoMove,
+  setPaletteEditingPhotoMove,
+  onMovePaletteMarker,
+  onDropPaletteMarker,
+  onSetPaletteMarkerAngle,
+  onGeneratePalette,
+  isGeneratingPalette,
 }: {
   photos: string[];
   activeIndex: number;
   setActiveIndex: (i: number) => void;
   width: number;
   height: number;
+  mode: 'colors' | 'palette';
   markersByPhoto: Record<string, Marker[]>;
   editingPhoto: string | null;
   setEditingPhoto: (p: string | null) => void;
@@ -44,6 +58,41 @@ export function CarouselWithMarkers({
   ) => void;
   editingPhotoMove?: string | null;
   setEditingPhotoMove?: (p: string | null) => void;
+
+  paletteColorsByPhoto?: Record<string, string[]>;
+  paletteMarkersByPhoto?:
+    | Record<
+        string,
+        {
+          id: string;
+          x: number;
+          y: number;
+          colorIndex: number;
+          angleDeg: number;
+        }[]
+      >
+    | undefined;
+  paletteEditingPhotoMove?: string | null;
+  setPaletteEditingPhotoMove?: (p: string | null) => void;
+  onMovePaletteMarker?: (
+    photoId: string,
+    markerId: string,
+    xRel: number,
+    yRel: number,
+  ) => void;
+  onDropPaletteMarker?: (
+    photoId: string,
+    markerId: string,
+    xRel: number,
+    yRel: number,
+  ) => void;
+  onSetPaletteMarkerAngle?: (
+    photoId: string,
+    markerId: string,
+    angleDeg: number,
+  ) => void;
+  onGeneratePalette?: () => void;
+  isGeneratingPalette?: boolean;
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const wrapRef = useRef<View>(null);
@@ -56,6 +105,8 @@ export function CarouselWithMarkers({
 
   const [showLabels, setShowLabels] = useState(true);
   const PADDING = 15;
+
+  const activePhoto = photos[activeIndex] ?? '';
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -90,6 +141,37 @@ export function CarouselWithMarkers({
         },
       ]}
     >
+      {/* NEW: slide counter above the image, top-right */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: -10,
+          right: PADDING,
+          zIndex: 270,
+        }}
+      >
+        <Text
+          style={[
+            styles.counterText,
+            {
+              textAlign: 'right',
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              color: '#fff',
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 6,
+              fontSize: 10,
+              fontWeight: '700',
+            },
+          ]}
+        >
+          {photos.length
+            ? `Slide ${activeIndex + 1} of ${photos.length}`
+            : 'Slide 0 of 0'}
+        </Text>
+      </View>
+
       {photos.length > 0 ? (
         <ScrollView
           ref={scrollRef}
@@ -97,7 +179,9 @@ export function CarouselWithMarkers({
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           // block scrolling in either mode
-          scrollEnabled={!editingPhotoMove && !editingPhoto}
+          scrollEnabled={
+            !editingPhotoMove && !editingPhoto && !paletteEditingPhotoMove
+          }
           decelerationRate="fast"
           snapToInterval={width}
           onMomentumScrollEnd={(e) => {
@@ -112,8 +196,11 @@ export function CarouselWithMarkers({
           {photos.map((item) => {
             const isAddColour = editingPhoto === item;
             const isMoveMode = editingPhotoMove === item;
+            const isPaletteMoveMode = paletteEditingPhotoMove === item;
             const borderColor =
-              isAddColour || isMoveMode ? '#d0175e' : 'transparent';
+              isAddColour || isMoveMode || isPaletteMoveMode
+                ? '#d0175e'
+                : 'transparent';
             return (
               <View
                 key={item}
@@ -132,11 +219,41 @@ export function CarouselWithMarkers({
                   photo={item}
                   width={width - PADDING * 2}
                   height={height - PADDING * 2}
-                  markers={markersByPhoto[item] || []}
-                  editing={editingPhoto === item || editingPhotoMove === item}
-                  showLabels={showLabels}
-                  onMoveMarker={onMoveMarker}
-                  moveOnly={editingPhotoMove === item}
+                  markers={mode === 'colors' ? markersByPhoto[item] || [] : []}
+                  editing={
+                    mode === 'colors'
+                      ? editingPhoto === item || editingPhotoMove === item
+                      : isPaletteMoveMode
+                  }
+                  showLabels={mode === 'colors' ? showLabels : false}
+                  onMoveMarker={mode === 'colors' ? onMoveMarker : undefined}
+                  moveOnly={
+                    mode === 'colors' ? editingPhotoMove === item : false
+                  }
+                  paletteMarkers={
+                    mode === 'palette'
+                      ? paletteMarkersByPhoto?.[item]
+                      : undefined
+                  }
+                  paletteHexColors={
+                    mode === 'palette'
+                      ? paletteColorsByPhoto?.[item]
+                      : undefined
+                  }
+                  paletteMoveOnly={
+                    mode === 'palette'
+                      ? paletteEditingPhotoMove === item
+                      : false
+                  }
+                  onMovePaletteMarker={
+                    mode === 'palette' ? onMovePaletteMarker : undefined
+                  }
+                  onDropPaletteMarker={
+                    mode === 'palette' ? onDropPaletteMarker : undefined
+                  }
+                  onSetPaletteMarkerAngle={
+                    mode === 'palette' ? onSetPaletteMarkerAngle : undefined
+                  }
                 />
               </View>
             );
@@ -154,10 +271,13 @@ export function CarouselWithMarkers({
       )}
 
       {(() => {
-        const isAnyMode = !!editingPhoto || !!editingPhotoMove;
+        const isAnyMode =
+          !!editingPhoto || !!editingPhotoMove || !!paletteEditingPhotoMove;
         if (!isAnyMode) return null;
-        const modeText = editingPhotoMove
-          ? 'Move marker mode: tap anywhere or the button to exit'
+        const modeText = paletteEditingPhotoMove
+          ? 'Move palette marker mode: drag markers or the button to exit'
+          : editingPhotoMove
+          ? 'Move marker mode: drag markers or the button to exit'
           : 'Add colour mode: tap anywhere or the button to exit';
         return (
           <View
@@ -197,84 +317,185 @@ export function CarouselWithMarkers({
           },
         ]}
       >
-        <Text style={[styles.counterText, { textAlign: 'center' }]}>
-          {photos.length
-            ? `Slide ${activeIndex + 1} of ${photos.length}`
-            : 'Slide 0 of 0'}
-        </Text>
-        <View
-          style={{
-            marginTop: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-        >
-          {/* Disable Show/Hide labels in either mode */}
-          <RectangleGemButton
-            width={100}
-            fontSize={11}
-            label={showLabels ? 'Hide labels' : 'Show labels'}
-            color={
-              editingPhoto || editingPhotoMove
-                ? '#C2B39A'
-                : showLabels
-                ? '#65dc25'
-                : '#C2B39A'
-            }
-            onPress={
-              editingPhoto || editingPhotoMove
-                ? undefined
-                : () => setShowLabels((v) => !v)
-            }
-          />
-          {!!photos.length && photos[activeIndex] && (
-            <>
+        {mode === 'colors' ? (
+          <View
+            style={{
+              marginTop: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            {/* Disable Show/Hide labels in either mode */}
+            <RectangleGemButton
+              width={100}
+              fontSize={11}
+              label={showLabels ? 'Hide labels' : 'Show labels'}
+              color={
+                editingPhoto || editingPhotoMove
+                  ? '#C2B39A'
+                  : showLabels
+                  ? '#65dc25'
+                  : '#C2B39A'
+              }
+              onPress={
+                editingPhoto || editingPhotoMove
+                  ? undefined
+                  : () => setShowLabels((v) => !v)
+              }
+            />
+            {!!photos.length && photos[activeIndex] && (
+              <>
+                <RectangleGemButton
+                  width={100}
+                  fontSize={11}
+                  label={
+                    editingPhoto === photos[activeIndex] ? 'DONE' : 'Add colour'
+                  }
+                  color={'#d0175e'}
+                  onPress={() =>
+                    setEditingPhoto(
+                      editingPhoto === photos[activeIndex]
+                        ? null
+                        : photos[activeIndex],
+                    )
+                  }
+                />
+                <RectangleGemButton
+                  width={100}
+                  fontSize={11}
+                  label={
+                    editingPhotoMove === photos[activeIndex]
+                      ? 'DONE'
+                      : 'Move marker'
+                  }
+                  color={
+                    editingPhoto
+                      ? '#C2B39A'
+                      : editingPhotoMove === photos[activeIndex]
+                      ? '#65dc25'
+                      : '#0E2B6D'
+                  }
+                  onPress={
+                    editingPhoto
+                      ? undefined
+                      : () =>
+                          setEditingPhotoMove?.(
+                            editingPhotoMove === photos[activeIndex]
+                              ? null
+                              : photos[activeIndex],
+                          )
+                  }
+                />
+              </>
+            )}
+          </View>
+        ) : (
+          <View
+            style={{ width: '100%', alignItems: 'center', marginTop: -100 }}
+          >
+            <View
+              style={{
+                width: Math.min(380, width - 16),
+                height: 74,
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 1,
+                  right: 7,
+                  top: 4.5,
+                  bottom: 4.5,
+                  overflow: 'hidden',
+                }}
+                pointerEvents="none"
+              >
+                <Svg
+                  width="100%"
+                  height="100%"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  pointerEvents="none"
+                >
+                  {/* NEW: mask/clip to hide any overflow beyond the window */}
+                  <Defs>
+                    <ClipPath id="paletteWindowClip">
+                      {/* slight inset + rounded corners to match frame window */}
+                      <SvgRect
+                        x={1}
+                        y={1}
+                        width={98}
+                        height={98}
+                        rx={7}
+                        ry={7}
+                      />
+                    </ClipPath>
+                  </Defs>
+
+                  <G clipPath="url(#paletteWindowClip)">
+                    {(paletteColorsByPhoto?.[activePhoto] ?? [])
+                      .slice(0, 5)
+                      .concat(Array(5).fill('#C2B39A'))
+                      .slice(0, 5)
+                      .map((hex, idx) => (
+                        <SvgRect
+                          key={`palette-preview-${idx}`}
+                          x={(idx * 100) / 5}
+                          y={0}
+                          width={100 / 5}
+                          height={100}
+                          fill={String(hex || '#C2B39A')}
+                        />
+                      ))}
+                  </G>
+                </Svg>
+              </View>
+
+              <PalleteColorsFrame
+                width="100%"
+                height="100%"
+                preserveAspectRatio="none"
+                style={{ position: 'absolute', left: 0, top: 0 }}
+                pointerEvents="none"
+              />
+            </View>
+
+            <View style={{ marginTop: 10, flexDirection: 'row', gap: 10 }}>
               <RectangleGemButton
-                width={100}
+                width={120}
                 fontSize={11}
-                label={
-                  editingPhoto === photos[activeIndex] ? 'DONE' : 'Add colour'
-                }
-                color={'#d0175e'}
-                onPress={() =>
-                  setEditingPhoto(
-                    editingPhoto === photos[activeIndex]
-                      ? null
-                      : photos[activeIndex],
-                  )
-                }
+                label={isGeneratingPalette ? 'GENERATING…' : 'GENERATE PALETTE'}
+                color={'#A100C2'}
+                onPress={isGeneratingPalette ? undefined : onGeneratePalette}
               />
               <RectangleGemButton
-                width={100}
+                width={120}
                 fontSize={11}
                 label={
-                  editingPhotoMove === photos[activeIndex]
+                  paletteEditingPhotoMove === activePhoto
                     ? 'DONE'
-                    : 'Move marker'
+                    : 'Edit markers'
                 }
                 color={
-                  editingPhoto
-                    ? '#C2B39A'
-                    : editingPhotoMove === photos[activeIndex]
+                  paletteEditingPhotoMove === activePhoto
                     ? '#65dc25'
                     : '#0E2B6D'
                 }
-                onPress={
-                  editingPhoto
-                    ? undefined
-                    : () =>
-                        setEditingPhotoMove?.(
-                          editingPhotoMove === photos[activeIndex]
-                            ? null
-                            : photos[activeIndex],
-                        )
+                onPress={() =>
+                  setPaletteEditingPhotoMove?.(
+                    paletteEditingPhotoMove === activePhoto
+                      ? null
+                      : activePhoto,
+                  )
                 }
               />
-            </>
-          )}
-        </View>
+            </View>
+          </View>
+        )}
       </View>
 
       {!!editingPhoto &&
@@ -311,6 +532,23 @@ export function CarouselWithMarkers({
               zIndex: 250,
             }}
             onPress={() => setEditingPhotoMove?.(null)}
+          />
+        )}
+
+      {!!paletteEditingPhotoMove &&
+        photos.length > 0 &&
+        photos[activeIndex] === paletteEditingPhotoMove && (
+          <Pressable
+            pointerEvents="box-none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 250,
+            }}
+            onPress={() => setPaletteEditingPhotoMove?.(null)}
           />
         )}
     </View>

@@ -36,6 +36,35 @@ type Props = {
     xRel: number,
     yRel: number,
   ) => void;
+
+  // Palette-only markers (separate from project markers)
+  paletteMarkers?: {
+    id: string;
+    x: number; // 0..1
+    y: number; // 0..1
+    colorIndex: number; // 0..4
+    angleDeg: number;
+  }[];
+  paletteHexColors?: string[];
+  paletteMoveOnly?: boolean;
+  onMovePaletteMarker?: (
+    photoId: string,
+    markerId: string,
+    xRel: number,
+    yRel: number,
+  ) => void;
+  onDropPaletteMarker?: (
+    photoId: string,
+    markerId: string,
+    xRel: number,
+    yRel: number,
+  ) => void;
+
+  onSetPaletteMarkerAngle?: (
+    photoId: string,
+    markerId: string,
+    angleDeg: number,
+  ) => void;
 };
 
 export const SlideImageWithMarkers: React.FC<Props> = ({
@@ -47,6 +76,12 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   showLabels = true,
   moveOnly = false,
   onMoveMarker,
+  paletteMarkers,
+  paletteHexColors,
+  paletteMoveOnly = false,
+  onMovePaletteMarker,
+  onDropPaletteMarker,
+  onSetPaletteMarkerAngle,
 }) => {
   // Measure the container to convert pageX/pageY -> relative 0..1
   const containerRef = React.useRef<View>(null);
@@ -85,8 +120,68 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     onMoveMarker(photo, markerId, xRel, yRel);
   };
 
+  const handlePaletteMove =
+    (markerId: string) => (e: GestureResponderEvent) => {
+      if (!paletteMoveOnly || !onMovePaletteMarker || !containerRect) return;
+      const { pageX, pageY } = e.nativeEvent;
+      const xRel = Math.max(
+        0,
+        Math.min(1, (pageX - containerRect.x) / containerRect.width),
+      );
+      const yRel = Math.max(
+        0,
+        Math.min(1, (pageY - containerRect.y) / containerRect.height),
+      );
+      onMovePaletteMarker(photo, markerId, xRel, yRel);
+    };
+
+  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+  const emitPaletteSampleAtTip = (
+    markerId: string,
+    centerAbsX: number,
+    centerAbsY: number,
+    angleDeg: number,
+  ) => {
+    if (!paletteMoveOnly || !onDropPaletteMarker || !containerRect) return;
+
+    const a = (angleDeg * Math.PI) / 180;
+    const tipRadiusPx = PALETTE_ARROW_TIP_RADIUS_PX;
+
+    // arrow-left-bold points LEFT by default; we rotate by -angleDeg
+    const tipAbsX = centerAbsX + -Math.cos(a) * tipRadiusPx;
+    const tipAbsY = centerAbsY + Math.sin(a) * tipRadiusPx;
+
+    const xRel = clamp01((tipAbsX - containerRect.x) / containerRect.width);
+    const yRel = clamp01((tipAbsY - containerRect.y) / containerRect.height);
+    onDropPaletteMarker(photo, markerId, xRel, yRel);
+  };
+
+  const handlePaletteDrop =
+    (markerId: string, angleDeg: number) => (e: GestureResponderEvent) => {
+      if (!paletteMoveOnly || !containerRect) return;
+      const { pageX, pageY } = e.nativeEvent;
+
+      // Ensure final position is saved (like Move marker mode)
+      if (onMovePaletteMarker) {
+        const xRel = clamp01((pageX - containerRect.x) / containerRect.width);
+        const yRel = clamp01((pageY - containerRect.y) / containerRect.height);
+        onMovePaletteMarker(photo, markerId, xRel, yRel);
+      }
+
+      emitPaletteSampleAtTip(markerId, pageX, pageY, angleDeg);
+    };
+
   const DOT_SIZE = 30;
   const DOT_RADIUS = DOT_SIZE / 2;
+  const PALETTE_DOT_SIZE = DOT_SIZE + 5;
+  const PALETTE_DOT_RADIUS = PALETTE_DOT_SIZE / 2;
+  const PALETTE_ARROW_SIZE = 24;
+  const PALETTE_ARROW_HIT_SIZE = 32;
+  const PALETTE_ARROW_CENTER_OFFSET_PX =
+    PALETTE_DOT_RADIUS + PALETTE_ARROW_SIZE * 0.6;
+  const PALETTE_ARROW_TIP_RADIUS_PX =
+    PALETTE_ARROW_CENTER_OFFSET_PX + PALETTE_ARROW_SIZE * 0.55;
   const MARKER_ICON_SIZE = 18;
   const START_OFFSET = 8 + DOT_RADIUS;
   const MAIN_DOT_SPACING = 18;
@@ -591,6 +686,21 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return anyMix;
   };
 
+  function makePalettePanHandlers(id: string, angleDeg: number) {
+    const canDrag = () => !!paletteMoveOnly && !!containerRect;
+
+    return {
+      panHandlers: {
+        onStartShouldSetResponder: () => canDrag(),
+        onMoveShouldSetResponder: () => canDrag(),
+        onResponderTerminationRequest: () => false,
+
+        onResponderMove: handlePaletteMove(id),
+        onResponderRelease: handlePaletteDrop(id, angleDeg),
+        onResponderTerminate: handlePaletteDrop(id, angleDeg),
+      },
+    };
+  }
   return (
     <View
       ref={containerRef}
@@ -814,6 +924,138 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           </View>
         );
       })}
+
+      {Array.isArray(paletteMarkers) && paletteMarkers.length
+        ? paletteMarkers.slice(0, 5).map((pm) => {
+            const cx = pm.x * width;
+            const cy = pm.y * height;
+            const fill = String(paletteHexColors?.[pm.colorIndex] ?? '#C2B39A');
+            const angleDeg = pm.angleDeg ?? 45;
+
+            const a = (angleDeg * Math.PI) / 180;
+            const tipDirX = -Math.cos(a);
+            const tipDirY = Math.sin(a);
+            const arrowCenterX = tipDirX * PALETTE_ARROW_CENTER_OFFSET_PX;
+            const arrowCenterY = tipDirY * PALETTE_ARROW_CENTER_OFFSET_PX;
+
+            const pan = makePalettePanHandlers(pm.id, angleDeg);
+
+            return (
+              <View
+                key={`palette-${pm.id}`}
+                pointerEvents="box-none"
+                style={{
+                  position: 'absolute',
+                  left: cx,
+                  top: cy,
+                  zIndex: 20,
+                  elevation: 20,
+                }}
+              >
+                {/* +/- buttons to change angle, only in palette edit mode */}
+                {paletteMoveOnly && onSetPaletteMarkerAngle ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      left: -36,
+                      top: -36,
+                      flexDirection: 'row',
+                      zIndex: 30,
+                      elevation: 30,
+                    }}
+                  >
+                    <Pressable
+                      onPress={() =>
+                        onSetPaletteMarkerAngle(
+                          photo,
+                          pm.id,
+                          (angleDeg + 10 + 360) % 360,
+                        )
+                      }
+                      style={{
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        padding: 6,
+                        borderRadius: 14,
+                        marginRight: 6,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="undo"
+                        size={16}
+                        color="#fff"
+                        style={{ transform: [{ rotate: '-30deg' }] }}
+                      />
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() =>
+                        onSetPaletteMarkerAngle(
+                          photo,
+                          pm.id,
+                          (angleDeg - 10 + 360) % 360,
+                        )
+                      }
+                      style={{
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        padding: 6,
+                        borderRadius: 14,
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="redo"
+                        size={16}
+                        color="#fff"
+                        style={{ transform: [{ rotate: '30deg' }] }}
+                      />
+                    </Pressable>
+                  </View>
+                ) : null}
+
+                {/* DOT = jedyny obszar łapania dla kółka */}
+                <View
+                  {...pan.panHandlers}
+                  style={{
+                    position: 'absolute',
+                    left: -PALETTE_DOT_RADIUS,
+                    top: -PALETTE_DOT_RADIUS,
+                    width: PALETTE_DOT_SIZE,
+                    height: PALETTE_DOT_SIZE,
+                    borderRadius: PALETTE_DOT_RADIUS,
+                    backgroundColor: fill,
+                    borderWidth: 2,
+                    borderColor: '#000',
+                    opacity: 0.95,
+                    zIndex: 25,
+                    elevation: 25,
+                  }}
+                />
+
+                {/* ARROW = drugi obszar łapania (łatwiej złapać strzałkę) */}
+                <View
+                  {...pan.panHandlers}
+                  style={{
+                    position: 'absolute',
+                    left: arrowCenterX - PALETTE_ARROW_SIZE / 2,
+                    top: arrowCenterY - PALETTE_ARROW_SIZE / 2,
+                    width: PALETTE_ARROW_SIZE,
+                    height: PALETTE_ARROW_SIZE,
+                    zIndex: 26,
+                    elevation: 26,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="arrow-left-bold"
+                    size={PALETTE_ARROW_SIZE}
+                    color="#ffffff"
+                    style={{ transform: [{ rotate: `${-angleDeg}deg` }] }}
+                  />
+                </View>
+              </View>
+            );
+          })
+        : null}
     </View>
   );
 };

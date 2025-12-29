@@ -1,3 +1,4 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { Router } from 'expo-router';
 import { ArrowLeft, ArrowRight, Home, Wrench } from 'lucide-react-native';
 import React from 'react';
@@ -12,6 +13,7 @@ export function BottomNavigation({
   goNext,
   router,
   onOpenWorkshop,
+  onEditProject,
 }: {
   photosLength: number;
   activeIndex: number;
@@ -19,12 +21,24 @@ export function BottomNavigation({
   goNext: () => void;
   router: Router;
   onOpenWorkshop?: () => void;
+  onEditProject?: () => void;
 }) {
   if (!photosLength) return null;
+
+  const showArrows = photosLength > 1;
+
   return (
     <View style={extraStyles.bottomNavContainer}>
-      {/* Left group: Home + Workshop (2nd button) */}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+      {/* CHANGED: single justified row for all gems */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          gap: 12,
+          width: '100%',
+        }}
+      >
         <GemButton
           color="#47B0D7"
           active={false}
@@ -32,8 +46,8 @@ export function BottomNavigation({
           size={55}
           onPress={() => router.push('/(tabs)/projects')}
         />
-        {!!onOpenWorkshop && <View style={{ width: 12 }} />}
-        {!!onOpenWorkshop && (
+
+        {onOpenWorkshop ? (
           <GemButton
             color="#d0175e"
             active={false}
@@ -41,33 +55,40 @@ export function BottomNavigation({
             size={55}
             onPress={onOpenWorkshop}
           />
-        )}
-      </View>
+        ) : null}
 
-      {/* Right group: arrows */}
-      {photosLength > 1 && (
-        <View style={{ flexDirection: 'row' }}>
+        {onEditProject ? (
           <GemButton
-            color="#65dc25"
-            active={false}
-            Icon={ArrowLeft}
             size={55}
-            onPress={() => {
-              if (activeIndex > 0) goPrev();
-            }}
+            color="#47B0D7"
+            iconNode={<MaterialIcons name="edit" size={18} color="#ffffff" />}
+            onPress={onEditProject}
           />
-          <View style={{ width: 12 }} />
-          <GemButton
-            color="#65dc25"
-            active={false}
-            Icon={ArrowRight}
-            size={55}
-            onPress={() => {
-              if (activeIndex < photosLength - 1) goNext();
-            }}
-          />
-        </View>
-      )}
+        ) : null}
+
+        {showArrows ? (
+          <>
+            <GemButton
+              color="#65dc25"
+              active={false}
+              Icon={ArrowLeft}
+              size={55}
+              onPress={() => {
+                if (activeIndex > 0) goPrev();
+              }}
+            />
+            <GemButton
+              color="#65dc25"
+              active={false}
+              Icon={ArrowRight}
+              size={55}
+              onPress={() => {
+                if (activeIndex < photosLength - 1) goNext();
+              }}
+            />
+          </>
+        ) : null}
+      </View>
     </View>
   );
 }

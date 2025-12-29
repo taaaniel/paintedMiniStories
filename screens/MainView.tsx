@@ -2,7 +2,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import paletteColors from '../assets/data/palleteColors.json';
 import MainFrame from '../assets/MainFrame.svg';
 import { useUserProfile } from '../src/contexts/UserProfileContext';
 import Header from './Header';
@@ -34,11 +33,12 @@ export default function MainView({
     [profile.avatarUrl, profile.username],
   );
 
-  const paintBankCount =
-    dashboard?.paintBankCount ??
-    (Array.isArray(paletteColors) ? paletteColors.length : 0);
-
   const [storedProjectsCount, setStoredProjectsCount] = React.useState<
+    number | null
+  >(null);
+
+  // NEW: PaintBank count from AsyncStorage (used when screen doesn't override via dashboard)
+  const [storedPaintBankCount, setStoredPaintBankCount] = React.useState<
     number | null
   >(null);
 
@@ -63,7 +63,32 @@ export default function MainView({
     };
   }, [dashboard?.projectsCount]);
 
+  // NEW
+  React.useEffect(() => {
+    if (dashboard?.paintBankCount != null) return;
+
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const raw = await AsyncStorage.getItem('paintBank.paints');
+        const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+        const count = Array.isArray(parsed) ? parsed.length : 0;
+        if (isMounted) setStoredPaintBankCount(count);
+      } catch {
+        if (isMounted) setStoredPaintBankCount(0);
+      }
+    };
+
+    void load();
+    return () => {
+      isMounted = false;
+    };
+  }, [dashboard?.paintBankCount]);
+
   const projectsCount = dashboard?.projectsCount ?? storedProjectsCount ?? 0;
+
+  // CHANGED: prefer dashboard override, else AsyncStorage, else 0
+  const paintBankCount = dashboard?.paintBankCount ?? storedPaintBankCount ?? 0;
 
   // `MiniDashboard` is the default header action across screens.
   // You can override it per-screen via `headerAction`.

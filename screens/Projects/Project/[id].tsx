@@ -19,8 +19,14 @@ import AddColorMarkerDialog from './AddColorMarkerDialog';
 import { BottomNavigation } from './components/BottomNavigation';
 import { CarouselWithMarkers } from './components/CarouselWithMarkers';
 import WorkshopPopup from './components/WorkshopPopup';
+import {
+  extractPaletteFromImage,
+  findPaletteMarkerPositions,
+  sampleHexFromImage,
+} from './extractPaletteFromImage';
 import { useProjectMarkers } from './hooks/useProjectMarkers';
 import MarkerList from './MarkerList'; // new import
+import PaletteTab from './PaletteTab';
 import { styles } from './Project.styles';
 import { extraStyles } from './ProjectExtras.styles';
 import ProjectTitleDescryption from './ProjectTitleDescryption';
@@ -32,11 +38,33 @@ type Project = {
   photos: string[];
 };
 
+type PaletteMarker = {
+  id: string;
+  x: number;
+  y: number;
+  colorIndex: number;
+  angleDeg: number;
+};
+
+type PaletteState = {
+  colors: string[];
+  markers: PaletteMarker[];
+};
+
 export default function SingleProjectScreen() {
   const { id, idx } = useLocalSearchParams();
   const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [activeTab, setActiveTab] = useState<'colors' | 'palette'>('colors');
+  const [paletteByPhoto, setPaletteByPhoto] = useState<
+    Record<string, PaletteState>
+  >({});
+  const [paletteEditingPhotoMove, setPaletteEditingPhotoMove] = useState<
+    string | null
+  >(null);
+
   const [activeIndex, setActiveIndex] = useState(0); // simplification
   const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
   const [editingPhotoMove, setEditingPhotoMove] = useState<string | null>(null); // NEW
@@ -67,6 +95,145 @@ export default function SingleProjectScreen() {
   const contentWidth = Math.min(screenWidth - 40, 1000);
   const carouselHeight = Math.round(screenHeight / 2); // half of the screen height
 
+  const activePhotoUri = project?.photos?.[activeIndex] ?? '';
+
+  const paletteColors = activePhotoUri
+    ? paletteByPhoto[activePhotoUri]?.colors ?? []
+    : [];
+
+  const paletteMarkersByPhoto = React.useMemo(() => {
+    const out: Record<string, PaletteMarker[]> = {};
+    for (const [photo, state] of Object.entries(paletteByPhoto)) {
+      out[photo] = state.markers;
+    }
+    return out;
+  }, [paletteByPhoto]);
+
+  const paletteColorsByPhoto = React.useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const [photo, state] of Object.entries(paletteByPhoto)) {
+      out[photo] = state.colors;
+    }
+    return out;
+  }, [paletteByPhoto]);
+
+  const setPaletteColorsForActivePhoto = React.useCallback(
+    (next: string[]) => {
+      if (!activePhotoUri) return;
+      setPaletteByPhoto((prev) => {
+        const existing = prev[activePhotoUri] ?? { colors: [], markers: [] };
+        return {
+          ...prev,
+          [activePhotoUri]: {
+            ...existing,
+            colors: next.slice(0, 5),
+          },
+        };
+      });
+    },
+    [activePhotoUri],
+  );
+
+  const autoPlacePaletteMarkers = React.useCallback(
+    async (photoUri: string, colors: string[]) => {
+      if (!photoUri) return;
+      const positions = await findPaletteMarkerPositions(photoUri, colors);
+      setPaletteByPhoto((prev) => {
+        const existing = prev[photoUri] ?? { colors: [], markers: [] };
+        const markers: PaletteMarker[] = positions
+          .slice(0, 5)
+          .map((p, idx) => ({
+            id: `pal-${idx}`,
+            colorIndex: idx,
+            x: Math.max(0, Math.min(1, p.x)),
+            y: Math.max(0, Math.min(1, p.y)),
+            angleDeg: 45,
+          }));
+        return {
+          ...prev,
+          [photoUri]: {
+            ...existing,
+            colors: colors.slice(0, 5),
+            markers,
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const onSetPaletteMarkerAngle = React.useCallback(
+    (photoId: string, markerId: string, angleDeg: number) => {
+      setPaletteByPhoto((prev) => {
+        const existing = prev[photoId];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [photoId]: {
+            ...existing,
+            markers: existing.markers.map((m) =>
+              m.id === markerId
+                ? { ...m, angleDeg: ((angleDeg % 360) + 360) % 360 }
+                : m,
+            ),
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const onMovePaletteMarker = React.useCallback(
+    (photoId: string, markerId: string, xRel: number, yRel: number) => {
+      setPaletteByPhoto((prev) => {
+        const existing = prev[photoId];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [photoId]: {
+            ...existing,
+            markers: existing.markers.map((m) =>
+              m.id === markerId
+                ? {
+                    ...m,
+                    x: Math.max(0, Math.min(1, xRel)),
+                    y: Math.max(0, Math.min(1, yRel)),
+                  }
+                : m,
+            ),
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const onDropPaletteMarker = React.useCallback(
+    async (photoId: string, markerId: string, xRel: number, yRel: number) => {
+      const sampled = await sampleHexFromImage(photoId, xRel, yRel);
+      if (!sampled) return;
+
+      setPaletteByPhoto((prev) => {
+        const existing = prev[photoId];
+        if (!existing) return prev;
+        const moved = existing.markers.find((m) => m.id === markerId);
+        if (!moved) return prev;
+        const idx = moved.colorIndex;
+        const nextColors = [...(existing.colors ?? [])];
+        while (nextColors.length < 5) nextColors.push('#C2B39A');
+        nextColors[idx] = sampled;
+        return {
+          ...prev,
+          [photoId]: {
+            ...existing,
+            colors: nextColors.slice(0, 5),
+          },
+        };
+      });
+    },
+    [],
+  );
+
   const [imageWindowRect, setImageWindowRect] = useState<{
     x: number;
     y: number;
@@ -76,6 +243,10 @@ export default function SingleProjectScreen() {
 
   // NEW: workshop popup state
   const [showWorkshop, setShowWorkshop] = useState(false);
+
+  // NEW: palette generation UI state (button lives near "Edit markers")
+  const [isGeneratingPalette, setIsGeneratingPalette] = useState(false);
+  const [paletteGenError, setPaletteGenError] = useState<string | null>(null);
 
   // helper to adjust index
   const clampIndex = (i: number, arr: any[]) =>
@@ -217,6 +388,23 @@ export default function SingleProjectScreen() {
     }
   }, []);
 
+  React.useEffect(() => {
+    // Keep edit modes separated by tab
+    if (activeTab === 'palette') {
+      setEditingPhoto(null);
+      setEditingPhotoMove(null);
+    } else {
+      setPaletteEditingPhotoMove(null);
+    }
+  }, [activeTab]);
+
+  React.useEffect(() => {
+    // when swiping slides, exit palette edit mode if it no longer matches
+    if (paletteEditingPhotoMove && paletteEditingPhotoMove !== activePhotoUri) {
+      setPaletteEditingPhotoMove(null);
+    }
+  }, [activePhotoUri, paletteEditingPhotoMove]);
+
   const toggleMarkerAccordion = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedMarkers((curr) => ({ ...curr, [id]: !curr[id] }));
@@ -233,6 +421,24 @@ export default function SingleProjectScreen() {
 
     return () => clearTimeout(t);
   }, [isLoading, project, router]);
+
+  // NEW: palette generation handler
+  const onGeneratePalette = React.useCallback(async () => {
+    if (!activePhotoUri) return;
+
+    setIsGeneratingPalette(true);
+    setPaletteGenError(null);
+    try {
+      const next = await extractPaletteFromImage(activePhotoUri, 5);
+      setPaletteColorsForActivePhoto(next);
+      await autoPlacePaletteMarkers(activePhotoUri, next);
+    } catch (e) {
+      console.error('Palette generation failed:', e);
+      setPaletteGenError('Failed to generate palette');
+    } finally {
+      setIsGeneratingPalette(false);
+    }
+  }, [activePhotoUri, autoPlacePaletteMarkers, setPaletteColorsForActivePhoto]);
 
   return (
     <MainView>
@@ -259,7 +465,9 @@ export default function SingleProjectScreen() {
               paddingBottom: 40,
             }}
             showsVerticalScrollIndicator={false}
-            scrollEnabled={!editingPhotoMove}
+            scrollEnabled={
+              !editingPhotoMove && !paletteEditingPhotoMove && !editingPhoto
+            }
           >
             <View style={styles.header}>
               <View style={{ flexShrink: 1, flexGrow: 1 }}>
@@ -276,6 +484,7 @@ export default function SingleProjectScreen() {
                 setActiveIndex={setActiveIndex}
                 width={contentWidth}
                 height={carouselHeight}
+                mode={activeTab}
                 markersByPhoto={markersByPhoto}
                 editingPhoto={editingPhoto}
                 setEditingPhoto={setEditingPhoto}
@@ -290,22 +499,116 @@ export default function SingleProjectScreen() {
                 }}
                 editingPhotoMove={editingPhotoMove}
                 setEditingPhotoMove={setEditingPhotoMove}
+                paletteColorsByPhoto={paletteColorsByPhoto}
+                paletteMarkersByPhoto={paletteMarkersByPhoto}
+                paletteEditingPhotoMove={paletteEditingPhotoMove}
+                setPaletteEditingPhotoMove={setPaletteEditingPhotoMove}
+                onMovePaletteMarker={onMovePaletteMarker}
+                onDropPaletteMarker={onDropPaletteMarker}
+                // NEW
+                onGeneratePalette={onGeneratePalette}
+                isGeneratingPalette={isGeneratingPalette}
               />
             </View>
 
-            {/* Marker list moved here — full width and scrolling works */}
-            {project.photos[activeIndex] && (
-              <MarkerList
-                photoId={project.photos[activeIndex]}
-                markers={markersByPhoto[project.photos[activeIndex]] || []}
-                expanded={expandedMarkers}
-                onToggle={toggleMarkerAccordion}
-                onUpdate={(markerId, patch) =>
-                  updateMarker(project.photos[activeIndex], markerId, patch)
-                }
-                maxWidth={contentWidth}
-              />
-            )}
+            {/* Tabs under the 3 RectangleGemButtons */}
+            <View
+              style={{
+                width: '100%',
+                alignItems: 'center',
+                marginTop: 40,
+                marginBottom: 10,
+              }}
+            >
+              <View
+                style={{
+                  width: contentWidth,
+                  flexDirection: 'row',
+                  borderWidth: 2,
+                  borderColor: '#121212',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  backgroundColor: '#F5F0EB',
+                }}
+              >
+                <Pressable
+                  onPress={() => setActiveTab('colors')}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    alignItems: 'center',
+                    backgroundColor:
+                      activeTab === 'colors' ? '#0E2B6D' : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontWeight: '800',
+                      color: activeTab === 'colors' ? '#F8FAFF' : '#0E2B6D',
+                    }}
+                  >
+                    Colors
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setActiveTab('palette')}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    alignItems: 'center',
+                    backgroundColor:
+                      activeTab === 'palette' ? '#0E2B6D' : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontWeight: '800',
+                      color: activeTab === 'palette' ? '#F8FAFF' : '#0E2B6D',
+                    }}
+                  >
+                    Palette
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={{ width: '100%' }}>
+              {/* Keep both tabs mounted to avoid resetting existing behavior */}
+              <View
+                style={{ display: activeTab === 'colors' ? 'flex' : 'none' }}
+              >
+                {/* Marker list — existing Colors view */}
+                {project.photos[activeIndex] && (
+                  <MarkerList
+                    photoId={project.photos[activeIndex]}
+                    markers={markersByPhoto[project.photos[activeIndex]] || []}
+                    expanded={expandedMarkers}
+                    onToggle={toggleMarkerAccordion}
+                    onUpdate={(markerId, patch) =>
+                      updateMarker(project.photos[activeIndex], markerId, patch)
+                    }
+                    maxWidth={contentWidth}
+                  />
+                )}
+              </View>
+
+              <View
+                style={{ display: activeTab === 'palette' ? 'flex' : 'none' }}
+              >
+                <PaletteTab
+                  photoUri={activePhotoUri}
+                  maxWidth={contentWidth}
+                  colors={paletteColors}
+                  onChangeColors={setPaletteColorsForActivePhoto}
+                  onAfterGenerate={(next) =>
+                    autoPlacePaletteMarkers(activePhotoUri, next)
+                  }
+                  // NEW (UI only)
+                  isLoading={isGeneratingPalette}
+                  error={paletteGenError}
+                />
+              </View>
+            </View>
           </ScrollView>
 
           {/* REPLACE the non-interactive overlay with a full-screen Pressable */}
@@ -344,7 +647,14 @@ export default function SingleProjectScreen() {
               goPrev={goPrev}
               goNext={goNext}
               router={router}
-              onOpenWorkshop={() => setShowWorkshop(true)} // NEW
+              onOpenWorkshop={() => setShowWorkshop(true)}
+              // NEW: edit project button action
+              onEditProject={() =>
+                router.push({
+                  pathname: '/(tabs)/addNewProject',
+                  params: { projectId: project.id },
+                })
+              }
             />
           )}
 

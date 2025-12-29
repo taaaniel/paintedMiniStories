@@ -126,25 +126,21 @@ export default function PaintBankScreen() {
 
     const out = brands.map((brand) => ({
       title: brand,
-      data: (map.get(brand) ?? [])
-        .slice()
-        .sort((a, b) =>
-          (a.name || '').localeCompare(b.name || '', undefined, {
-            sensitivity: 'base',
-          }),
-        ),
+      data: (map.get(brand) ?? []).slice().sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', undefined, {
+          sensitivity: 'base',
+        }),
+      ),
     }));
 
     if (map.has(OTHER)) {
       out.push({
         title: OTHER,
-        data: (map.get(OTHER) ?? [])
-          .slice()
-          .sort((a, b) =>
-            (a.name || '').localeCompare(b.name || '', undefined, {
-              sensitivity: 'base',
-            }),
-          ),
+        data: (map.get(OTHER) ?? []).slice().sort((a, b) =>
+          (a.name || '').localeCompare(b.name || '', undefined, {
+            sensitivity: 'base',
+          }),
+        ),
       });
     }
 
@@ -233,13 +229,19 @@ export default function PaintBankScreen() {
   );
 
   return (
-    <MainView>
+    <MainView
+      dashboard={{
+        paintBankCount: paints.length, // NEW: realtime header counter while editing
+      }}
+    >
       <View style={styles.container}>
         <Text style={styles.title}>Paint Bank</Text>
 
         {/* SECTION 1: list + search */}
         <View style={styles.section}>
           <SimplyInput
+            useLightBg
+            inputFieldColor="#fff"
             value={query}
             onChangeText={setQuery}
             placeholder="Search paints by name…"
@@ -332,6 +334,7 @@ export default function PaintBankScreen() {
         >
           <View style={styles.form}>
             <SimplySelect
+              useLightBg
               options={paletteOptions}
               value={
                 paletteOptions.find(
@@ -359,6 +362,8 @@ export default function PaintBankScreen() {
             <View style={{ height: 10 }} />
 
             <SimplyInput
+              useLightBg
+              inputFieldColor="#fff"
               value={name}
               onChangeText={(t) => {
                 setName(t);
@@ -375,6 +380,8 @@ export default function PaintBankScreen() {
             <View style={styles.colorRow}>
               <View style={{ flex: 1 }}>
                 <SimplyInput
+                  useLightBg
+                  inputFieldColor="#fff"
                   value={colorHex}
                   onChangeText={(t) => {
                     setColorHex(t);
@@ -401,6 +408,8 @@ export default function PaintBankScreen() {
             <View style={{ height: 10 }} />
 
             <SimplyInput
+              useLightBg
+              inputFieldColor="#fff"
               value={brand}
               onChangeText={setBrand}
               label="Brand (optional)"
@@ -411,6 +420,8 @@ export default function PaintBankScreen() {
             <View style={{ height: 10 }} />
 
             <SimplyInput
+              useLightBg
+              inputFieldColor="#fff"
               value={note}
               onChangeText={setNote}
               label="Note (optional)"
