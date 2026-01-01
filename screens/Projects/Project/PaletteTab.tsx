@@ -10,8 +10,6 @@ type Props = {
   colors?: string[];
   onChangeColors: (next: string[]) => void;
   onAfterGenerate?: (next: string[]) => void;
-  isLoading?: boolean;
-  error?: string | null;
 };
 
 const isHex = (s: string) => /^#?[0-9a-f]{6}$/i.test(s.trim());
@@ -41,9 +39,11 @@ export default function PaletteTab({
   maxWidth,
   colors,
   onChangeColors,
-  isLoading = false,
-  error = null,
+  onAfterGenerate,
 }: Props) {
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
   const effective = React.useMemo(() => {
     const base =
       Array.isArray(colors) && colors.length ? colors : pickFallback(5);

@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 export default function TabsLayout() {
   return (
     <Tabs
-      initialRouteName="projects"
+      initialRouteName="dashboard"
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,

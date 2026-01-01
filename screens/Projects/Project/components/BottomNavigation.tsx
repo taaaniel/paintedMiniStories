@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { Router } from 'expo-router';
-import { ArrowLeft, ArrowRight, Home, Wrench } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Home, Instagram } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
 import GemButton from '../../../../components/buttons/GemButton';
@@ -12,7 +12,8 @@ export function BottomNavigation({
   goPrev,
   goNext,
   router,
-  onOpenWorkshop,
+  onOpenInstagramExport,
+  instagramDisabled,
   onEditProject,
 }: {
   photosLength: number;
@@ -20,7 +21,8 @@ export function BottomNavigation({
   goPrev: () => void;
   goNext: () => void;
   router: Router;
-  onOpenWorkshop?: () => void;
+  onOpenInstagramExport?: () => void;
+  instagramDisabled?: boolean;
   onEditProject?: () => void;
 }) {
   if (!photosLength) return null;
@@ -47,13 +49,14 @@ export function BottomNavigation({
           onPress={() => router.push('/(tabs)/projects')}
         />
 
-        {onOpenWorkshop ? (
+        {onOpenInstagramExport ? (
           <GemButton
             color="#d0175e"
             active={false}
-            Icon={Wrench}
+            Icon={Instagram}
             size={55}
-            onPress={onOpenWorkshop}
+            disabled={!!instagramDisabled}
+            onPress={onOpenInstagramExport}
           />
         ) : null}
 

@@ -15,6 +15,7 @@ export function CarouselWithMarkers({
   width,
   height,
   mode,
+  exportMode = false,
   markersByPhoto = {},
   editingPhoto,
   setEditingPhoto,
@@ -40,6 +41,7 @@ export function CarouselWithMarkers({
   width: number;
   height: number;
   mode: 'colors' | 'palette';
+  exportMode?: boolean;
   markersByPhoto: Record<string, Marker[]>;
   editingPhoto: string | null;
   setEditingPhoto: (p: string | null) => void;
@@ -96,12 +98,6 @@ export function CarouselWithMarkers({
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const wrapRef = useRef<View>(null);
-  const [imageRect, setImageRect] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
 
   const [showLabels, setShowLabels] = useState(true);
   const PADDING = 15;
@@ -116,6 +112,68 @@ export function CarouselWithMarkers({
     });
   }, [activeIndex, width]);
 
+  const palettePreview = (
+    <View
+      style={{
+        width: Math.min(380, width - 16),
+        height: 74,
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          left: 1,
+          right: 7,
+          top: 4.5,
+          bottom: 4.5,
+          overflow: 'hidden',
+        }}
+        pointerEvents="none"
+      >
+        <Svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          pointerEvents="none"
+        >
+          <Defs>
+            <ClipPath id="paletteWindowClip">
+              <SvgRect x={1} y={1} width={98} height={98} rx={7} ry={7} />
+            </ClipPath>
+          </Defs>
+
+          <G clipPath="url(#paletteWindowClip)">
+            {(paletteColorsByPhoto?.[activePhoto] ?? [])
+              .slice(0, 5)
+              .concat(Array(5).fill('#C2B39A'))
+              .slice(0, 5)
+              .map((hex, idx) => (
+                <SvgRect
+                  key={`palette-preview-${idx}`}
+                  x={(idx * 100) / 5}
+                  y={0}
+                  width={100 / 5}
+                  height={100}
+                  fill={String(hex || '#C2B39A')}
+                />
+              ))}
+          </G>
+        </Svg>
+      </View>
+
+      <PalleteColorsFrame
+        width="100%"
+        height="100%"
+        preserveAspectRatio="none"
+        style={{ position: 'absolute', left: 0, top: 0 }}
+        pointerEvents="none"
+      />
+    </View>
+  );
+
   return (
     <View
       ref={wrapRef}
@@ -123,7 +181,6 @@ export function CarouselWithMarkers({
         if (wrapRef.current) {
           wrapRef.current.measureInWindow((x, y, w, h) => {
             onImageWindowRectChange({ x, y, width: w, height: h });
-            setImageRect({ x, y, width: w, height: h });
           });
         }
       }}
@@ -141,36 +198,38 @@ export function CarouselWithMarkers({
         },
       ]}
     >
-      {/* NEW: slide counter above the image, top-right */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: -10,
-          right: PADDING,
-          zIndex: 270,
-        }}
-      >
-        <Text
-          style={[
-            styles.counterText,
-            {
-              textAlign: 'right',
-              backgroundColor: 'rgba(0,0,0,0.55)',
-              color: '#fff',
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 6,
-              fontSize: 10,
-              fontWeight: '700',
-            },
-          ]}
+      {/* Slide counter above the image (hide in export mode so it doesn't end up in the capture) */}
+      {!exportMode && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: -10,
+            right: PADDING,
+            zIndex: 270,
+          }}
         >
-          {photos.length
-            ? `Slide ${activeIndex + 1} of ${photos.length}`
-            : 'Slide 0 of 0'}
-        </Text>
-      </View>
+          <Text
+            style={[
+              styles.counterText,
+              {
+                textAlign: 'right',
+                backgroundColor: 'rgba(0,0,0,0.55)',
+                color: '#fff',
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 6,
+                fontSize: 10,
+                fontWeight: '700',
+              },
+            ]}
+          >
+            {photos.length
+              ? `Slide ${activeIndex + 1} of ${photos.length}`
+              : 'Slide 0 of 0'}
+          </Text>
+        </View>
+      )}
 
       {photos.length > 0 ? (
         <ScrollView
@@ -302,201 +361,172 @@ export function CarouselWithMarkers({
         );
       })()}
 
-      <View
-        style={[
-          extraStyles.carouselMetaRow,
-          {
-            position: 'absolute',
-            bottom: -50,
-            left: 8,
-            right: 8,
-            zIndex: 200,
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-        ]}
-      >
-        {mode === 'colors' ? (
+      {/* Export mode: hide all bottom controls, but keep palette preview visible */}
+      {exportMode ? (
+        mode === 'palette' ? (
           <View
+            pointerEvents="none"
             style={{
-              marginTop: 8,
-              flexDirection: 'row',
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: PADDING - 25,
+              zIndex: 200,
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
             }}
           >
-            {/* Disable Show/Hide labels in either mode */}
-            <RectangleGemButton
-              width={100}
-              fontSize={11}
-              label={showLabels ? 'Hide labels' : 'Show labels'}
-              color={
-                editingPhoto || editingPhotoMove
-                  ? '#C2B39A'
-                  : showLabels
-                  ? '#65dc25'
-                  : '#C2B39A'
-              }
-              onPress={
-                editingPhoto || editingPhotoMove
-                  ? undefined
-                  : () => setShowLabels((v) => !v)
-              }
-            />
-            {!!photos.length && photos[activeIndex] && (
-              <>
-                <RectangleGemButton
-                  width={100}
-                  fontSize={11}
-                  label={
-                    editingPhoto === photos[activeIndex] ? 'DONE' : 'Add colour'
-                  }
-                  color={'#d0175e'}
-                  onPress={() =>
-                    setEditingPhoto(
-                      editingPhoto === photos[activeIndex]
-                        ? null
-                        : photos[activeIndex],
-                    )
-                  }
-                />
-                <RectangleGemButton
-                  width={100}
-                  fontSize={11}
-                  label={
-                    editingPhotoMove === photos[activeIndex]
-                      ? 'DONE'
-                      : 'Move marker'
-                  }
-                  color={
-                    editingPhoto
-                      ? '#C2B39A'
-                      : editingPhotoMove === photos[activeIndex]
-                      ? '#65dc25'
-                      : '#0E2B6D'
-                  }
-                  onPress={
-                    editingPhoto
-                      ? undefined
-                      : () =>
-                          setEditingPhotoMove?.(
-                            editingPhotoMove === photos[activeIndex]
-                              ? null
-                              : photos[activeIndex],
-                          )
-                  }
-                />
-              </>
-            )}
+            {palettePreview}
           </View>
-        ) : (
-          <View
-            style={{ width: '100%', alignItems: 'center', marginTop: -100 }}
-          >
+        ) : null
+      ) : (
+        <View
+          style={[
+            extraStyles.carouselMetaRow,
+            {
+              position: 'absolute',
+              bottom: -50,
+              left: 8,
+              right: 8,
+              zIndex: 200,
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+          ]}
+        >
+          {mode === 'colors' ? (
             <View
               style={{
-                width: Math.min(380, width - 16),
-                height: 74,
-                position: 'relative',
-                overflow: 'hidden',
+                marginTop: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
               }}
             >
+              {/* Disable Show/Hide labels in either mode */}
+              <RectangleGemButton
+                width={100}
+                fontSize={11}
+                label={showLabels ? 'Hide labels' : 'Show labels'}
+                color={
+                  editingPhoto || editingPhotoMove
+                    ? '#C2B39A'
+                    : showLabels
+                    ? '#65dc25'
+                    : '#C2B39A'
+                }
+                onPress={
+                  editingPhoto || editingPhotoMove
+                    ? undefined
+                    : () => setShowLabels((v) => !v)
+                }
+              />
+              {!!photos.length && photos[activeIndex] && (
+                <>
+                  <RectangleGemButton
+                    width={100}
+                    fontSize={11}
+                    label={
+                      editingPhoto === photos[activeIndex]
+                        ? 'DONE'
+                        : 'Add colour'
+                    }
+                    color={'#d0175e'}
+                    onPress={() =>
+                      setEditingPhoto(
+                        editingPhoto === photos[activeIndex]
+                          ? null
+                          : photos[activeIndex],
+                      )
+                    }
+                  />
+                  <RectangleGemButton
+                    width={100}
+                    fontSize={11}
+                    label={
+                      editingPhotoMove === photos[activeIndex]
+                        ? 'DONE'
+                        : 'Move marker'
+                    }
+                    color={
+                      editingPhoto
+                        ? '#C2B39A'
+                        : editingPhotoMove === photos[activeIndex]
+                        ? '#65dc25'
+                        : '#0E2B6D'
+                    }
+                    onPress={
+                      editingPhoto
+                        ? undefined
+                        : () =>
+                            setEditingPhotoMove?.(
+                              editingPhotoMove === photos[activeIndex]
+                                ? null
+                                : photos[activeIndex],
+                            )
+                    }
+                  />
+                </>
+              )}
+            </View>
+          ) : (
+            <View
+              style={{
+                position: 'absolute',
+                top: -30,
+                width: '100%',
+                alignItems: 'center',
+              }}
+            >
+              <View style={{ position: 'absolute', top: -70, zIndex: 210 }}>
+                {palettePreview}
+              </View>
+
               <View
                 style={{
                   position: 'absolute',
-                  left: 1,
-                  right: 7,
-                  top: 4.5,
-                  bottom: 4.5,
-                  overflow: 'hidden',
+                  top: 30,
+                  marginTop: -20,
+                  flexDirection: 'row',
+                  gap: 10,
                 }}
-                pointerEvents="none"
               >
-                <Svg
-                  width="100%"
-                  height="100%"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  pointerEvents="none"
-                >
-                  {/* NEW: mask/clip to hide any overflow beyond the window */}
-                  <Defs>
-                    <ClipPath id="paletteWindowClip">
-                      {/* slight inset + rounded corners to match frame window */}
-                      <SvgRect
-                        x={1}
-                        y={1}
-                        width={98}
-                        height={98}
-                        rx={7}
-                        ry={7}
-                      />
-                    </ClipPath>
-                  </Defs>
-
-                  <G clipPath="url(#paletteWindowClip)">
-                    {(paletteColorsByPhoto?.[activePhoto] ?? [])
-                      .slice(0, 5)
-                      .concat(Array(5).fill('#C2B39A'))
-                      .slice(0, 5)
-                      .map((hex, idx) => (
-                        <SvgRect
-                          key={`palette-preview-${idx}`}
-                          x={(idx * 100) / 5}
-                          y={0}
-                          width={100 / 5}
-                          height={100}
-                          fill={String(hex || '#C2B39A')}
-                        />
-                      ))}
-                  </G>
-                </Svg>
-              </View>
-
-              <PalleteColorsFrame
-                width="100%"
-                height="100%"
-                preserveAspectRatio="none"
-                style={{ position: 'absolute', left: 0, top: 0 }}
-                pointerEvents="none"
-              />
-            </View>
-
-            <View style={{ marginTop: 10, flexDirection: 'row', gap: 10 }}>
-              <RectangleGemButton
-                width={120}
-                fontSize={11}
-                label={isGeneratingPalette ? 'GENERATING…' : 'GENERATE PALETTE'}
-                color={'#A100C2'}
-                onPress={isGeneratingPalette ? undefined : onGeneratePalette}
-              />
-              <RectangleGemButton
-                width={120}
-                fontSize={11}
-                label={
-                  paletteEditingPhotoMove === activePhoto
-                    ? 'DONE'
-                    : 'Edit markers'
-                }
-                color={
-                  paletteEditingPhotoMove === activePhoto
-                    ? '#65dc25'
-                    : '#0E2B6D'
-                }
-                onPress={() =>
-                  setPaletteEditingPhotoMove?.(
+                <RectangleGemButton
+                  width={120}
+                  fontSize={11}
+                  label={
+                    isGeneratingPalette ? 'GENERATING…' : 'GENERATE PALETTE'
+                  }
+                  color={'#A100C2'}
+                  onPress={isGeneratingPalette ? undefined : onGeneratePalette}
+                />
+                <RectangleGemButton
+                  width={120}
+                  fontSize={11}
+                  label={
                     paletteEditingPhotoMove === activePhoto
-                      ? null
-                      : activePhoto,
-                  )
-                }
-              />
+                      ? 'DONE'
+                      : 'Edit markers'
+                  }
+                  color={
+                    paletteEditingPhotoMove === activePhoto
+                      ? '#65dc25'
+                      : '#0E2B6D'
+                  }
+                  onPress={() =>
+                    setPaletteEditingPhotoMove?.(
+                      paletteEditingPhotoMove === activePhoto
+                        ? null
+                        : activePhoto,
+                    )
+                  }
+                />
+              </View>
             </View>
-          </View>
-        )}
-      </View>
+          )}
+        </View>
+      )}
 
       {!!editingPhoto &&
         photos.length > 0 &&

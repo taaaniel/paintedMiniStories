@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import React from 'react';
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import MainFrame from '../assets/MainFrame.svg';
@@ -42,26 +43,40 @@ export default function MainView({
     number | null
   >(null);
 
+  const fetchProjectsCount = React.useCallback(async (): Promise<number> => {
+    try {
+      const raw = await AsyncStorage.getItem('projects');
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  const fetchPaintBankCount = React.useCallback(async (): Promise<number> => {
+    try {
+      const raw = await AsyncStorage.getItem('paintBank.paints');
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch {
+      return 0;
+    }
+  }, []);
+
   React.useEffect(() => {
     if (dashboard?.projectsCount != null) return;
 
     let isMounted = true;
     const load = async () => {
-      try {
-        const raw = await AsyncStorage.getItem('projects');
-        const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-        const count = Array.isArray(parsed) ? parsed.length : 0;
-        if (isMounted) setStoredProjectsCount(count);
-      } catch {
-        if (isMounted) setStoredProjectsCount(0);
-      }
+      const count = await fetchProjectsCount();
+      if (isMounted) setStoredProjectsCount(count);
     };
 
     void load();
     return () => {
       isMounted = false;
     };
-  }, [dashboard?.projectsCount]);
+  }, [dashboard?.projectsCount, fetchProjectsCount]);
 
   // NEW
   React.useEffect(() => {
@@ -69,21 +84,43 @@ export default function MainView({
 
     let isMounted = true;
     const load = async () => {
-      try {
-        const raw = await AsyncStorage.getItem('paintBank.paints');
-        const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-        const count = Array.isArray(parsed) ? parsed.length : 0;
-        if (isMounted) setStoredPaintBankCount(count);
-      } catch {
-        if (isMounted) setStoredPaintBankCount(0);
-      }
+      const count = await fetchPaintBankCount();
+      if (isMounted) setStoredPaintBankCount(count);
     };
 
     void load();
     return () => {
       isMounted = false;
     };
-  }, [dashboard?.paintBankCount]);
+  }, [dashboard?.paintBankCount, fetchPaintBankCount]);
+
+  // Ensure header counters refresh when returning to a screen (e.g. back from PaintBank)
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      const load = async () => {
+        if (dashboard?.projectsCount == null) {
+          const count = await fetchProjectsCount();
+          if (isActive) setStoredProjectsCount(count);
+        }
+        if (dashboard?.paintBankCount == null) {
+          const count = await fetchPaintBankCount();
+          if (isActive) setStoredPaintBankCount(count);
+        }
+      };
+
+      void load();
+      return () => {
+        isActive = false;
+      };
+    }, [
+      dashboard?.paintBankCount,
+      dashboard?.projectsCount,
+      fetchPaintBankCount,
+      fetchProjectsCount,
+    ]),
+  );
 
   const projectsCount = dashboard?.projectsCount ?? storedProjectsCount ?? 0;
 

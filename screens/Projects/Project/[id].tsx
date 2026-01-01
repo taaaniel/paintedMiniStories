@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   LayoutAnimation,
   Platform,
@@ -13,12 +15,14 @@ import {
   View,
 } from 'react-native';
 import 'react-native-gesture-handler';
+import ViewShot from 'react-native-view-shot';
 
+import ColorsPaletteTabSelector from '../../../components/tabs/ColorsPaletteTabSelector';
 import MainView from '../../MainView';
 import AddColorMarkerDialog from './AddColorMarkerDialog';
 import { BottomNavigation } from './components/BottomNavigation';
 import { CarouselWithMarkers } from './components/CarouselWithMarkers';
-import WorkshopPopup from './components/WorkshopPopup';
+import InstagramExportPopup from './components/InstagramExportPopup';
 import {
   extractPaletteFromImage,
   findPaletteMarkerPositions,
@@ -52,7 +56,9 @@ type PaletteState = {
 };
 
 export default function SingleProjectScreen() {
-  const { id, idx } = useLocalSearchParams();
+  const { id: rawId, idx } = useLocalSearchParams();
+  const projectId =
+    typeof rawId === 'string' ? rawId : Array.isArray(rawId) ? rawId[0] : '';
   const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -241,12 +247,42 @@ export default function SingleProjectScreen() {
     height: number;
   } | null>(null);
 
-  // NEW: workshop popup state
-  const [showWorkshop, setShowWorkshop] = useState(false);
+  const exportShotRef = React.useRef<any>(null);
+  const [isPreparingExport, setIsPreparingExport] = useState(false);
+  const [exportImageUri, setExportImageUri] = useState<string | null>(null);
+  const [showExport, setShowExport] = useState(false);
+  const [exportMode, setExportMode] = useState(false);
+
+  const openInstagramExport = React.useCallback(async () => {
+    if (!exportShotRef.current?.capture) {
+      Alert.alert('Not ready', 'Please wait a moment and try again.');
+      return;
+    }
+    try {
+      setIsPreparingExport(true);
+      // Temporarily hide bottom buttons during capture (palette preview remains).
+      setExportMode(true);
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const uri = await exportShotRef.current.capture({
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile',
+      });
+      if (typeof uri === 'string' && uri) {
+        setExportImageUri(uri);
+        setShowExport(true);
+      }
+    } catch (e) {
+      console.error('Failed to capture export image:', e);
+      Alert.alert('Error', 'Failed to prepare the image.');
+    } finally {
+      setExportMode(false);
+      setIsPreparingExport(false);
+    }
+  }, []);
 
   // NEW: palette generation UI state (button lives near "Edit markers")
   const [isGeneratingPalette, setIsGeneratingPalette] = useState(false);
-  const [paletteGenError, setPaletteGenError] = useState<string | null>(null);
 
   // helper to adjust index
   const clampIndex = (i: number, arr: any[]) =>
@@ -261,39 +297,48 @@ export default function SingleProjectScreen() {
   const goPrev = () => goTo(activeIndex - 1);
   const goNext = () => goTo(activeIndex + 1);
 
-  useEffect(() => {
-    let alive = true;
-    setIsLoading(true);
+  // IMPORTANT: reload project whenever screen gains focus (e.g. after edit)
+  useFocusEffect(
+    React.useCallback(() => {
+      let alive = true;
+      setIsLoading(true);
 
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem('projects');
-        if (!raw) {
+      (async () => {
+        try {
+          if (!projectId) {
+            if (alive) setProject(null);
+            return;
+          }
+
+          const raw = await AsyncStorage.getItem('projects');
+          if (!raw) {
+            if (alive) setProject(null);
+            return;
+          }
+
+          const all: Project[] = JSON.parse(raw);
+          const p = all.find((x) => x.id === projectId) ?? null;
+          if (!alive) return;
+
+          setProject(p);
+          if (p?.photos?.length) {
+            setActiveIndex((prev) => clampIndex(prev, p.photos));
+          } else {
+            setActiveIndex(0);
+          }
+        } catch (e) {
+          console.error('Failed to load project:', e);
           if (alive) setProject(null);
-          return;
+        } finally {
+          if (alive) setIsLoading(false);
         }
-        const all: Project[] = JSON.parse(raw);
-        const p = all.find((x) => x.id === id) ?? null;
-        if (!alive) return;
+      })();
 
-        setProject(p);
-        if (p?.photos?.length) {
-          setActiveIndex((prev) => clampIndex(prev, p.photos));
-        } else {
-          setActiveIndex(0);
-        }
-      } catch (e) {
-        console.error('Failed to load project:', e);
-        if (alive) setProject(null);
-      } finally {
-        if (alive) setIsLoading(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, [id]);
+      return () => {
+        alive = false;
+      };
+    }, [projectId]),
+  );
 
   useEffect(() => {
     if (idx != null && project?.photos?.length) {
@@ -427,14 +472,13 @@ export default function SingleProjectScreen() {
     if (!activePhotoUri) return;
 
     setIsGeneratingPalette(true);
-    setPaletteGenError(null);
     try {
       const next = await extractPaletteFromImage(activePhotoUri, 5);
       setPaletteColorsForActivePhoto(next);
       await autoPlacePaletteMarkers(activePhotoUri, next);
     } catch (e) {
       console.error('Palette generation failed:', e);
-      setPaletteGenError('Failed to generate palette');
+      Alert.alert('Error', 'Failed to generate palette');
     } finally {
       setIsGeneratingPalette(false);
     }
@@ -478,37 +522,44 @@ export default function SingleProjectScreen() {
               </View>
             </View>
             <View style={styles.carouselSection}>
-              <CarouselWithMarkers
-                photos={project.photos}
-                activeIndex={activeIndex}
-                setActiveIndex={setActiveIndex}
-                width={contentWidth}
-                height={carouselHeight}
-                mode={activeTab}
-                markersByPhoto={markersByPhoto}
-                editingPhoto={editingPhoto}
-                setEditingPhoto={setEditingPhoto}
-                onPlaceMarker={(photo, x, y) => openMarkerForm(photo, x, y)}
-                onImageWindowRectChange={setImageWindowRect}
-                onMoveMarker={(photoId, markerId, xRel, yRel) => {
-                  const clamp = (v: number) => Math.max(0, Math.min(1, v));
-                  updateMarker(photoId, markerId, {
-                    x: clamp(xRel),
-                    y: clamp(yRel),
-                  });
-                }}
-                editingPhotoMove={editingPhotoMove}
-                setEditingPhotoMove={setEditingPhotoMove}
-                paletteColorsByPhoto={paletteColorsByPhoto}
-                paletteMarkersByPhoto={paletteMarkersByPhoto}
-                paletteEditingPhotoMove={paletteEditingPhotoMove}
-                setPaletteEditingPhotoMove={setPaletteEditingPhotoMove}
-                onMovePaletteMarker={onMovePaletteMarker}
-                onDropPaletteMarker={onDropPaletteMarker}
-                // NEW
-                onGeneratePalette={onGeneratePalette}
-                isGeneratingPalette={isGeneratingPalette}
-              />
+              <ViewShot
+                ref={exportShotRef}
+                options={{ format: 'png', quality: 1, result: 'tmpfile' }}
+                style={{ width: contentWidth, alignItems: 'center' }}
+              >
+                <CarouselWithMarkers
+                  photos={project.photos}
+                  activeIndex={activeIndex}
+                  setActiveIndex={setActiveIndex}
+                  width={contentWidth}
+                  height={carouselHeight}
+                  mode={activeTab}
+                  exportMode={exportMode}
+                  markersByPhoto={markersByPhoto}
+                  editingPhoto={editingPhoto}
+                  setEditingPhoto={setEditingPhoto}
+                  onPlaceMarker={(photo, x, y) => openMarkerForm(photo, x, y)}
+                  onImageWindowRectChange={setImageWindowRect}
+                  onMoveMarker={(photoId, markerId, xRel, yRel) => {
+                    const clamp = (v: number) => Math.max(0, Math.min(1, v));
+                    updateMarker(photoId, markerId, {
+                      x: clamp(xRel),
+                      y: clamp(yRel),
+                    });
+                  }}
+                  editingPhotoMove={editingPhotoMove}
+                  setEditingPhotoMove={setEditingPhotoMove}
+                  paletteColorsByPhoto={paletteColorsByPhoto}
+                  paletteMarkersByPhoto={paletteMarkersByPhoto}
+                  paletteEditingPhotoMove={paletteEditingPhotoMove}
+                  setPaletteEditingPhotoMove={setPaletteEditingPhotoMove}
+                  onMovePaletteMarker={onMovePaletteMarker}
+                  onDropPaletteMarker={onDropPaletteMarker}
+                  onSetPaletteMarkerAngle={onSetPaletteMarkerAngle}
+                  onGeneratePalette={onGeneratePalette}
+                  isGeneratingPalette={isGeneratingPalette}
+                />
+              </ViewShot>
             </View>
 
             {/* Tabs under the 3 RectangleGemButtons */}
@@ -516,60 +567,15 @@ export default function SingleProjectScreen() {
               style={{
                 width: '100%',
                 alignItems: 'center',
-                marginTop: 40,
+                marginTop: 50,
                 marginBottom: 10,
               }}
             >
-              <View
-                style={{
-                  width: contentWidth,
-                  flexDirection: 'row',
-                  borderWidth: 2,
-                  borderColor: '#121212',
-                  borderRadius: 12,
-                  overflow: 'hidden',
-                  backgroundColor: '#F5F0EB',
-                }}
-              >
-                <Pressable
-                  onPress={() => setActiveTab('colors')}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    alignItems: 'center',
-                    backgroundColor:
-                      activeTab === 'colors' ? '#0E2B6D' : 'transparent',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontWeight: '800',
-                      color: activeTab === 'colors' ? '#F8FAFF' : '#0E2B6D',
-                    }}
-                  >
-                    Colors
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setActiveTab('palette')}
-                  style={{
-                    flex: 1,
-                    paddingVertical: 10,
-                    alignItems: 'center',
-                    backgroundColor:
-                      activeTab === 'palette' ? '#0E2B6D' : 'transparent',
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontWeight: '800',
-                      color: activeTab === 'palette' ? '#F8FAFF' : '#0E2B6D',
-                    }}
-                  >
-                    Palette
-                  </Text>
-                </Pressable>
-              </View>
+              <ColorsPaletteTabSelector
+                value={activeTab}
+                onChange={setActiveTab}
+                maxWidth={contentWidth}
+              />
             </View>
 
             <View style={{ width: '100%' }}>
@@ -593,7 +599,10 @@ export default function SingleProjectScreen() {
               </View>
 
               <View
-                style={{ display: activeTab === 'palette' ? 'flex' : 'none' }}
+                style={{
+                  display: activeTab === 'palette' ? 'flex' : 'none',
+                  marginBottom: 30,
+                }}
               >
                 <PaletteTab
                   photoUri={activePhotoUri}
@@ -603,9 +612,6 @@ export default function SingleProjectScreen() {
                   onAfterGenerate={(next) =>
                     autoPlacePaletteMarkers(activePhotoUri, next)
                   }
-                  // NEW (UI only)
-                  isLoading={isGeneratingPalette}
-                  error={paletteGenError}
                 />
               </View>
             </View>
@@ -647,7 +653,8 @@ export default function SingleProjectScreen() {
               goPrev={goPrev}
               goNext={goNext}
               router={router}
-              onOpenWorkshop={() => setShowWorkshop(true)}
+              instagramDisabled={isPreparingExport}
+              onOpenInstagramExport={() => void openInstagramExport()}
               // NEW: edit project button action
               onEditProject={() =>
                 router.push({
@@ -658,12 +665,13 @@ export default function SingleProjectScreen() {
             />
           )}
 
-          {/* NEW: Workshop popup */}
-          <WorkshopPopup
-            visible={showWorkshop}
-            projectName={project?.name || ''}
-            photos={project?.photos || []}
-            onClose={() => setShowWorkshop(false)}
+          <InstagramExportPopup
+            visible={showExport}
+            imageUri={exportImageUri}
+            onClose={() => {
+              setShowExport(false);
+              setExportImageUri(null);
+            }}
           />
 
           <AddColorMarkerDialog

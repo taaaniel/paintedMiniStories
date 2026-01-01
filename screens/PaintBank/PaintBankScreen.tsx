@@ -240,7 +240,6 @@ export default function PaintBankScreen() {
         {/* SECTION 1: list + search */}
         <View style={styles.section}>
           <SimplyInput
-            useLightBg
             inputFieldColor="#fff"
             value={query}
             onChangeText={setQuery}
@@ -325,8 +324,9 @@ export default function PaintBankScreen() {
             <View style={styles.dialogActions}>
               <RectangleGemButton
                 label="Save paint"
+                fontSize={14}
                 color="#A100C2"
-                width={200}
+                width={150}
                 onPress={() => void savePaint()}
               />
             </View>
@@ -388,21 +388,11 @@ export default function PaintBankScreen() {
                     if (colorError) setColorError(undefined);
                   }}
                   label="Color (hex)"
-                  placeholder="#FFAA30"
+                  placeholder="#ffffff"
                   error={colorError}
                   width="100%"
                 />
               </View>
-              <View
-                style={[
-                  styles.swatchSmall,
-                  {
-                    backgroundColor: isValidHex(colorHex)
-                      ? normalizeHex(colorHex)
-                      : '#ffffff',
-                  },
-                ]}
-              />
             </View>
 
             <View style={{ height: 10 }} />
@@ -544,6 +534,7 @@ const styles = StyleSheet.create({
   },
   dialogActions: {
     alignItems: 'center',
+    marginTop: 12,
   },
   colorRow: {
     flexDirection: 'row',

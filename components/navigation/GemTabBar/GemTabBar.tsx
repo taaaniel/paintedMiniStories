@@ -15,6 +15,8 @@ import type { ViewStyle } from 'react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { MAIN_TAB_ROUTES, PRIMARY_ICON_TAB_ROUTES, TabRoutes } from './routes';
 
 // icon definitions by key
@@ -47,6 +49,8 @@ export default function GemTabBar({
   const router = useRouter();
   const segments = useSegments();
 
+  const segmentsKey = useMemo(() => segments.join('/'), [segments]);
+
   // Hide main tab bar on project details screen: /(tabs)/projects/[id]
   const isProjectDetail =
     segments[0] === '(tabs)' &&
@@ -56,6 +60,27 @@ export default function GemTabBar({
   const currentRouteName = state.routes[state.index]?.name as
     | string
     | undefined;
+
+  const [projectsCount, setProjectsCount] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const raw = await AsyncStorage.getItem('projects');
+        const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+        const count = Array.isArray(parsed) ? parsed.length : 0;
+        if (mounted) setProjectsCount(count);
+      } catch {
+        if (mounted) setProjectsCount(0);
+      }
+    };
+
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, [segmentsKey, state.index]);
 
   const hideAddNewProjectIcon = currentRouteName === TabRoutes.AddNewProject;
 
@@ -79,6 +104,9 @@ export default function GemTabBar({
 
     return filtered
       .filter(
+        (route) => !(projectsCount === 0 && route.name === TabRoutes.Projects),
+      )
+      .filter(
         (route) =>
           !(hideAddNewProjectIcon && route.name === TabRoutes.AddNewProject),
       )
@@ -86,7 +114,7 @@ export default function GemTabBar({
         const def = DEFINITIONS[route.name]; // must exist for allowed routes
         return { key: route.name, def, route };
       });
-  }, [state.routes, hideAddNewProjectIcon]);
+  }, [state.routes, hideAddNewProjectIcon, projectsCount]);
 
   // Add custom buttons (gallery/camera) to items
   const customButtons = useMemo(() => {
@@ -192,6 +220,11 @@ export default function GemTabBar({
       ? mainKeys.filter((k) => k !== TabRoutes.AddNewProject)
       : mainKeys;
 
+    const effectiveMainKeys =
+      projectsCount === 0
+        ? visibleMainKeys.filter((k) => k !== TabRoutes.Projects)
+        : visibleMainKeys;
+
     return (
       <View
         pointerEvents="box-none"
@@ -206,7 +239,7 @@ export default function GemTabBar({
         ]}
       >
         <View style={styles.mainRow}>
-          {visibleMainKeys.map((key) => {
+          {effectiveMainKeys.map((key) => {
             const def = DEFINITIONS[key];
             return (
               <GemButton

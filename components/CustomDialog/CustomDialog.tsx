@@ -42,8 +42,8 @@ export default function CustomDialog({
                 marginTop: 12,
               }}
             >
-              <SimplyButton label="No" onPress={onClose} />
-              <SimplyButton label="Yes" onPress={onConfirm} />
+              <SimplyButton width={120} label="No" onPress={onClose} />
+              <SimplyButton width={120} label="Yes" onPress={onConfirm} />
             </View>
           ) : null}
           <View style={styles.closeWrap}>
