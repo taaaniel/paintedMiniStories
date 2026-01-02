@@ -39,6 +39,14 @@
     "plugins": [
       "expo-router",
       [
+        "expo-navigation-bar",
+        {
+          "visibility": "hidden",
+          "behavior": "overlay-swipe",
+          "position": "absolute"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
@@ -53,7 +61,8 @@
           "photosPermission": "Allow PaintedMiniStories to access your photos.",
           "savePhotosPermission": "Allow PaintedMiniStories to save photos to your gallery."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

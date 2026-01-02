@@ -10,14 +10,22 @@ import {
   Text,
   View,
 } from 'react-native';
-import MainLogo from '../assets/images/mainLogo.svg'; // <— import SVG component
+import MainLogo from '../assets/images/mainLogo.svg';
 import { ComicButton } from '../components/buttons/Button';
+import { getAllProjects } from '../storage/projects';
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
-  const goToProjects = () => {
-    setTimeout(() => router.replace('/projects'), 120);
+  const goToProjects = async () => {
+    try {
+      const projects = await getAllProjects();
+      const next =
+        projects.length === 0 ? '/(tabs)/dashboard' : '/(tabs)/projects';
+      setTimeout(() => router.replace(next), 120);
+    } catch {
+      setTimeout(() => router.replace('/(tabs)/projects'), 120);
+    }
   };
 
   const [ready, setReady] = useState(false);
@@ -80,7 +88,7 @@ export default function WelcomeScreen() {
         resizeMode="cover"
       >
         <View style={styles.content}>
-          <MainLogo height={320} style={styles.logo} />
+          <MainLogo width={320} height={320} style={styles.logo} />
           <Text style={styles.welcome}>Welcome to</Text>
           <Text style={styles.appName}>PaintedMiniStories</Text>
 
@@ -133,7 +141,5 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 3,
   },
-  logo: {
-    marginBottom: -70,
-  },
+  logo: { marginBottom: -70 },
 });
