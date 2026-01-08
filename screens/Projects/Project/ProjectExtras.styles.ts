@@ -33,7 +33,7 @@ export const extraStyles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: -8, // restore original offset
+    bottom: -20, // restore original offset
     paddingTop: 8,
     paddingHorizontal: 20,
     flexDirection: 'row',

@@ -11,6 +11,8 @@ interface CustomDialogProps {
   maxWidth?: number;
   onConfirm?: () => void;
   actions?: React.ReactNode; // custom actions slot
+  confirmLabel?: string; // NEW
+  cancelLabel?: string; // NEW
 }
 
 export default function CustomDialog({
@@ -20,7 +22,9 @@ export default function CustomDialog({
   children,
   maxWidth = 420,
   onConfirm,
-  actions, // new
+  actions,
+  confirmLabel = 'Yes', // NEW
+  cancelLabel = 'No', // NEW
 }: CustomDialogProps) {
   if (!visible) return null;
   return (
@@ -42,8 +46,12 @@ export default function CustomDialog({
                 marginTop: 12,
               }}
             >
-              <SimplyButton width={120} label="No" onPress={onClose} />
-              <SimplyButton width={120} label="Yes" onPress={onConfirm} />
+              <SimplyButton width={120} label={cancelLabel} onPress={onClose} />
+              <SimplyButton
+                width={120}
+                label={confirmLabel}
+                onPress={onConfirm}
+              />
             </View>
           ) : null}
           <View style={styles.closeWrap}>

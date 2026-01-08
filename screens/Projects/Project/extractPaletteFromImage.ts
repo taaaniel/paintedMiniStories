@@ -534,6 +534,7 @@ export async function sampleHexFromImage(
   uri: string,
   xRel: number,
   yRel: number,
+  radiusPx = 5,
 ): Promise<string | null> {
   if (!uri) return null;
 
@@ -548,11 +549,43 @@ export async function sampleHexFromImage(
     0,
     Math.min(decoded.height - 1, Math.round(yRel * (decoded.height - 1))),
   );
-  const i = (y * decoded.width + x) * 4;
-  const r = decoded.data[i];
-  const g = decoded.data[i + 1];
-  const b = decoded.data[i + 2];
-  return rgbToHex({ r, g, b }).toUpperCase();
+
+  const rPx = Math.max(0, Math.min(10, Math.floor(radiusPx)));
+  if (rPx <= 0) {
+    const i = (y * decoded.width + x) * 4;
+    const r = decoded.data[i];
+    const g = decoded.data[i + 1];
+    const b = decoded.data[i + 2];
+    return rgbToHex({ r, g, b }).toUpperCase();
+  }
+
+  let rs = 0;
+  let gs = 0;
+  let bs = 0;
+  let n = 0;
+
+  const x0 = Math.max(0, x - rPx);
+  const x1 = Math.min(decoded.width - 1, x + rPx);
+  const y0 = Math.max(0, y - rPx);
+  const y1 = Math.min(decoded.height - 1, y + rPx);
+  const r2 = rPx * rPx;
+
+  for (let yy = y0; yy <= y1; yy++) {
+    const dy = yy - y;
+    const dy2 = dy * dy;
+    for (let xx = x0; xx <= x1; xx++) {
+      const dx = xx - x;
+      if (dx * dx + dy2 > r2) continue;
+      const i = (yy * decoded.width + xx) * 4;
+      rs += decoded.data[i];
+      gs += decoded.data[i + 1];
+      bs += decoded.data[i + 2];
+      n += 1;
+    }
+  }
+
+  if (!n) return null;
+  return rgbToHex({ r: rs / n, g: gs / n, b: bs / n }).toUpperCase();
 }
 
 export async function findPaletteMarkerPositions(

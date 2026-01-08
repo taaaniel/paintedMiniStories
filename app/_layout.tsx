@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { UserProfileProvider } from '../src/contexts/UserProfileContext';
 
@@ -29,18 +30,20 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <UserProfileProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen
-          name="index"
-          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
-        />
-        <Stack.Screen
-          name="welcome"
-          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
-        />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-    </UserProfileProvider>
+    <SafeAreaProvider>
+      <UserProfileProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen
+            name="index"
+            options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+          />
+          <Stack.Screen
+            name="welcome"
+            options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+          />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+      </UserProfileProvider>
+    </SafeAreaProvider>
   );
 }

@@ -4,6 +4,7 @@ import {
   Pressable,
   StyleProp,
   StyleSheet,
+  Text,
   View,
   ViewStyle,
 } from 'react-native';
@@ -168,6 +169,8 @@ export type GemButtonProps = {
   Icon?: React.ComponentType<any>;
   iconProps?: { size?: number; color?: string; strokeWidth?: number };
   iconNode?: React.ReactNode;
+  label?: string;
+  labelDirection?: 'top' | 'bottom' | 'left' | 'right';
   onPress?: () => void;
   disabled?: boolean;
   selected?: boolean;
@@ -190,6 +193,8 @@ const GemButton: React.FC<GemButtonProps> = ({
   Icon,
   iconProps,
   iconNode,
+  label,
+  labelDirection = 'top',
   onPress,
   disabled,
   selected,
@@ -210,6 +215,43 @@ const GemButton: React.FC<GemButtonProps> = ({
   const palette = useMemo(() => buildPalette(color, active), [color, active]);
   const height = Math.round(size * ASPECT);
   const computedIconSize = Math.round(size * 0.4);
+
+  const labelWrapStyle = useMemo((): ViewStyle => {
+    const offset = Math.round(size * 0.16);
+    switch (labelDirection) {
+      case 'bottom':
+        return {
+          left: 0,
+          right: 0,
+          top: height + offset,
+          alignItems: 'center',
+        };
+      case 'left':
+        return {
+          top: 0,
+          bottom: 0,
+          right: size + offset,
+          justifyContent: 'center',
+          alignItems: 'flex-end',
+        };
+      case 'right':
+        return {
+          top: 0,
+          bottom: 0,
+          left: size + offset,
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+        };
+      case 'top':
+      default:
+        return {
+          left: 0,
+          right: 0,
+          bottom: height + offset,
+          alignItems: 'center',
+        };
+    }
+  }, [height, labelDirection, size]);
 
   const resolvedSound = useMemo(
     () => soundPath ?? require('../../assets/sounds/click.mp3'),
@@ -264,6 +306,7 @@ const GemButton: React.FC<GemButtonProps> = ({
       onPress={handlePress}
       disabled={disabled}
       accessibilityRole="button"
+      accessibilityLabel={label}
       accessibilityState={{
         disabled: !!disabled,
         selected: !!selected,
@@ -354,6 +397,14 @@ const GemButton: React.FC<GemButtonProps> = ({
             ))}
         </View>
       )}
+
+      {label ? (
+        <View pointerEvents="none" style={[styles.labelWrap, labelWrapStyle]}>
+          <Text numberOfLines={1} ellipsizeMode="clip" style={styles.label}>
+            {label}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 };
@@ -374,5 +425,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  labelWrap: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: {
+    top: 4,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#2D2D2D',
+    opacity: 0.9,
   },
 });

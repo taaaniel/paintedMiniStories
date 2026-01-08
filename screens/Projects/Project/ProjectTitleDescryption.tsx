@@ -27,9 +27,6 @@ export default function ProjectTitleDescryption({ title, description }: Props) {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [collapsedH, setCollapsedH] = useState<number | null>(null);
   const [containerW, setContainerW] = useState<number | null>(null);
-  const [btnPos, setBtnPos] = useState<{ top: number; left: number } | null>(
-    null,
-  );
 
   const estimatedTwoLineChars = React.useMemo(() => {
     const fontSize = (styles.subtitle as any)?.fontSize ?? 14;
@@ -48,7 +45,6 @@ export default function ProjectTitleDescryption({ title, description }: Props) {
   useEffect(() => {
     setShowFullDescription(false);
     setCollapsedH(null);
-    setBtnPos(null);
   }, [description]);
 
   useEffect(() => {
@@ -84,7 +80,7 @@ export default function ProjectTitleDescryption({ title, description }: Props) {
   };
 
   return (
-    <View style={{ flexShrink: 1 }}>
+    <View style={{ flexShrink: 1, marginBottom: 15 }}>
       <Text style={styles.title}>{title}</Text>
       {description ? (
         <View
@@ -98,6 +94,12 @@ export default function ProjectTitleDescryption({ title, description }: Props) {
                 canExpandDescription && !showFullDescription
                   ? BUTTON_SIZE + 6
                   : 0,
+              // keep space for bottom-left button so it doesn't cover text
+              paddingBottom: canExpandDescription
+                ? showFullDescription
+                  ? 55 + BUTTON_SIZE + 6
+                  : 5 + BUTTON_SIZE + 6
+                : 0,
             }}
           >
             <Text
@@ -125,7 +127,6 @@ export default function ProjectTitleDescryption({ title, description }: Props) {
                 const left = Math.max(0, Math.min(rawLeft, maxLeft));
 
                 const top = last.y + last.height / 2 - BUTTON_SIZE / 2;
-                setBtnPos({ top, left });
               }}
             >
               {description}
@@ -136,13 +137,8 @@ export default function ProjectTitleDescryption({ title, description }: Props) {
             <View
               style={{
                 position: 'absolute',
-                left:
-                  btnPos?.left ??
-                  Math.max(0, (containerW ?? 0) - BUTTON_SIZE - 2), // fallback to right edge
-                top:
-                  btnPos?.top ??
-                  // fallback vertically: align with middle of collapsed 2nd line or top
-                  (collapsedH ? collapsedH / 2 - BUTTON_SIZE / 2 : 0),
+                right: 0,
+                bottom: showFullDescription ? 55 : 20,
                 zIndex: 25,
               }}
             >

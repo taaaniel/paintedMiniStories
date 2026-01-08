@@ -33,6 +33,16 @@ const DEFINITIONS: Record<
   saveProject: { color: '#A100C2', Icon: Save },
 };
 
+const LABELS: Record<string, string> = {
+  [TabRoutes.Dashboard]: 'Dashboard',
+  [TabRoutes.Projects]: 'Projects',
+  [TabRoutes.AddNewProject]: 'New',
+  [TabRoutes.Settings]: 'Settings',
+  fromGallery: 'Gallery',
+  fromCamera: 'Camera',
+  saveProject: 'Save',
+};
+
 // Only these are REAL tab routes. Everything else in state.routes is ignored in UI.
 const TAB_ROUTE_KEYS: ReadonlySet<string> = new Set([
   ...Array.from(PRIMARY_ICON_TAB_ROUTES),
@@ -248,6 +258,8 @@ export default function GemTabBar({
                 Icon={def.Icon}
                 iconRotation={def.iconRotation}
                 size={56}
+                label={LABELS[key]}
+                labelDirection="top"
                 active={currentRouteName === key}
                 onPress={() => go(key)}
               />
@@ -317,6 +329,8 @@ export default function GemTabBar({
               Icon={def.Icon}
               iconRotation={def.iconRotation}
               size={55}
+              label={LABELS[key]}
+              labelDirection="top"
               onPress={onPress}
             />
           );
@@ -335,18 +349,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     zIndex: 50, // iOS
-    elevation: 20, // Android — keep tabs ABOVE content
+    elevation: 0, // Android: elevation adds drop shadow
     backgroundColor: 'transparent',
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
   },
   mainRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     alignItems: 'center',
-    gap: 8,
   },
 });

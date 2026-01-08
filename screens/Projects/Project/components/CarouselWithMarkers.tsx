@@ -81,6 +81,8 @@ export function CarouselWithMarkers({
     markerId: string,
     xRel: number,
     yRel: number,
+    sampleXRel?: number,
+    sampleYRel?: number,
   ) => void;
   onDropPaletteMarker?: (
     photoId: string,
@@ -100,7 +102,7 @@ export function CarouselWithMarkers({
   const wrapRef = useRef<View>(null);
 
   const [showLabels, setShowLabels] = useState(true);
-  const PADDING = 15;
+  const PADDING = 0;
 
   const activePhoto = photos[activeIndex] ?? '';
 
@@ -115,62 +117,71 @@ export function CarouselWithMarkers({
   const palettePreview = (
     <View
       style={{
-        width: Math.min(380, width - 16),
-        height: 74,
-        position: 'relative',
-        overflow: 'hidden',
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        zIndex: 999,
+        alignItems: 'center',
       }}
     >
       <View
         style={{
-          position: 'absolute',
-          left: 1,
-          right: 7,
-          top: 4.5,
-          bottom: 4.5,
-          overflow: 'hidden',
+          width: Math.min(355, width - 16),
+          height: 74,
+          position: 'relative',
         }}
-        pointerEvents="none"
       >
-        <Svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
+        <View
+          style={{
+            position: 'absolute',
+            left: 1,
+            right: 7,
+            top: 4.5,
+            bottom: 4.5,
+            overflow: 'hidden',
+          }}
           pointerEvents="none"
         >
-          <Defs>
-            <ClipPath id="paletteWindowClip">
-              <SvgRect x={1} y={1} width={98} height={98} rx={7} ry={7} />
-            </ClipPath>
-          </Defs>
+          <Svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            pointerEvents="none"
+          >
+            <Defs>
+              <ClipPath id="paletteWindowClip">
+                <SvgRect x={1} y={1} width={98} height={98} rx={7} ry={7} />
+              </ClipPath>
+            </Defs>
 
-          <G clipPath="url(#paletteWindowClip)">
-            {(paletteColorsByPhoto?.[activePhoto] ?? [])
-              .slice(0, 5)
-              .concat(Array(5).fill('#C2B39A'))
-              .slice(0, 5)
-              .map((hex, idx) => (
-                <SvgRect
-                  key={`palette-preview-${idx}`}
-                  x={(idx * 100) / 5}
-                  y={0}
-                  width={100 / 5}
-                  height={100}
-                  fill={String(hex || '#C2B39A')}
-                />
-              ))}
-          </G>
-        </Svg>
+            <G clipPath="url(#paletteWindowClip)">
+              {(paletteColorsByPhoto?.[activePhoto] ?? [])
+                .slice(0, 5)
+                .concat(Array(5).fill('#C2B39A'))
+                .slice(0, 5)
+                .map((hex, idx) => (
+                  <SvgRect
+                    key={`palette-preview-${idx}`}
+                    x={(idx * 100) / 5}
+                    y={0}
+                    width={100 / 5}
+                    height={100}
+                    fill={String(hex || '#C2B39A')}
+                  />
+                ))}
+            </G>
+          </Svg>
+        </View>
+
+        <PalleteColorsFrame
+          width="100%"
+          height="100%"
+          preserveAspectRatio="none"
+          style={{ position: 'absolute', left: 0, top: 0 }}
+          pointerEvents="none"
+        />
       </View>
-
-      <PalleteColorsFrame
-        width="100%"
-        height="100%"
-        preserveAspectRatio="none"
-        style={{ position: 'absolute', left: 0, top: 0 }}
-        pointerEvents="none"
-      />
     </View>
   );
 
@@ -204,8 +215,8 @@ export function CarouselWithMarkers({
           pointerEvents="none"
           style={{
             position: 'absolute',
-            top: -10,
-            right: PADDING,
+            top: -25,
+            left: 35,
             zIndex: 270,
           }}
         >
@@ -266,18 +277,18 @@ export function CarouselWithMarkers({
                 style={[
                   styles.slide,
                   {
-                    width: width - PADDING * 2,
-                    height: height - PADDING * 2,
+                    width,
+                    height,
                     borderWidth: 2,
                     borderColor,
                   },
                 ]}
               >
-                {/* remove previous overlay-border */}
                 <SlideImageWithMarkers
                   photo={item}
-                  width={width - PADDING * 2}
-                  height={height - PADDING * 2}
+                  width={width}
+                  height={height}
+                  isActive={item === activePhoto} // NEW
                   markers={mode === 'colors' ? markersByPhoto[item] || [] : []}
                   editing={
                     mode === 'colors'

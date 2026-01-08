@@ -47,6 +47,7 @@ export function BottomNavigation({
           Icon={Home}
           size={55}
           onPress={() => router.push('/(tabs)/projects')}
+          label="Projects"
         />
 
         {onOpenInstagramExport ? (
@@ -57,6 +58,7 @@ export function BottomNavigation({
             size={55}
             disabled={!!instagramDisabled}
             onPress={onOpenInstagramExport}
+            label="Share"
           />
         ) : null}
 
@@ -66,6 +68,7 @@ export function BottomNavigation({
             color="#47B0D7"
             iconNode={<MaterialIcons name="edit" size={18} color="#ffffff" />}
             onPress={onEditProject}
+            label="Edit"
           />
         ) : null}
 
@@ -76,18 +79,22 @@ export function BottomNavigation({
               active={false}
               Icon={ArrowLeft}
               size={55}
+              disabled={activeIndex <= 0}
               onPress={() => {
                 if (activeIndex > 0) goPrev();
               }}
+              label="Prev"
             />
             <GemButton
               color="#65dc25"
               active={false}
               Icon={ArrowRight}
               size={55}
+              disabled={activeIndex >= photosLength - 1}
               onPress={() => {
                 if (activeIndex < photosLength - 1) goNext();
               }}
+              label="Next"
             />
           </>
         ) : null}

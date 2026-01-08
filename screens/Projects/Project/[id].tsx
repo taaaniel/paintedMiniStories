@@ -99,6 +99,7 @@ export default function SingleProjectScreen() {
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
   const contentWidth = Math.min(screenWidth - 40, 1000);
+  const carouselWidth = screenWidth;
   const carouselHeight = Math.round(screenHeight / 2); // half of the screen height
 
   const activePhotoUri = project?.photos?.[activeIndex] ?? '';
@@ -189,34 +190,9 @@ export default function SingleProjectScreen() {
     [],
   );
 
-  const onMovePaletteMarker = React.useCallback(
-    (photoId: string, markerId: string, xRel: number, yRel: number) => {
-      setPaletteByPhoto((prev) => {
-        const existing = prev[photoId];
-        if (!existing) return prev;
-        return {
-          ...prev,
-          [photoId]: {
-            ...existing,
-            markers: existing.markers.map((m) =>
-              m.id === markerId
-                ? {
-                    ...m,
-                    x: Math.max(0, Math.min(1, xRel)),
-                    y: Math.max(0, Math.min(1, yRel)),
-                  }
-                : m,
-            ),
-          },
-        };
-      });
-    },
-    [],
-  );
-
   const onDropPaletteMarker = React.useCallback(
     async (photoId: string, markerId: string, xRel: number, yRel: number) => {
-      const sampled = await sampleHexFromImage(photoId, xRel, yRel);
+      const sampled = await sampleHexFromImage(photoId, xRel, yRel, 5);
       if (!sampled) return;
 
       setPaletteByPhoto((prev) => {
@@ -484,6 +460,135 @@ export default function SingleProjectScreen() {
     }
   }, [activePhotoUri, autoPlacePaletteMarkers, setPaletteColorsForActivePhoto]);
 
+  // LIVE preview sampling (throttled) for palette markers
+  const livePaletteSampleRef = React.useRef<
+    Record<
+      string,
+      {
+        last?: { xRel: number; yRel: number };
+        lastAt?: number;
+        inFlight?: boolean;
+        timer?: ReturnType<typeof setTimeout>;
+      }
+    >
+  >({});
+
+  const schedulePaletteLiveSample = React.useCallback(
+    (photoId: string, markerId: string, xRel: number, yRel: number) => {
+      const key = `${photoId}:${markerId}`;
+      const st = (livePaletteSampleRef.current[key] ??= {});
+      st.last = { xRel, yRel };
+
+      const THROTTLE_MS = 120;
+
+      const run = async () => {
+        const now = Date.now();
+        const lastAt = st.lastAt ?? 0;
+        const wait = Math.max(0, THROTTLE_MS - (now - lastAt));
+        if (wait) {
+          if (st.timer) clearTimeout(st.timer);
+          st.timer = setTimeout(run, wait);
+          return;
+        }
+        if (st.inFlight) return;
+
+        const coords = st.last;
+        if (!coords) return;
+
+        st.inFlight = true;
+        st.lastAt = Date.now();
+
+        try {
+          const sampled = await sampleHexFromImage(
+            photoId,
+            coords.xRel,
+            coords.yRel,
+            5,
+          );
+          if (!sampled) return;
+
+          setPaletteByPhoto((prev) => {
+            const existing = prev[photoId];
+            if (!existing) return prev;
+
+            const moved = existing.markers.find((m) => m.id === markerId);
+            if (!moved) return prev;
+
+            const idx = moved.colorIndex;
+            const nextColors = [...(existing.colors ?? [])];
+            while (nextColors.length < 5) nextColors.push('#C2B39A');
+            nextColors[idx] = sampled;
+
+            return {
+              ...prev,
+              [photoId]: { ...existing, colors: nextColors.slice(0, 5) },
+            };
+          });
+        } finally {
+          st.inFlight = false;
+
+          const pending =
+            st.last &&
+            (st.last.xRel !== coords.xRel || st.last.yRel !== coords.yRel);
+          if (pending) run();
+        }
+      };
+
+      run();
+    },
+    [],
+  );
+
+  React.useEffect(() => {
+    return () => {
+      // cleanup timers on unmount
+      for (const st of Object.values(livePaletteSampleRef.current)) {
+        if (st.timer) clearTimeout(st.timer);
+      }
+      livePaletteSampleRef.current = {};
+    };
+  }, []);
+
+  const onMovePaletteMarker = React.useCallback(
+    (
+      photoId: string,
+      markerId: string,
+      xRel: number,
+      yRel: number,
+      sampleXRel?: number,
+      sampleYRel?: number,
+    ) => {
+      setPaletteByPhoto((prev) => {
+        const existing = prev[photoId];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [photoId]: {
+            ...existing,
+            markers: existing.markers.map((m) =>
+              m.id === markerId
+                ? {
+                    ...m,
+                    x: Math.max(0, Math.min(1, xRel)),
+                    y: Math.max(0, Math.min(1, yRel)),
+                  }
+                : m,
+            ),
+          },
+        };
+      });
+
+      // NEW: live preview of the color under the marker while dragging
+      schedulePaletteLiveSample(
+        photoId,
+        markerId,
+        sampleXRel ?? xRel,
+        sampleYRel ?? yRel,
+      );
+    },
+    [schedulePaletteLiveSample],
+  );
+
   return (
     <MainView>
       {isLoading || !project ? (
@@ -525,13 +630,13 @@ export default function SingleProjectScreen() {
               <ViewShot
                 ref={exportShotRef}
                 options={{ format: 'png', quality: 1, result: 'tmpfile' }}
-                style={{ width: contentWidth, alignItems: 'center' }}
+                style={{ width: carouselWidth }}
               >
                 <CarouselWithMarkers
                   photos={project.photos}
                   activeIndex={activeIndex}
                   setActiveIndex={setActiveIndex}
-                  width={contentWidth}
+                  width={carouselWidth}
                   height={carouselHeight}
                   mode={activeTab}
                   exportMode={exportMode}

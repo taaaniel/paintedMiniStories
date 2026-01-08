@@ -2,7 +2,18 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import React from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import MainFrame from '../assets/MainFrame.svg';
 import { useUserProfile } from '../src/contexts/UserProfileContext';
 import Header from './Header';
@@ -25,6 +36,7 @@ export default function MainView({
   };
 }) {
   const { profile } = useUserProfile();
+  const insets = useSafeAreaInsets();
   const user = React.useMemo(
     () => ({
       name: profile.username,
@@ -33,6 +45,11 @@ export default function MainView({
     }),
     [profile.avatarUrl, profile.username],
   );
+
+  const topInset = React.useMemo(() => {
+    if (Platform.OS !== 'android') return insets.top;
+    return Math.max(insets.top, StatusBar.currentHeight ?? 0);
+  }, [insets.top]);
 
   const [storedProjectsCount, setStoredProjectsCount] = React.useState<
     number | null
@@ -140,7 +157,10 @@ export default function MainView({
   );
 
   return (
-    <SafeAreaView style={[styles.screen, { flex: 1 }]}>
+    <SafeAreaView
+      edges={['left', 'right']}
+      style={[styles.screen, { flex: 1, paddingTop: topInset }]}
+    >
       <View style={[styles.paper, { flex: 1 }]}>
         <MainFrame
           width="100%"

@@ -13,6 +13,7 @@ type Marker = {
   baseColor?: string;
   shadowColor?: string;
   highlightColor?: string;
+  deleted?: boolean; // NEW
   // new mixes
   mixBaseColors?: string[];
   mixShadowColors?: string[];
@@ -37,6 +38,9 @@ type Props = {
     yRel: number,
   ) => void;
 
+  // NEW: tells the slide it is currently visible/active (for correct measureInWindow)
+  isActive?: boolean;
+
   // Palette-only markers (separate from project markers)
   paletteMarkers?: {
     id: string;
@@ -52,6 +56,8 @@ type Props = {
     markerId: string,
     xRel: number,
     yRel: number,
+    sampleXRel?: number,
+    sampleYRel?: number,
   ) => void;
   onDropPaletteMarker?: (
     photoId: string,
@@ -76,6 +82,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   showLabels = true,
   moveOnly = false,
   onMoveMarker,
+  isActive = false, // NEW
   paletteMarkers,
   paletteHexColors,
   paletteMoveOnly = false,
@@ -105,6 +112,13 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return () => clearTimeout(id);
   }, [updateContainerRect, width, height]);
 
+  React.useEffect(() => {
+    // measure only when this slide is active (ScrollView horizontal changes x without layout)
+    if (!isActive) return;
+    const id = requestAnimationFrame(updateContainerRect);
+    return () => cancelAnimationFrame(id);
+  }, [isActive, updateContainerRect, width, height]);
+
   // moving marker — use pageX/pageY and containerRect
   const handleMove = (markerId: string) => (e: GestureResponderEvent) => {
     if (!moveOnly || !onMoveMarker || !containerRect) return;
@@ -121,7 +135,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   };
 
   const handlePaletteMove =
-    (markerId: string) => (e: GestureResponderEvent) => {
+    (markerId: string, angleDeg: number) => (e: GestureResponderEvent) => {
       if (!paletteMoveOnly || !onMovePaletteMarker || !containerRect) return;
       const { pageX, pageY } = e.nativeEvent;
       const xRel = Math.max(
@@ -132,7 +146,20 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         0,
         Math.min(1, (pageY - containerRect.y) / containerRect.height),
       );
-      onMovePaletteMarker(photo, markerId, xRel, yRel);
+
+      // Sample at the arrow tip (not the marker center).
+      const a = (angleDeg * Math.PI) / 180;
+      const tipRadiusPx = PALETTE_ARROW_TIP_RADIUS_PX;
+      const tipAbsX = pageX + -Math.cos(a) * tipRadiusPx;
+      const tipAbsY = pageY + Math.sin(a) * tipRadiusPx;
+      const tipXRel = clamp01(
+        (tipAbsX - containerRect.x) / containerRect.width,
+      );
+      const tipYRel = clamp01(
+        (tipAbsY - containerRect.y) / containerRect.height,
+      );
+
+      onMovePaletteMarker(photo, markerId, xRel, yRel, tipXRel, tipYRel);
     };
 
   const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -672,6 +699,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
 
   // helper: whether the marker has any color (main or mix)
   const hasAnyColors = (m: Marker) => {
+    if (m.deleted) return false; // NEW
     if (
       isNonEmptyHex(m.baseColor) ||
       isNonEmptyHex(m.shadowColor) ||
@@ -695,7 +723,12 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         onMoveShouldSetResponder: () => canDrag(),
         onResponderTerminationRequest: () => false,
 
-        onResponderMove: handlePaletteMove(id),
+        // NEW: refresh measure right before drag math
+        onResponderGrant: () => {
+          if (isActive) updateContainerRect();
+        },
+
+        onResponderMove: handlePaletteMove(id, angleDeg),
         onResponderRelease: handlePaletteDrop(id, angleDeg),
         onResponderTerminate: handlePaletteDrop(id, angleDeg),
       },
@@ -704,7 +737,9 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   return (
     <View
       ref={containerRef}
-      onLayout={updateContainerRect}
+      onLayout={() => {
+        if (isActive) updateContainerRect();
+      }}
       style={{ width, height, position: 'relative' }}
     >
       {/* Global buttons for Move marker mode */}
@@ -796,7 +831,10 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           <View
             key={m.id}
             style={{ position: 'absolute', left: cx, top: cy }}
-            onStartShouldSetResponder={() => moveOnly}
+            onStartShouldSetResponder={() => {
+              if (moveOnly && isActive) updateContainerRect(); // NEW
+              return moveOnly;
+            }}
             onResponderMove={handleMove(m.id)}
             onResponderRelease={handleMove(m.id)}
           >
