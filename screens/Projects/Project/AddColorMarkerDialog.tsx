@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import { Dimensions, Pressable, ScrollView, Text, View } from 'react-native';
 import paletteColors from '../../../assets/data/palleteColors.json';
@@ -21,8 +22,10 @@ interface AddColorMarkerDialogProps {
     baseMixesNote?: string;
     shadowMixesNote?: string;
     highlightMixesNote?: string;
+    dotSizeIdxByKey?: Record<string, number>;
   }) => void;
   onCancel: () => void;
+  markerId?: string;
   mTitle: string;
   setMTitle: (v: string) => void;
   mBase: string;
@@ -73,6 +76,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
   visible,
   onSubmit,
   onCancel,
+  markerId,
   mTitle,
   setMTitle,
   mBase,
@@ -116,6 +120,113 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
   highlightMixesNote,
   setHighlightMixesNote,
 }) => {
+  type Paint = { id: string; name: string; colorHex: string; brand?: string };
+
+  const [includeAssets, setIncludeAssets] = React.useState(true);
+  const [includeMyPaints, setIncludeMyPaints] = React.useState(false);
+
+  type DotSize = 'small' | 'standard' | 'big' | 'large';
+  const DOT_SIZE_OPTIONS: { size: DotSize; idx: number }[] = [
+    { size: 'small', idx: 0 },
+    { size: 'standard', idx: 1 },
+    { size: 'big', idx: 2 },
+    { size: 'large', idx: 3 },
+  ];
+  const [dotSizeIdxByKey, setDotSizeIdxByKey] = React.useState<
+    Record<string, number>
+  >({});
+
+  const DOT_SIZE_COUNT = DOT_SIZE_OPTIONS.length;
+  const getDotSizeIdx = React.useCallback(
+    (dotKey: string) => {
+      const idx = dotSizeIdxByKey[dotKey];
+      return typeof idx === 'number' && idx >= 0 && idx < DOT_SIZE_COUNT
+        ? idx
+        : 1;
+    },
+    [DOT_SIZE_COUNT, dotSizeIdxByKey],
+  );
+
+  const setDotSizeIdx = React.useCallback(
+    (dotKey: string, idx: number) => {
+      const safeIdx =
+        typeof idx === 'number' && idx >= 0 && idx < DOT_SIZE_COUNT ? idx : 1;
+      setDotSizeIdxByKey((prev) => ({ ...prev, [dotKey]: safeIdx }));
+    },
+    [DOT_SIZE_COUNT],
+  );
+
+  const dotKeyMain = React.useCallback(
+    (kind: 'Base' | 'Shadow' | 'Highlight') =>
+      markerId ? `${markerId}-${kind}-main` : '',
+    [markerId],
+  );
+  const dotKeyMix = React.useCallback(
+    (kind: 'Base' | 'Shadow' | 'Highlight', idx: number) =>
+      markerId ? `${markerId}-${kind}-mix-${idx}` : '',
+    [markerId],
+  );
+
+  const DotSizeSelector: React.FC<{ dotKey: string }> = ({ dotKey }) => {
+    if (!dotKey) return null;
+    const selectedIdx = getDotSizeIdx(dotKey);
+    return (
+      <View style={{ marginTop: 6 }}>
+        <Text style={{ fontSize: 11, color: '#ffffff', marginBottom: 6 }}>
+          Size:
+        </Text>
+
+        {/* keep one line: horizontal scroll instead of wrapping */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            paddingRight: 2,
+          }}
+        >
+          {DOT_SIZE_OPTIONS.map((opt) => (
+            <Checkbox
+              key={opt.size}
+              label={opt.size}
+              checked={selectedIdx === opt.idx}
+              onPress={() => setDotSizeIdx(dotKey, opt.idx)}
+            />
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  const Checkbox: React.FC<{
+    label: string;
+    checked: boolean;
+    onPress: () => void;
+  }> = ({ label, checked, onPress }) => (
+    <Pressable
+      onPress={onPress}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+    >
+      <View
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: 3,
+          borderWidth: 1,
+          borderColor: '#2D2D2D',
+          backgroundColor: checked ? '#2D2D2D' : 'transparent',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {checked ? <MaterialIcons name="check" size={14} color="#fff" /> : null}
+      </View>
+      <Text style={{ fontSize: 12, color: '#ffffff' }}>{label}</Text>
+    </Pressable>
+  );
+
   // Controlled with fallback to local state (without breaking current calls)
   const [mixBaseEnabledL, setMixBaseEnabledL] = React.useState(
     mixBaseEnabled ?? false,
@@ -196,24 +307,95 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
     setHighlightMixesNoteV,
   ]);
 
-  const [options, setOptions] = React.useState<
+  const assetOptions = React.useMemo(() => {
+    const seen = new Set<string>();
+    const out: { label: string; value: string }[] = [];
+
+    for (const c of paletteColors as any[]) {
+      const value = String(c?.colorHex ?? '').trim();
+      const label = String(c?.colorName ?? '').trim();
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      out.push({ label, value });
+    }
+
+    return out;
+  }, []);
+
+  const [myPaintOptions, setMyPaintOptions] = React.useState<
     { label: string; value: string }[]
   >([]);
   const [loadingColors, setLoadingColors] = React.useState(true);
 
-  React.useEffect(() => {
-    setLoadingColors(true);
-    const id = setTimeout(() => {
-      setOptions(
-        paletteColors.map((c) => ({
-          label: c.colorName,
-          value: c.colorHex,
-        })),
-      );
-      setLoadingColors(false);
-    }, 0); // micro delay to show the dropdown immediately
-    return () => clearTimeout(id);
+  const loadMyPaintOptions = React.useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem('paintBank.paints');
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      const paints = Array.isArray(parsed) ? (parsed as Paint[]) : [];
+
+      const seen = new Set<string>();
+      const out: { label: string; value: string }[] = [];
+
+      for (const p of paints) {
+        const value = String((p as any)?.colorHex ?? '').trim();
+        const name = String((p as any)?.name ?? '').trim();
+        const brand = String((p as any)?.brand ?? '').trim();
+        if (!value || seen.has(value)) continue;
+        seen.add(value);
+        out.push({ label: brand ? `${brand} - ${name}` : name, value });
+      }
+
+      setMyPaintOptions(out);
+    } catch {
+      setMyPaintOptions([]);
+    }
   }, []);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    setLoadingColors(true);
+    const id = setTimeout(() => setLoadingColors(false), 0);
+    return () => clearTimeout(id);
+  }, [visible]);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    void loadMyPaintOptions();
+  }, [loadMyPaintOptions, visible]);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    setDotSizeIdxByKey({});
+  }, [markerId, visible]);
+
+  const options = React.useMemo(() => {
+    const merged: { label: string; value: string }[] = [];
+    if (includeMyPaints) merged.push(...myPaintOptions);
+    if (includeAssets) merged.push(...assetOptions);
+
+    const seen = new Set<string>();
+    return merged.filter((o) => {
+      if (!o.value || seen.has(o.value)) return false;
+      seen.add(o.value);
+      return true;
+    });
+  }, [assetOptions, includeAssets, includeMyPaints, myPaintOptions]);
+
+  const labelByValue = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const o of assetOptions) map.set(String(o.value).trim(), o.label);
+    for (const o of myPaintOptions) map.set(String(o.value).trim(), o.label);
+    return map;
+  }, [assetOptions, myPaintOptions]);
+
+  const getLabelForHex = React.useCallback(
+    (hex: string) => {
+      const key = String(hex).trim();
+      if (!key) return undefined;
+      return labelByValue.get(key) ?? 'Unknown';
+    },
+    [labelByValue],
+  );
 
   const ColorChips = ({ colors }: { colors: string[] }) => (
     <View
@@ -281,6 +463,10 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                   baseMixesNote: baseMixesNoteV || undefined,
                   shadowMixesNote: shadowMixesNoteV || undefined,
                   highlightMixesNote: highlightMixesNoteV || undefined,
+                  dotSizeIdxByKey:
+                    markerId && Object.keys(dotSizeIdxByKey).length
+                      ? dotSizeIdxByKey
+                      : undefined,
                 })
               }
             />
@@ -300,6 +486,37 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
           contentInset={{ bottom: 120 }}
           showsVerticalScrollIndicator
         >
+          <View
+            style={{
+              paddingHorizontal: 6,
+              marginBottom: 12,
+              gap: 10,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 14,
+              }}
+            >
+              <Text style={[dialogStyles.formLabel, { color: '#ffffff' }]}>
+                Paint list
+              </Text>
+              <Checkbox
+                label="Assets"
+                checked={includeAssets}
+                onPress={() => setIncludeAssets((v) => !v)}
+              />
+              <Checkbox
+                label="My PaintBank"
+                checked={includeMyPaints}
+                onPress={() => setIncludeMyPaints((v) => !v)}
+              />
+            </View>
+          </View>
+
           {/* Title */}
           <View style={dialogStyles.formRow}>
             <Text style={[dialogStyles.formLabel, { color: '#ffffff' }]}>
@@ -323,12 +540,13 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
               Base colour
             </Text>
             <View
-              style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}
+              style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}
             >
               <View style={{ flex: 1 }}>
                 <SimplySelect
                   useLightBg
                   options={options}
+                  getOptionLabel={getLabelForHex}
                   loading={loadingColors}
                   value={mBase}
                   onChange={(hex) => setMBase(hex)}
@@ -353,6 +571,9 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                 />
               )}
             </View>
+            {!!mBase && !!markerId && (
+              <DotSizeSelector dotKey={dotKeyMain('Base')} />
+            )}
           </View>
 
           {/* BASE — mixes */}
@@ -383,46 +604,60 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
           {mBase && mixBaseEnabledV ? (
             <View style={{ gap: 8 }}>
               {baseMixesV.map((mix, idx) => (
-                <View
-                  key={`base-mix-${idx}`}
-                  style={[
-                    dialogStyles.formRow,
-                    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <SimplySelect
-                      useLightBg
-                      options={options}
-                      loading={loadingColors}
-                      value={mix}
-                      onChange={(hex) => {
-                        const next = [...baseMixesV];
-                        next[idx] = hex;
+                <React.Fragment key={`base-mix-${idx}`}>
+                  <View
+                    style={[
+                      dialogStyles.formRow,
+                      { flexDirection: 'row', alignItems: 'center', gap: 8 },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <SimplySelect
+                        useLightBg
+                        options={options}
+                        getOptionLabel={getLabelForHex}
+                        loading={loadingColors}
+                        value={mix}
+                        onChange={(hex) => {
+                          const next = [...baseMixesV];
+                          next[idx] = hex;
+                          setBaseMixesV(next);
+                        }}
+                        placeholder="Choose blend…"
+                        placeholderTextColor="#ffffff"
+                        arrowPosition="right"
+                        searchable
+                        width="100%"
+                        size="small"
+                        borderless
+                        allowVirtualized={false}
+                      />
+                      {/* moved DotSizeSelector below the whole row */}
+                    </View>
+
+                    <SimplyButton
+                      onPress={() => {
+                        const next = baseMixesV.filter((_, i) => i !== idx);
                         setBaseMixesV(next);
                       }}
-                      placeholder="Choose blend…"
-                      placeholderTextColor="#ffffff"
-                      arrowPosition="right"
-                      searchable
-                      width="100%"
-                      size="small"
-                      borderless
-                      allowVirtualized={false}
+                      height={35}
+                      iconNode={
+                        <MaterialIcons
+                          name="delete"
+                          size={18}
+                          color="#FFFFFF"
+                        />
+                      }
+                      iconOnly
                     />
                   </View>
-                  <SimplyButton
-                    onPress={() => {
-                      const next = baseMixesV.filter((_, i) => i !== idx);
-                      setBaseMixesV(next);
-                    }}
-                    height={35}
-                    iconNode={
-                      <MaterialIcons name="delete" size={18} color="#FFFFFF" />
-                    }
-                    iconOnly
-                  />
-                </View>
+
+                  {!!mix && !!markerId && (
+                    <View style={[dialogStyles.formRow, { marginTop: -6 }]}>
+                      <DotSizeSelector dotKey={dotKeyMix('Base', idx)} />
+                    </View>
+                  )}
+                </React.Fragment>
               ))}
               <View
                 style={[
@@ -500,6 +735,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                 <SimplySelect
                   useLightBg
                   options={options}
+                  getOptionLabel={getLabelForHex}
                   loading={loadingColors}
                   value={mShadow}
                   onChange={(hex) => setMShadow(hex)}
@@ -524,6 +760,9 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                 />
               )}
             </View>
+            {!!mShadow && !!markerId && (
+              <DotSizeSelector dotKey={dotKeyMain('Shadow')} />
+            )}
           </View>
 
           {/* SHADOW — mixes */}
@@ -556,46 +795,60 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
           {mShadow && mixShadowEnabledV ? (
             <View style={{ gap: 8 }}>
               {shadowMixesV.map((mix, idx) => (
-                <View
-                  key={`shadow-mix-${idx}`}
-                  style={[
-                    dialogStyles.formRow,
-                    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <SimplySelect
-                      useLightBg
-                      options={options}
-                      loading={loadingColors}
-                      value={mix}
-                      onChange={(hex) => {
-                        const next = [...shadowMixesV];
-                        next[idx] = hex;
+                <React.Fragment key={`shadow-mix-${idx}`}>
+                  <View
+                    style={[
+                      dialogStyles.formRow,
+                      { flexDirection: 'row', alignItems: 'center', gap: 8 },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <SimplySelect
+                        useLightBg
+                        options={options}
+                        getOptionLabel={getLabelForHex}
+                        loading={loadingColors}
+                        value={mix}
+                        onChange={(hex) => {
+                          const next = [...shadowMixesV];
+                          next[idx] = hex;
+                          setShadowMixesV(next);
+                        }}
+                        placeholder="Choose blend…"
+                        placeholderTextColor="#ffffff"
+                        arrowPosition="right"
+                        searchable
+                        width="100%"
+                        size="small"
+                        borderless
+                        allowVirtualized={false}
+                      />
+                      {/* moved DotSizeSelector below the whole row */}
+                    </View>
+
+                    <SimplyButton
+                      onPress={() => {
+                        const next = shadowMixesV.filter((_, i) => i !== idx);
                         setShadowMixesV(next);
                       }}
-                      placeholder="Choose blend…"
-                      placeholderTextColor="#ffffff"
-                      arrowPosition="right"
-                      searchable
-                      width="100%"
-                      size="small"
-                      borderless
-                      allowVirtualized={false}
+                      height={35}
+                      iconNode={
+                        <MaterialIcons
+                          name="delete"
+                          size={18}
+                          color="#FFFFFF"
+                        />
+                      }
+                      iconOnly
                     />
                   </View>
-                  <SimplyButton
-                    onPress={() => {
-                      const next = shadowMixesV.filter((_, i) => i !== idx);
-                      setShadowMixesV(next);
-                    }}
-                    height={35}
-                    iconNode={
-                      <MaterialIcons name="delete" size={18} color="#FFFFFF" />
-                    }
-                    iconOnly
-                  />
-                </View>
+
+                  {!!mix && !!markerId && (
+                    <View style={[dialogStyles.formRow, { marginTop: -6 }]}>
+                      <DotSizeSelector dotKey={dotKeyMix('Shadow', idx)} />
+                    </View>
+                  )}
+                </React.Fragment>
               ))}
               <View
                 style={[
@@ -700,6 +953,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                 <SimplySelect
                   useLightBg
                   options={options}
+                  getOptionLabel={getLabelForHex}
                   loading={loadingColors}
                   value={mHighlight}
                   onChange={(hex) => setMHighlight(hex)}
@@ -724,6 +978,9 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                 />
               )}
             </View>
+            {!!mHighlight && !!markerId && (
+              <DotSizeSelector dotKey={dotKeyMain('Highlight')} />
+            )}
           </View>
 
           {/* HIGHLIGHT — mixes */}
@@ -754,46 +1011,62 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
           {mHighlight && mixHighlightEnabledV ? (
             <View style={{ gap: 8 }}>
               {highlightMixesV.map((mix, idx) => (
-                <View
-                  key={`highlight-mix-${idx}`}
-                  style={[
-                    dialogStyles.formRow,
-                    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <SimplySelect
-                      useLightBg
-                      options={options}
-                      loading={loadingColors}
-                      value={mix}
-                      onChange={(hex) => {
-                        const next = [...highlightMixesV];
-                        next[idx] = hex;
+                <React.Fragment key={`highlight-mix-${idx}`}>
+                  <View
+                    style={[
+                      dialogStyles.formRow,
+                      { flexDirection: 'row', alignItems: 'center', gap: 8 },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <SimplySelect
+                        useLightBg
+                        options={options}
+                        getOptionLabel={getLabelForHex}
+                        loading={loadingColors}
+                        value={mix}
+                        onChange={(hex) => {
+                          const next = [...highlightMixesV];
+                          next[idx] = hex;
+                          setHighlightMixesV(next);
+                        }}
+                        placeholder="Choose blend…"
+                        placeholderTextColor="#ffffff"
+                        arrowPosition="right"
+                        searchable
+                        width="100%"
+                        size="small"
+                        borderless
+                        allowVirtualized={false}
+                      />
+                      {/* moved DotSizeSelector below the whole row */}
+                    </View>
+
+                    <SimplyButton
+                      onPress={() => {
+                        const next = highlightMixesV.filter(
+                          (_, i) => i !== idx,
+                        );
                         setHighlightMixesV(next);
                       }}
-                      placeholder="Choose blend…"
-                      placeholderTextColor="#ffffff"
-                      arrowPosition="right"
-                      searchable
-                      width="100%"
-                      size="small"
-                      borderless
-                      allowVirtualized={false}
+                      height={35}
+                      iconNode={
+                        <MaterialIcons
+                          name="delete"
+                          size={18}
+                          color="#FFFFFF"
+                        />
+                      }
+                      iconOnly
                     />
                   </View>
-                  <SimplyButton
-                    onPress={() => {
-                      const next = highlightMixesV.filter((_, i) => i !== idx);
-                      setHighlightMixesV(next);
-                    }}
-                    height={35}
-                    iconNode={
-                      <MaterialIcons name="delete" size={18} color="#FFFFFF" />
-                    }
-                    iconOnly
-                  />
-                </View>
+
+                  {!!mix && !!markerId && (
+                    <View style={[dialogStyles.formRow, { marginTop: -6 }]}>
+                      <DotSizeSelector dotKey={dotKeyMix('Highlight', idx)} />
+                    </View>
+                  )}
+                </React.Fragment>
               ))}
               <View
                 style={[

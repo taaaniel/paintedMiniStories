@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import paletteColors from '../../../assets/data/palleteColors.json';
@@ -40,17 +41,55 @@ interface MarkerListProps {
   onToggle: (id: string) => void;
   onUpdate: (markerId: string, patch: Partial<Marker>) => void;
   maxWidth: number;
+  overlaySettingsVersion?: number;
+  onOverlaySettingsChanged?: () => void;
 }
 
 const MarkerList: React.FC<MarkerListProps> = ({
-  photoId: _photoId, // silence unused param if TS has noUnusedParameters
+  photoId,
   markers,
   expanded,
   onToggle,
   onUpdate,
   maxWidth,
+  overlaySettingsVersion,
+  onOverlaySettingsChanged,
 }) => {
-  const options = React.useMemo(() => {
+  type Paint = { id: string; name: string; colorHex: string; brand?: string };
+
+  const [includeAssets, setIncludeAssets] = React.useState(true);
+  const [includeMyPaints, setIncludeMyPaints] = React.useState(false);
+
+  const Checkbox: React.FC<{
+    label: string;
+    checked: boolean;
+    onPress: () => void;
+  }> = ({ label, checked, onPress }) => (
+    <Pressable
+      onPress={onPress}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+    >
+      <View
+        style={{
+          width: 14,
+          height: 14,
+          borderRadius: 3,
+          borderWidth: 1,
+          borderColor: '#2D2D2D',
+          backgroundColor: checked ? '#2D2D2D' : 'transparent',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {checked ? (
+          <MaterialCommunityIcons name="check" size={12} color="#fff" />
+        ) : null}
+      </View>
+      <Text style={{ fontSize: 11, color: '#333' }}>{label}</Text>
+    </Pressable>
+  );
+
+  const assetOptions = React.useMemo(() => {
     const seen = new Set<string>();
     const out: { label: string; value: string }[] = [];
 
@@ -64,6 +103,65 @@ const MarkerList: React.FC<MarkerListProps> = ({
     return out;
   }, []);
 
+  const [myPaintOptions, setMyPaintOptions] = React.useState<
+    { label: string; value: string }[]
+  >([]);
+
+  const loadMyPaintOptions = React.useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem('paintBank.paints');
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      const paints = Array.isArray(parsed) ? (parsed as Paint[]) : [];
+
+      const seen = new Set<string>();
+      const out: { label: string; value: string }[] = [];
+      for (const p of paints) {
+        const value = String((p as any)?.colorHex ?? '').trim();
+        const name = String((p as any)?.name ?? '').trim();
+        const brand = String((p as any)?.brand ?? '').trim();
+        if (!value || seen.has(value)) continue;
+        seen.add(value);
+        out.push({ label: brand ? `${brand} - ${name}` : name, value });
+      }
+      setMyPaintOptions(out);
+    } catch {
+      setMyPaintOptions([]);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadMyPaintOptions();
+  }, [loadMyPaintOptions]);
+
+  const options = React.useMemo(() => {
+    const merged: { label: string; value: string }[] = [];
+    if (includeMyPaints) merged.push(...myPaintOptions);
+    if (includeAssets) merged.push(...assetOptions);
+
+    const seen = new Set<string>();
+    return merged.filter((o) => {
+      if (!o.value || seen.has(o.value)) return false;
+      seen.add(o.value);
+      return true;
+    });
+  }, [assetOptions, includeAssets, includeMyPaints, myPaintOptions]);
+
+  const labelByValue = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const o of assetOptions) map.set(String(o.value).trim(), o.label);
+    for (const o of myPaintOptions) map.set(String(o.value).trim(), o.label);
+    return map;
+  }, [assetOptions, myPaintOptions]);
+
+  const getLabelForHex = React.useCallback(
+    (hex: string) => {
+      const key = String(hex).trim();
+      if (!key) return undefined;
+      return labelByValue.get(key) ?? 'Unknown';
+    },
+    [labelByValue],
+  );
+
   // Sanitize displayed title (remove HEX tags like #ABC or #AABBCCDD)
   const stripHexTags = React.useCallback(
     (s?: string) => (s || '').replace(/\s*#([0-9A-F]{3,8})\b/gi, '').trim(),
@@ -71,6 +169,140 @@ const MarkerList: React.FC<MarkerListProps> = ({
   );
 
   const ensureArray = (arr?: string[]) => (Array.isArray(arr) ? arr : []);
+
+  const overlayStorageKey = React.useMemo(
+    () => `SlideImageWithMarkers:${photoId}`,
+    [photoId],
+  );
+
+  const [dotSizeIdxByKey, setDotSizeIdxByKey] = React.useState<
+    Record<string, number>
+  >({});
+
+  const loadDotSizes = React.useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(overlayStorageKey);
+      if (!raw) {
+        setDotSizeIdxByKey({});
+        return;
+      }
+      const parsed = JSON.parse(raw) as {
+        dotSizeIdxByKey?: Record<string, number>;
+      };
+      setDotSizeIdxByKey(parsed.dotSizeIdxByKey ?? {});
+    } catch {
+      // noop
+    }
+  }, [overlayStorageKey]);
+
+  React.useEffect(() => {
+    void loadDotSizes();
+  }, [loadDotSizes, overlaySettingsVersion]);
+
+  type DotSize = 'small' | 'standard' | 'big' | 'large';
+  const DOT_SIZE_OPTIONS: { size: DotSize; idx: number }[] = [
+    { size: 'small', idx: 0 },
+    { size: 'standard', idx: 1 },
+    { size: 'big', idx: 2 },
+    { size: 'large', idx: 3 },
+  ];
+  const DOT_SIZE_COUNT = DOT_SIZE_OPTIONS.length;
+
+  const getDotSizeIdx = React.useCallback(
+    (dotKey: string) => {
+      const idx = dotSizeIdxByKey[dotKey];
+      return typeof idx === 'number' && idx >= 0 && idx < DOT_SIZE_COUNT
+        ? idx
+        : 1;
+    },
+    [DOT_SIZE_COUNT, dotSizeIdxByKey],
+  );
+
+  const setDotSizeIdx = React.useCallback(
+    (dotKey: string, idx: number) => {
+      const safeIdx =
+        typeof idx === 'number' && idx >= 0 && idx < DOT_SIZE_COUNT ? idx : 1;
+      setDotSizeIdxByKey((prev) => {
+        const next = { ...prev, [dotKey]: safeIdx };
+        (async () => {
+          try {
+            const raw = await AsyncStorage.getItem(overlayStorageKey);
+            const parsed = raw ? (JSON.parse(raw) as any) : {};
+            parsed.dotSizeIdxByKey = next;
+            await AsyncStorage.setItem(
+              overlayStorageKey,
+              JSON.stringify(parsed),
+            );
+            onOverlaySettingsChanged?.();
+          } catch {
+            // noop
+          }
+        })();
+        return next;
+      });
+    },
+    [DOT_SIZE_COUNT, onOverlaySettingsChanged, overlayStorageKey],
+  );
+
+  const DotSizeSelector: React.FC<{ dotKey: string }> = ({ dotKey }) => {
+    const selectedIdx = getDotSizeIdx(dotKey);
+    return (
+      <View
+        style={{
+          marginTop: 6,
+          paddingBottom: 8,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+        }}
+      >
+        <Text style={{ fontSize: 11, color: '#333' }}>Size:</Text>
+
+        {DOT_SIZE_OPTIONS.map((opt) => {
+          const checked = selectedIdx === opt.idx;
+          return (
+            <Pressable
+              key={opt.size}
+              onPress={() => setDotSizeIdx(dotKey, opt.idx)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <View
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 3,
+                  borderWidth: 1,
+                  borderColor: '#2D2D2D',
+                  backgroundColor: checked ? '#2D2D2D' : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {checked ? (
+                  <MaterialCommunityIcons name="check" size={12} color="#fff" />
+                ) : null}
+              </View>
+              <Text style={{ fontSize: 11, color: '#333' }}>{opt.size}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const dotKeyMain = (
+    markerId: string,
+    kind: 'Base' | 'Shadow' | 'Highlight',
+  ) => `${markerId}-${kind}-main`;
+  const dotKeyMix = (
+    markerId: string,
+    kind: 'Base' | 'Shadow' | 'Highlight',
+    idx: number,
+  ) => `${markerId}-${kind}-mix-${idx}`;
 
   // chips like in the dialog
   const ColorChips: React.FC<{ colors: string[] }> = ({ colors }) => (
@@ -206,6 +438,11 @@ const MarkerList: React.FC<MarkerListProps> = ({
     [markers, pendingDeleteId],
   );
 
+  const hasAnyMarkers = React.useMemo(
+    () => (markers ?? []).some((m) => !m?.deleted),
+    [markers],
+  );
+
   return (
     <View
       style={[
@@ -213,6 +450,57 @@ const MarkerList: React.FC<MarkerListProps> = ({
         { maxWidth, marginTop: 30, zIndex: 0 },
       ]}
     >
+      {hasAnyMarkers ? (
+        <>
+          <View style={{ alignItems: 'center', marginBottom: 10 }}>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: '900',
+                color: '#2D2D2D',
+                textAlign: 'center',
+              }}
+            >
+              Your markers
+            </Text>
+            <Text
+              style={{
+                marginTop: 4,
+                fontSize: 12,
+                fontWeight: '700',
+                color: '#333',
+                opacity: 0.75,
+                textAlign: 'center',
+              }}
+            >
+              You can edit them below
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              marginBottom: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Text style={{ fontSize: 11, color: '#333' }}>Paint list:</Text>
+            <Checkbox
+              label="Assets"
+              checked={includeAssets}
+              onPress={() => setIncludeAssets((v) => !v)}
+            />
+            <Checkbox
+              label="My PaintBank"
+              checked={includeMyPaints}
+              onPress={() => setIncludeMyPaints((v) => !v)}
+            />
+          </View>
+        </>
+      ) : null}
+
       {markers
         .filter((m) => !m.deleted)
         .map((m, idx) => {
@@ -303,6 +591,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
                     <Text style={markerListStyles.markerFieldLabel}>
                       Base colour
                     </Text>
+                    <DotSizeSelector dotKey={dotKeyMain(m.id, 'Base')} />
                     <View
                       style={{
                         flexDirection: 'row',
@@ -313,6 +602,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
                       <View style={{ flex: 1 }}>
                         <SimplySelect
                           options={options}
+                          getOptionLabel={getLabelForHex}
                           value={mm.baseColor || ''}
                           onChange={(hex) => setDraft(m.id, { baseColor: hex })}
                           placeholder="Choose base color…"
@@ -358,6 +648,9 @@ const MarkerList: React.FC<MarkerListProps> = ({
                           <Text style={markerListStyles.markerFieldLabel}>
                             Base mix #{i + 1}
                           </Text>
+                          <DotSizeSelector
+                            dotKey={dotKeyMix(m.id, 'Base', i)}
+                          />
                           <View
                             style={{
                               flexDirection: 'row',
@@ -368,6 +661,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
                             <View style={{ flex: 1 }}>
                               <SimplySelect
                                 options={options}
+                                getOptionLabel={getLabelForHex}
                                 value={hex}
                                 onChange={(v) => {
                                   const next = [...baseMixes];
@@ -492,6 +786,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
                     <Text style={markerListStyles.markerFieldLabel}>
                       Shadow color
                     </Text>
+                    <DotSizeSelector dotKey={dotKeyMain(m.id, 'Shadow')} />
                     <View
                       style={{
                         flexDirection: 'row',
@@ -502,6 +797,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
                       <View style={{ flex: 1 }}>
                         <SimplySelect
                           options={options}
+                          getOptionLabel={getLabelForHex}
                           value={mm.shadowColor || ''}
                           onChange={(hex) =>
                             setDraft(m.id, { shadowColor: hex })
@@ -549,6 +845,9 @@ const MarkerList: React.FC<MarkerListProps> = ({
                           <Text style={markerListStyles.markerFieldLabel}>
                             Shadow mix #{i + 1}
                           </Text>
+                          <DotSizeSelector
+                            dotKey={dotKeyMix(m.id, 'Shadow', i)}
+                          />
                           <View
                             style={{
                               flexDirection: 'row',
@@ -559,6 +858,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
                             <View style={{ flex: 1 }}>
                               <SimplySelect
                                 options={options}
+                                getOptionLabel={getLabelForHex}
                                 value={hex}
                                 onChange={(v) => {
                                   const next = [...shadowMixes];
@@ -686,6 +986,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
                     <Text style={markerListStyles.markerFieldLabel}>
                       Highlight colour
                     </Text>
+                    <DotSizeSelector dotKey={dotKeyMain(m.id, 'Highlight')} />
                     <View
                       style={{
                         flexDirection: 'row',
@@ -696,6 +997,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
                       <View style={{ flex: 1 }}>
                         <SimplySelect
                           options={options}
+                          getOptionLabel={getLabelForHex}
                           value={mm.highlightColor || ''}
                           onChange={(hex) =>
                             setDraft(m.id, { highlightColor: hex })
@@ -743,6 +1045,9 @@ const MarkerList: React.FC<MarkerListProps> = ({
                           <Text style={markerListStyles.markerFieldLabel}>
                             Highlight mix #{i + 1}
                           </Text>
+                          <DotSizeSelector
+                            dotKey={dotKeyMix(m.id, 'Highlight', i)}
+                          />
                           <View
                             style={{
                               flexDirection: 'row',
@@ -753,6 +1058,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
                             <View style={{ flex: 1 }}>
                               <SimplySelect
                                 options={options}
+                                getOptionLabel={getLabelForHex}
                                 value={hex}
                                 onChange={(v) => {
                                   const next = [...highlightMixes];
@@ -1009,7 +1315,7 @@ const MarkerList: React.FC<MarkerListProps> = ({
         cancelLabel="CANCEL"
         confirmLabel="DELETE"
       >
-        <Text style={{ color: '#333', textAlign: 'center' }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>
           Are you sure you want to delete this marker?
         </Text>
       </CustomDialog>

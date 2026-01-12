@@ -16,6 +16,7 @@ export function CarouselWithMarkers({
   height,
   mode,
   exportMode = false,
+  overlaySettingsVersion,
   markersByPhoto = {},
   editingPhoto,
   setEditingPhoto,
@@ -26,6 +27,7 @@ export function CarouselWithMarkers({
   setEditingPhotoMove,
 
   paletteColorsByPhoto,
+  paletteLabelsByPhoto,
   paletteMarkersByPhoto,
   paletteEditingPhotoMove,
   setPaletteEditingPhotoMove,
@@ -42,6 +44,7 @@ export function CarouselWithMarkers({
   height: number;
   mode: 'colors' | 'palette';
   exportMode?: boolean;
+  overlaySettingsVersion?: number;
   markersByPhoto: Record<string, Marker[]>;
   editingPhoto: string | null;
   setEditingPhoto: (p: string | null) => void;
@@ -62,6 +65,7 @@ export function CarouselWithMarkers({
   setEditingPhotoMove?: (p: string | null) => void;
 
   paletteColorsByPhoto?: Record<string, string[]>;
+  paletteLabelsByPhoto?: Record<string, string[]>;
   paletteMarkersByPhoto?:
     | Record<
         string,
@@ -104,6 +108,58 @@ export function CarouselWithMarkers({
   const [showLabels, setShowLabels] = useState(true);
   const PADDING = 0;
 
+  const clampMin = (n: number, min: number) => (n < min ? min : n);
+  const clampMax = (n: number, max: number) => (n > max ? max : n);
+  const clamp = (n: number, min: number, max: number) =>
+    clampMax(clampMin(n, min), max);
+
+  // Keep controls within the screen edges.
+  const controlsSidePadding = 8;
+  const controlsMaxWidth = Math.max(0, width - controlsSidePadding * 2);
+
+  const colorsButtonsCount = photos.length && photos[activeIndex] ? 3 : 1;
+  const colorsGap = 8;
+  const colorsButtonWidth =
+    colorsButtonsCount <= 1
+      ? clamp(Math.floor(controlsMaxWidth), 0, 100)
+      : clamp(
+          Math.floor(
+            (controlsMaxWidth - colorsGap * (colorsButtonsCount - 1)) /
+              colorsButtonsCount,
+          ),
+          0,
+          100,
+        );
+
+  const paletteButtonsCount = 2;
+  const paletteGap = 10;
+  const paletteButtonWidth = clamp(
+    Math.floor((controlsMaxWidth - paletteGap * (paletteButtonsCount - 1)) / 2),
+    0,
+    120,
+  );
+
+  // Palette preview sizing (matches renderPalettePreview)
+  const PALETTE_PREVIEW_HEIGHT = 65;
+  const PALETTE_PREVIEW_OVERLAP_PX = 5;
+  const PALETTE_PREVIEW_GAP_PX = 10;
+  // RectangleGemButton height is proportional to width (see RectangleGemButton.tsx)
+  const PALETTE_BUTTON_HEIGHT = (paletteButtonWidth / 141) * 48;
+  const paletteControlsBottom = -Math.round(
+    PALETTE_PREVIEW_HEIGHT +
+      PALETTE_PREVIEW_GAP_PX +
+      PALETTE_BUTTON_HEIGHT -
+      PALETTE_PREVIEW_OVERLAP_PX,
+  );
+
+  // Reserve vertical space in the ScrollView so the bottom controls (rendered with negative bottom)
+  // are not overlapped by the tabs/content that comes after the carousel.
+  const controlsOverflowPx = exportMode
+    ? 0
+    : mode === 'palette'
+    ? Math.max(0, -paletteControlsBottom)
+    : 0;
+
   const activePhoto = photos[activeIndex] ?? '';
 
   useEffect(() => {
@@ -114,15 +170,23 @@ export function CarouselWithMarkers({
     });
   }, [activeIndex, width]);
 
-  const palettePreview = (
+  const renderPalettePreview = (variant: 'ui' | 'export') => (
     <View
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        zIndex: 999,
-        alignItems: 'center',
-      }}
+      style={
+        variant === 'ui'
+          ? {
+              position: 'absolute',
+              top: -10,
+              left: 0,
+              right: 0,
+              zIndex: 999,
+              alignItems: 'center',
+            }
+          : {
+              alignItems: 'center',
+            }
+      }
+      pointerEvents="none"
     >
       <View
         style={{
@@ -205,42 +269,46 @@ export function CarouselWithMarkers({
           padding: PADDING,
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: 20,
+          marginBottom: 20 + controlsOverflowPx,
         },
       ]}
     >
-      {/* Slide counter above the image (hide in export mode so it doesn't end up in the capture) */}
-      {!exportMode && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: -25,
-            left: 35,
-            zIndex: 270,
-          }}
-        >
-          <Text
-            style={[
-              styles.counterText,
-              {
-                textAlign: 'right',
-                backgroundColor: 'rgba(0,0,0,0.55)',
-                color: '#fff',
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 6,
-                fontSize: 10,
-                fontWeight: '700',
-              },
-            ]}
+      {/* Slide counter above the image (hide in export mode and edit modes) */}
+      {!exportMode &&
+        !editingPhoto &&
+        !editingPhotoMove &&
+        !paletteEditingPhotoMove && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              // Keep inside the carousel so it never overlaps the header/description above.
+              top: 6,
+              left: 10,
+              zIndex: 270,
+            }}
           >
-            {photos.length
-              ? `Slide ${activeIndex + 1} of ${photos.length}`
-              : 'Slide 0 of 0'}
-          </Text>
-        </View>
-      )}
+            <Text
+              style={[
+                styles.counterText,
+                {
+                  textAlign: 'right',
+                  backgroundColor: 'rgba(0,0,0,0.55)',
+                  color: '#fff',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 6,
+                  fontSize: 10,
+                  fontWeight: '700',
+                },
+              ]}
+            >
+              {photos.length
+                ? `Slide ${activeIndex + 1} of ${photos.length}`
+                : 'Slide 0 of 0'}
+            </Text>
+          </View>
+        )}
 
       {photos.length > 0 ? (
         <ScrollView
@@ -289,6 +357,7 @@ export function CarouselWithMarkers({
                   width={width}
                   height={height}
                   isActive={item === activePhoto} // NEW
+                  settingsVersion={overlaySettingsVersion}
                   markers={mode === 'colors' ? markersByPhoto[item] || [] : []}
                   editing={
                     mode === 'colors'
@@ -308,6 +377,11 @@ export function CarouselWithMarkers({
                   paletteHexColors={
                     mode === 'palette'
                       ? paletteColorsByPhoto?.[item]
+                      : undefined
+                  }
+                  paletteLabels={
+                    mode === 'palette'
+                      ? paletteLabelsByPhoto?.[item]
                       : undefined
                   }
                   paletteMoveOnly={
@@ -372,6 +446,28 @@ export function CarouselWithMarkers({
         );
       })()}
 
+      {!exportMode && !!editingPhotoMove ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            bottom: PADDING,
+            left: PADDING,
+            right: PADDING,
+            zIndex: 260,
+            backgroundColor: '#d0175e',
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 6,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: '600', fontSize: 10 }}>
+            Tip:Tap a colour dot to change its size
+          </Text>
+        </View>
+      ) : null}
+
       {/* Export mode: hide all bottom controls, but keep palette preview visible */}
       {exportMode ? (
         mode === 'palette' ? (
@@ -381,12 +477,12 @@ export function CarouselWithMarkers({
               position: 'absolute',
               left: 0,
               right: 0,
-              bottom: PADDING - 25,
-              zIndex: 200,
+              bottom: PADDING + 8,
+              zIndex: 300,
               alignItems: 'center',
             }}
           >
-            {palettePreview}
+            {renderPalettePreview('export')}
           </View>
         ) : null
       ) : (
@@ -395,9 +491,9 @@ export function CarouselWithMarkers({
             extraStyles.carouselMetaRow,
             {
               position: 'absolute',
-              bottom: -50,
-              left: 8,
-              right: 8,
+              bottom: mode === 'palette' ? paletteControlsBottom : -50,
+              left: controlsSidePadding,
+              right: controlsSidePadding,
               zIndex: 200,
               flexDirection: 'column',
               alignItems: 'center',
@@ -410,14 +506,16 @@ export function CarouselWithMarkers({
               style={{
                 marginTop: 8,
                 flexDirection: 'row',
+                flexWrap: 'wrap',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
+                width: '100%',
               }}
             >
               {/* Disable Show/Hide labels in either mode */}
               <RectangleGemButton
-                width={100}
+                width={colorsButtonWidth}
                 fontSize={11}
                 label={showLabels ? 'Hide labels' : 'Show labels'}
                 color={
@@ -436,7 +534,7 @@ export function CarouselWithMarkers({
               {!!photos.length && photos[activeIndex] && (
                 <>
                   <RectangleGemButton
-                    width={100}
+                    width={colorsButtonWidth}
                     fontSize={11}
                     label={
                       editingPhoto === photos[activeIndex]
@@ -453,7 +551,7 @@ export function CarouselWithMarkers({
                     }
                   />
                   <RectangleGemButton
-                    width={100}
+                    width={colorsButtonWidth}
                     fontSize={11}
                     label={
                       editingPhotoMove === photos[activeIndex]
@@ -484,27 +582,34 @@ export function CarouselWithMarkers({
           ) : (
             <View
               style={{
-                position: 'absolute',
-                top: -30,
                 width: '100%',
                 alignItems: 'center',
               }}
             >
-              <View style={{ position: 'absolute', top: -70, zIndex: 210 }}>
-                {palettePreview}
+              <View
+                style={{
+                  marginTop: 0,
+                  marginBottom: PALETTE_PREVIEW_GAP_PX,
+                  zIndex: 210,
+                  alignItems: 'center',
+                  width: '100%',
+                }}
+              >
+                {renderPalettePreview('export')}
               </View>
 
               <View
                 style={{
-                  position: 'absolute',
-                  top: 30,
-                  marginTop: -20,
                   flexDirection: 'row',
-                  gap: 10,
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: paletteGap,
+                  width: '100%',
                 }}
               >
                 <RectangleGemButton
-                  width={120}
+                  width={paletteButtonWidth}
                   fontSize={11}
                   label={
                     isGeneratingPalette ? 'GENERATING…' : 'GENERATE PALETTE'
@@ -513,7 +618,7 @@ export function CarouselWithMarkers({
                   onPress={isGeneratingPalette ? undefined : onGeneratePalette}
                 />
                 <RectangleGemButton
-                  width={120}
+                  width={paletteButtonWidth}
                   fontSize={11}
                   label={
                     paletteEditingPhotoMove === activePhoto

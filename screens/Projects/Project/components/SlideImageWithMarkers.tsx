@@ -5,11 +5,19 @@ import React from 'react';
 import { GestureResponderEvent, Pressable, Text, View } from 'react-native';
 import paletteColors from '../../../../assets/data/palleteColors.json';
 
+const toHexKey = (hex?: string) => {
+  const s = String(hex ?? '').trim();
+  if (!s) return '';
+  const withHash = s.startsWith('#') ? s : `#${s}`;
+  return withHash.toUpperCase();
+};
+
 type Marker = {
   id: string;
   x: number; // 0..1
   y: number; // 0..1
   title?: string;
+  dotSize?: number; // diameter in px (for Colors dots)
   baseColor?: string;
   shadowColor?: string;
   highlightColor?: string;
@@ -31,6 +39,7 @@ type Props = {
   editing?: boolean;
   showLabels?: boolean;
   moveOnly?: boolean;
+  settingsVersion?: number;
   onMoveMarker?: (
     photoId: string,
     markerId: string,
@@ -50,6 +59,7 @@ type Props = {
     angleDeg: number;
   }[];
   paletteHexColors?: string[];
+  paletteLabels?: string[];
   paletteMoveOnly?: boolean;
   onMovePaletteMarker?: (
     photoId: string,
@@ -81,23 +91,94 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   editing,
   showLabels = true,
   moveOnly = false,
+  settingsVersion,
   onMoveMarker,
   isActive = false, // NEW
   paletteMarkers,
   paletteHexColors,
+  paletteLabels,
   paletteMoveOnly = false,
   onMovePaletteMarker,
   onDropPaletteMarker,
   onSetPaletteMarkerAngle,
 }) => {
+  type PaintBankPaint = { colorHex?: string; name?: string; brand?: string };
+  const UNKNOWN_LABEL = 'Unknown';
+
   // Measure the container to convert pageX/pageY -> relative 0..1
   const containerRef = React.useRef<View>(null);
+  const dragOffsetByMarkerIdRef = React.useRef<
+    Record<string, { dx: number; dy: number }>
+  >({});
+  const dragOffsetByPaletteIdRef = React.useRef<
+    Record<string, { dx: number; dy: number }>
+  >({});
   const [containerRect, setContainerRect] = React.useState<{
     x: number;
     y: number;
     width: number;
     height: number;
   } | null>(null);
+
+  // Natural image aspect ratio (w/h). Used to compute the displayed (letterboxed) rect when using contentFit="contain".
+  const [imageAspect, setImageAspect] = React.useState<number | null>(null);
+
+  const imageLayoutRect = React.useMemo(() => {
+    const containerW = width;
+    const containerH = height;
+
+    if (!imageAspect || containerW <= 0 || containerH <= 0) {
+      return { left: 0, top: 0, width: containerW, height: containerH };
+    }
+
+    const containerAspect = containerW / containerH;
+
+    // "contain": fit inside container preserving aspect ratio.
+    if (imageAspect > containerAspect) {
+      const w = containerW;
+      const h = w / imageAspect;
+      return { left: 0, top: (containerH - h) / 2, width: w, height: h };
+    }
+
+    const h = containerH;
+    const w = h * imageAspect;
+    return { left: (containerW - w) / 2, top: 0, width: w, height: h };
+  }, [height, imageAspect, width]);
+
+  const imageWindowRect = React.useMemo(() => {
+    if (!containerRect) return null;
+    return {
+      x: containerRect.x + imageLayoutRect.left,
+      y: containerRect.y + imageLayoutRect.top,
+      width: imageLayoutRect.width,
+      height: imageLayoutRect.height,
+    };
+  }, [
+    containerRect,
+    imageLayoutRect.height,
+    imageLayoutRect.left,
+    imageLayoutRect.top,
+    imageLayoutRect.width,
+  ]);
+
+  const activeRect = imageWindowRect ?? containerRect;
+
+  // Marker sizing constants (must be defined before gesture handlers).
+  const DOT_SIZE = 30;
+  const DOT_RADIUS = DOT_SIZE / 2;
+  const PALETTE_DOT_SIZE = DOT_SIZE + 5;
+  const PALETTE_DOT_RADIUS = PALETTE_DOT_SIZE / 2;
+  const PALETTE_ARROW_SIZE = 24;
+  const PALETTE_ARROW_CENTER_OFFSET_PX =
+    PALETTE_DOT_RADIUS + PALETTE_ARROW_SIZE * 0.6;
+  const PALETTE_ARROW_TIP_RADIUS_PX =
+    PALETTE_ARROW_CENTER_OFFSET_PX + PALETTE_ARROW_SIZE * 0.55;
+  const MARKER_ICON_SIZE = 18;
+  const START_OFFSET = 8 + DOT_RADIUS;
+  const MAIN_DOT_SPACING = 18;
+  // constants for label height (line + padding)
+  const LABEL_LINE_H = 12; // ~fontSize 9 + marginesy
+  const LABEL_PAD_V = 8; // paddingVertical: 4*2
 
   const updateContainerRect = React.useCallback(() => {
     if (!containerRef.current) return;
@@ -119,50 +200,131 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return () => cancelAnimationFrame(id);
   }, [isActive, updateContainerRect, width, height]);
 
+  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+  const clampBetween = (v: number, min: number, max: number) =>
+    v < min ? min : v > max ? max : v;
+
+  const COLOR_DOT_SIZES = [DOT_SIZE - 5, DOT_SIZE, DOT_SIZE + 5, DOT_SIZE + 11];
+
+  const clampRelToStayInside = React.useCallback(
+    (xRel: number, yRel: number, radiusPx: number) => {
+      const w = imageLayoutRect.width || width;
+      const h = imageLayoutRect.height || height;
+
+      if (w <= 0 || h <= 0) return { xRel: clamp01(xRel), yRel: clamp01(yRel) };
+
+      const padXRel = radiusPx / w;
+      const padYRel = radiusPx / h;
+
+      return {
+        xRel: clampBetween(clamp01(xRel), padXRel, 1 - padXRel),
+        yRel: clampBetween(clamp01(yRel), padYRel, 1 - padYRel),
+      };
+    },
+    [height, imageLayoutRect.height, imageLayoutRect.width, width],
+  );
+
+  const clampRelUsingRect = React.useCallback(
+    (absX: number, absY: number, radiusPx: number) => {
+      if (!activeRect) return null;
+      const xRel = (absX - activeRect.x) / activeRect.width;
+      const yRel = (absY - activeRect.y) / activeRect.height;
+      return clampRelToStayInside(xRel, yRel, radiusPx);
+    },
+    [activeRect, clampRelToStayInside],
+  );
+
   // moving marker — use pageX/pageY and containerRect
   const handleMove = (markerId: string) => (e: GestureResponderEvent) => {
-    if (!moveOnly || !onMoveMarker || !containerRect) return;
+    if (!moveOnly || !onMoveMarker || !activeRect) return;
     const { pageX, pageY } = e.nativeEvent;
-    const xRel = Math.max(
-      0,
-      Math.min(1, (pageX - containerRect.x) / containerRect.width),
-    );
-    const yRel = Math.max(
-      0,
-      Math.min(1, (pageY - containerRect.y) / containerRect.height),
-    );
-    onMoveMarker(photo, markerId, xRel, yRel);
+
+    const offset = dragOffsetByMarkerIdRef.current[markerId];
+    const centerAbsX = offset ? pageX - offset.dx : pageX;
+    const centerAbsY = offset ? pageY - offset.dy : pageY;
+
+    const next = clampRelUsingRect(centerAbsX, centerAbsY, DOT_RADIUS);
+    if (!next) return;
+
+    onMoveMarker(photo, markerId, next.xRel, next.yRel);
   };
+
+  function makeMarkerPanHandlers(
+    markerId: string,
+    centerAbsX: number,
+    centerAbsY: number,
+  ) {
+    const canDrag = () => !!moveOnly && !!onMoveMarker && !!activeRect;
+
+    return {
+      panHandlers: {
+        onStartShouldSetResponder: () => canDrag(),
+        onMoveShouldSetResponder: () => canDrag(),
+        onResponderTerminationRequest: () => false,
+        onResponderGrant: (e: GestureResponderEvent) => {
+          if (isActive) updateContainerRect();
+
+          const { pageX, pageY } = e.nativeEvent;
+          dragOffsetByMarkerIdRef.current[markerId] = {
+            dx: pageX - centerAbsX,
+            dy: pageY - centerAbsY,
+          };
+        },
+        onResponderMove: handleMove(markerId),
+        onResponderRelease: (e: GestureResponderEvent) => {
+          handleMove(markerId)(e);
+          delete dragOffsetByMarkerIdRef.current[markerId];
+        },
+        onResponderTerminate: (e: GestureResponderEvent) => {
+          handleMove(markerId)(e);
+          delete dragOffsetByMarkerIdRef.current[markerId];
+        },
+      },
+    };
+  }
+
+  const paletteSafeRadiusPx = Math.max(
+    PALETTE_DOT_RADIUS,
+    PALETTE_ARROW_CENTER_OFFSET_PX + PALETTE_ARROW_SIZE / 2,
+  );
 
   const handlePaletteMove =
     (markerId: string, angleDeg: number) => (e: GestureResponderEvent) => {
-      if (!paletteMoveOnly || !onMovePaletteMarker || !containerRect) return;
+      if (!paletteMoveOnly || !onMovePaletteMarker || !activeRect) return;
       const { pageX, pageY } = e.nativeEvent;
-      const xRel = Math.max(
-        0,
-        Math.min(1, (pageX - containerRect.x) / containerRect.width),
+
+      const offset = dragOffsetByPaletteIdRef.current[markerId];
+      const centerAbsX = offset ? pageX - offset.dx : pageX;
+      const centerAbsY = offset ? pageY - offset.dy : pageY;
+
+      const next = clampRelUsingRect(
+        centerAbsX,
+        centerAbsY,
+        paletteSafeRadiusPx,
       );
-      const yRel = Math.max(
-        0,
-        Math.min(1, (pageY - containerRect.y) / containerRect.height),
-      );
+      if (!next) return;
 
       // Sample at the arrow tip (not the marker center).
       const a = (angleDeg * Math.PI) / 180;
       const tipRadiusPx = PALETTE_ARROW_TIP_RADIUS_PX;
-      const tipAbsX = pageX + -Math.cos(a) * tipRadiusPx;
-      const tipAbsY = pageY + Math.sin(a) * tipRadiusPx;
-      const tipXRel = clamp01(
-        (tipAbsX - containerRect.x) / containerRect.width,
-      );
-      const tipYRel = clamp01(
-        (tipAbsY - containerRect.y) / containerRect.height,
+      const tipAbsX = centerAbsX + -Math.cos(a) * tipRadiusPx;
+      const tipAbsY = centerAbsY + Math.sin(a) * tipRadiusPx;
+
+      const tipRel = clampRelToStayInside(
+        (tipAbsX - activeRect.x) / activeRect.width,
+        (tipAbsY - activeRect.y) / activeRect.height,
+        0,
       );
 
-      onMovePaletteMarker(photo, markerId, xRel, yRel, tipXRel, tipYRel);
+      onMovePaletteMarker(
+        photo,
+        markerId,
+        next.xRel,
+        next.yRel,
+        tipRel.xRel,
+        tipRel.yRel,
+      );
     };
-
-  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
   const emitPaletteSampleAtTip = (
     markerId: string,
@@ -170,7 +332,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     centerAbsY: number,
     angleDeg: number,
   ) => {
-    if (!paletteMoveOnly || !onDropPaletteMarker || !containerRect) return;
+    if (!paletteMoveOnly || !onDropPaletteMarker || !activeRect) return;
 
     const a = (angleDeg * Math.PI) / 180;
     const tipRadiusPx = PALETTE_ARROW_TIP_RADIUS_PX;
@@ -179,50 +341,93 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     const tipAbsX = centerAbsX + -Math.cos(a) * tipRadiusPx;
     const tipAbsY = centerAbsY + Math.sin(a) * tipRadiusPx;
 
-    const xRel = clamp01((tipAbsX - containerRect.x) / containerRect.width);
-    const yRel = clamp01((tipAbsY - containerRect.y) / containerRect.height);
-    onDropPaletteMarker(photo, markerId, xRel, yRel);
+    const tipRel = clampRelToStayInside(
+      (tipAbsX - activeRect.x) / activeRect.width,
+      (tipAbsY - activeRect.y) / activeRect.height,
+      0,
+    );
+    onDropPaletteMarker(photo, markerId, tipRel.xRel, tipRel.yRel);
   };
 
   const handlePaletteDrop =
     (markerId: string, angleDeg: number) => (e: GestureResponderEvent) => {
-      if (!paletteMoveOnly || !containerRect) return;
+      if (!paletteMoveOnly || !activeRect) return;
       const { pageX, pageY } = e.nativeEvent;
+
+      const offset = dragOffsetByPaletteIdRef.current[markerId];
+      const centerAbsX = offset ? pageX - offset.dx : pageX;
+      const centerAbsY = offset ? pageY - offset.dy : pageY;
 
       // Ensure final position is saved (like Move marker mode)
       if (onMovePaletteMarker) {
-        const xRel = clamp01((pageX - containerRect.x) / containerRect.width);
-        const yRel = clamp01((pageY - containerRect.y) / containerRect.height);
-        onMovePaletteMarker(photo, markerId, xRel, yRel);
+        const next = clampRelUsingRect(
+          centerAbsX,
+          centerAbsY,
+          paletteSafeRadiusPx,
+        );
+        if (next) onMovePaletteMarker(photo, markerId, next.xRel, next.yRel);
       }
 
-      emitPaletteSampleAtTip(markerId, pageX, pageY, angleDeg);
+      emitPaletteSampleAtTip(markerId, centerAbsX, centerAbsY, angleDeg);
+
+      delete dragOffsetByPaletteIdRef.current[markerId];
     };
 
-  const DOT_SIZE = 30;
-  const DOT_RADIUS = DOT_SIZE / 2;
-  const PALETTE_DOT_SIZE = DOT_SIZE + 5;
-  const PALETTE_DOT_RADIUS = PALETTE_DOT_SIZE / 2;
-  const PALETTE_ARROW_SIZE = 24;
-  const PALETTE_ARROW_HIT_SIZE = 32;
-  const PALETTE_ARROW_CENTER_OFFSET_PX =
-    PALETTE_DOT_RADIUS + PALETTE_ARROW_SIZE * 0.6;
-  const PALETTE_ARROW_TIP_RADIUS_PX =
-    PALETTE_ARROW_CENTER_OFFSET_PX + PALETTE_ARROW_SIZE * 0.55;
-  const MARKER_ICON_SIZE = 18;
-  const START_OFFSET = 8 + DOT_RADIUS;
-  const MAIN_DOT_SPACING = 18;
-  // constants for label height (line + padding)
-  const LABEL_LINE_H = 12; // ~fontSize 9 + marginesy
-  const LABEL_PAD_V = 8; // paddingVertical: 4*2
-
-  // Mapa HEX -> colorName
+  // Mapa HEX -> colorName (assets)
   const hexToName = React.useMemo(() => {
     const m = new Map<string, string>();
-    (paletteColors as { colorName: string; colorHex: string }[]).forEach((c) =>
-      m.set(c.colorHex.trim().toUpperCase(), c.colorName),
+    (paletteColors as { colorName: string; colorHex: string }[]).forEach(
+      (c) => {
+        const key = toHexKey(c.colorHex);
+        if (!key) return;
+        m.set(key, c.colorName);
+      },
     );
     return m;
+  }, []);
+
+  // Mapa HEX -> paint name (PaintBank)
+  const [paintBankHexToName, setPaintBankHexToName] = React.useState<
+    Map<string, string>
+  >(() => new Map());
+
+  const resolveHexLabel = React.useCallback(
+    (hex?: string) => {
+      const key = toHexKey(hex);
+      if (!key) return '';
+      return paintBankHexToName.get(key) || hexToName.get(key) || UNKNOWN_LABEL;
+    },
+    [hexToName, paintBankHexToName],
+  );
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem('paintBank.paints');
+        if (cancelled) return;
+        const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+        const paints = Array.isArray(parsed)
+          ? (parsed as PaintBankPaint[])
+          : [];
+
+        const m = new Map<string, string>();
+        for (const p of paints) {
+          const key = toHexKey((p as any)?.colorHex);
+          const name = String((p as any)?.name ?? '').trim();
+          const brand = String((p as any)?.brand ?? '').trim();
+          if (!key || !name) continue;
+          m.set(key, brand ? `${brand} - ${name}` : name);
+        }
+
+        setPaintBankHexToName(m);
+      } catch {
+        if (!cancelled) setPaintBankHexToName(new Map());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // storage key per photo
@@ -230,6 +435,30 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     () => `SlideImageWithMarkers:${photo}`,
     [photo],
   );
+
+  // Dot size per individual color dot (per photo). Default index = 1 (standard).
+  const [dotSizeIdxByKey, setDotSizeIdxByKey] = React.useState<
+    Record<string, number>
+  >({});
+  const getDotSizeIdx = (key: string) => {
+    const idx = dotSizeIdxByKey[key];
+    return typeof idx === 'number' && idx >= 0 && idx < COLOR_DOT_SIZES.length
+      ? idx
+      : 1;
+  };
+  const getDotSizePx = (key: string) => COLOR_DOT_SIZES[getDotSizeIdx(key)];
+  const cycleDotSize = (key: string) =>
+    setDotSizeIdxByKey((prev) => {
+      const curr = prev[key];
+      const safeCurr =
+        typeof curr === 'number' && curr >= 0 && curr < COLOR_DOT_SIZES.length
+          ? curr
+          : 1;
+      return {
+        ...prev,
+        [key]: (safeCurr + 1) % COLOR_DOT_SIZES.length,
+      };
+    });
 
   // local state with angles (deg) for markers
   const [angles, setAngles] = React.useState<Record<string, number>>({});
@@ -396,14 +625,17 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
             angles?: Record<string, number>;
             labelOverrides?: Record<string, { angleRad: number }>;
             titleAngles?: Record<string, number>;
+            dotSizeIdxByKey?: Record<string, number>;
           };
           setAngles(parsed.angles ?? {});
           setLabelOverrides(parsed.labelOverrides ?? {});
           setTitleAngles(parsed.titleAngles ?? {}); // NEW
+          setDotSizeIdxByKey(parsed.dotSizeIdxByKey ?? {});
         } else {
           setAngles({});
           setLabelOverrides({});
           setTitleAngles({}); // NEW
+          setDotSizeIdxByKey({});
         }
       } catch {
         // noop
@@ -412,22 +644,23 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [storageKey]);
+  }, [storageKey, settingsVersion]);
 
   // Persist state globally (debounce)
   React.useEffect(() => {
-    const payload = { angles, labelOverrides, titleAngles }; // NEW
+    const payload = { angles, labelOverrides, titleAngles, dotSizeIdxByKey };
     const id = setTimeout(() => {
       AsyncStorage.setItem(storageKey, JSON.stringify(payload)).catch(() => {});
     }, 200);
     return () => clearTimeout(id);
-  }, [angles, labelOverrides, titleAngles, storageKey]); // NEW
+  }, [angles, labelOverrides, titleAngles, dotSizeIdxByKey, storageKey]);
 
   // Reset settings (for the current photo)
   const resetAdjustments = React.useCallback(() => {
     setAngles({});
     setLabelOverrides({});
     setTitleAngles({}); // NEW
+    setDotSizeIdxByKey({});
     AsyncStorage.removeItem(storageKey).catch(() => {});
   }, [storageKey]);
 
@@ -439,6 +672,8 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     groupTop: number,
     seedRects: { l: number; t: number; w: number; h: number }[] = [],
   ) => {
+    const startOffset = START_OFFSET;
+
     const rad = (angleDeg * Math.PI) / 180;
     const dirX = Math.cos(rad);
     const dirY = Math.sin(rad);
@@ -475,7 +710,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     // helper: full list of circles (all groups) for label collisions
     const allCircles: [number, number][] = [];
     entries.forEach((e, idx) => {
-      const shift = START_OFFSET + idx * MAIN_DOT_SPACING;
+      const shift = startOffset + idx * MAIN_DOT_SPACING;
       const mainCX = shift * dirX;
       const mainCY = -shift * dirY;
       allCircles.push([mainCX, mainCY]);
@@ -493,19 +728,18 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
 
     return entries.map((entry, idx) => {
       const { kind, mainHex, mixes = [], note } = entry;
-      const shift = START_OFFSET + idx * MAIN_DOT_SPACING;
+      const shift = startOffset + idx * MAIN_DOT_SPACING;
 
       // center of the main circle relative to the marker's (0,0)
       const mainCX = shift * dirX;
       const mainCY = -shift * dirY;
 
       // names and labels
-      const resolvedName =
-        (mainHex && hexToName.get(mainHex.trim().toUpperCase())) || kind;
+      const resolvedName = resolveHexLabel(mainHex) || UNKNOWN_LABEL;
       const mainNameLine = `${kind}: ${resolvedName}`;
       const mixNames = mixes
         .slice(0, 2)
-        .map((hex) => hexToName.get(hex.trim().toUpperCase()) || '')
+        .map((hex) => resolveHexLabel(hex))
         .filter(Boolean);
       const labelLines = [
         mainNameLine,
@@ -513,11 +747,6 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         ...(note ? [`(${note})`] : []),
       ];
       const labelHeight = LABEL_PAD_V + labelLines.length * LABEL_LINE_H;
-
-      // last circle (mixes HORIZONTALLY relative to main)
-      const mixCount = Math.min(mixes.length, 2);
-      const lastCX = mainCX + (mixCount > 0 ? 20 * mixCount : 0);
-      const lastCY = mainCY;
 
       // ADHESION: label anchored to the MAIN color dot (not the last mix)
       const anchorCX = mainCX;
@@ -556,16 +785,15 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
 
       // label drag handler -> update angle relative to the MAIN dot
       const handleLabelDrag = (e: GestureResponderEvent) => {
-        if (!moveOnly || !containerRect) return;
-        const { pageX, pageY } = e.nativeEvent;
+        if (!moveOnly) return;
+        const { locationX, locationY } = e.nativeEvent;
 
-        // anchor position (main dot) in screen coordinates
-        const anchorAbsX = (containerRect.x ?? 0) + groupLeft + anchorCX;
-        const anchorAbsY = (containerRect.y ?? 0) + groupTop + anchorCY;
-
-        const dx = pageX - anchorAbsX; // screen
-        const dyScreen = pageY - anchorAbsY;
-        const dyMath = -dyScreen; // to math coordinate system
+        // Compute in marker-local coordinates (no containerRect needed).
+        // Finger in marker-local coords = labelTopLeft + fingerInLabel.
+        const fingerX = labelLeft + locationX;
+        const fingerY = labelTop + locationY;
+        const dx = fingerX - anchorCX;
+        const dyMath = -(fingerY - anchorCY);
         const phi = Math.atan2(dyMath, dx);
 
         setLabelAngle(sizeKey, phi);
@@ -574,31 +802,61 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       return (
         <React.Fragment key={`${m.id}-${kind}`}>
           {/* main dot */}
-          {mainHex ? (
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: mainCX - DOT_RADIUS,
-                top: mainCY - DOT_RADIUS,
-                width: DOT_SIZE,
-                height: DOT_SIZE,
-                borderRadius: DOT_RADIUS,
-                backgroundColor: mainHex,
-                borderWidth: 1.5,
-                borderColor: '#4A2E1B',
-                zIndex: 8,
-                elevation: 8,
-                opacity: 0.98,
-              }}
-            />
-          ) : null}
+          {mainHex
+            ? (() => {
+                const dotKey = `${m.id}-${kind}-main`;
+                const dotSize = getDotSizePx(dotKey);
+                const dotRadius = dotSize / 2;
+                return moveOnly ? (
+                  <Pressable
+                    onPress={() => cycleDotSize(dotKey)}
+                    style={{
+                      position: 'absolute',
+                      left: mainCX - dotRadius,
+                      top: mainCY - dotRadius,
+                      width: dotSize,
+                      height: dotSize,
+                      borderRadius: dotRadius,
+                      backgroundColor: mainHex,
+                      borderWidth: 1.5,
+                      borderColor: '#4A2E1B',
+                      zIndex: 8,
+                      elevation: 8,
+                      opacity: 0.98,
+                    }}
+                  />
+                ) : (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      left: mainCX - dotRadius,
+                      top: mainCY - dotRadius,
+                      width: dotSize,
+                      height: dotSize,
+                      borderRadius: dotRadius,
+                      backgroundColor: mainHex,
+                      borderWidth: 1.5,
+                      borderColor: '#4A2E1B',
+                      zIndex: 8,
+                      elevation: 8,
+                      opacity: 0.98,
+                    }}
+                  />
+                );
+              })()
+            : null}
 
           {/* label attached to the last dot (drag & drop in moveOnly) */}
           {showLabels && mainHex ? (
             <View
               pointerEvents={moveOnly ? 'auto' : 'none'}
               onStartShouldSetResponder={() => moveOnly}
+              onStartShouldSetResponderCapture={() => {
+                return moveOnly;
+              }}
+              onMoveShouldSetResponderCapture={() => moveOnly}
+              onResponderTerminationRequest={() => false}
               onResponderMove={handleLabelDrag}
               onResponderRelease={handleLabelDrag}
               onLayout={(e) =>
@@ -668,17 +926,39 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
               const mixCY = mainCY;
               const mixZ = Math.max(1, 7 - i);
               const mixElev = Math.max(1, 7 - i);
-              return (
+              const dotKey = `${m.id}-${kind}-mix-${i}`;
+              const dotSize = getDotSizePx(dotKey);
+              const dotRadius = dotSize / 2;
+              return moveOnly ? (
+                <Pressable
+                  key={`${m.id}-${kind}-mix-${i}`}
+                  onPress={() => cycleDotSize(dotKey)}
+                  style={{
+                    position: 'absolute',
+                    left: mixCX - dotRadius,
+                    top: mixCY - dotRadius,
+                    width: dotSize,
+                    height: dotSize,
+                    borderRadius: dotRadius,
+                    backgroundColor: mixHex,
+                    borderWidth: 1.5,
+                    borderColor: '#4A2E1B',
+                    zIndex: mixZ,
+                    elevation: mixElev,
+                    opacity: 0.98,
+                  }}
+                />
+              ) : (
                 <View
                   key={`${m.id}-${kind}-mix-${i}`}
                   pointerEvents="none"
                   style={{
                     position: 'absolute',
-                    left: mixCX - DOT_RADIUS,
-                    top: mixCY - DOT_RADIUS,
-                    width: DOT_SIZE,
-                    height: DOT_SIZE,
-                    borderRadius: DOT_RADIUS,
+                    left: mixCX - dotRadius,
+                    top: mixCY - dotRadius,
+                    width: dotSize,
+                    height: dotSize,
+                    borderRadius: dotRadius,
                     backgroundColor: mixHex,
                     borderWidth: 1.5,
                     borderColor: '#4A2E1B',
@@ -714,8 +994,13 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     return anyMix;
   };
 
-  function makePalettePanHandlers(id: string, angleDeg: number) {
-    const canDrag = () => !!paletteMoveOnly && !!containerRect;
+  function makePalettePanHandlers(
+    id: string,
+    angleDeg: number,
+    centerAbsX: number,
+    centerAbsY: number,
+  ) {
+    const canDrag = () => !!paletteMoveOnly && !!activeRect;
 
     return {
       panHandlers: {
@@ -724,8 +1009,14 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         onResponderTerminationRequest: () => false,
 
         // NEW: refresh measure right before drag math
-        onResponderGrant: () => {
+        onResponderGrant: (e: GestureResponderEvent) => {
           if (isActive) updateContainerRect();
+
+          const { pageX, pageY } = e.nativeEvent;
+          dragOffsetByPaletteIdRef.current[id] = {
+            dx: pageX - centerAbsX,
+            dy: pageY - centerAbsY,
+          };
         },
 
         onResponderMove: handlePaletteMove(id, angleDeg),
@@ -740,7 +1031,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       onLayout={() => {
         if (isActive) updateContainerRect();
       }}
-      style={{ width, height, position: 'relative' }}
+      style={{ width, height, position: 'relative', overflow: 'hidden' }}
     >
       {/* Global buttons for Move marker mode */}
       {moveOnly ? (
@@ -749,7 +1040,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           style={{
             position: 'absolute',
             right: 8,
-            top: 8,
+            top: 22,
             backgroundColor: 'rgba(0,0,0,0.6)',
             paddingHorizontal: 10,
             paddingVertical: 6,
@@ -765,7 +1056,13 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
             size={16}
             color="#fff"
           />
-          <Text style={{ color: '#fff', fontSize: 12, marginLeft: 6 }}>
+          <Text
+            style={{
+              color: '#fff',
+              fontSize: 12,
+              marginLeft: 6,
+            }}
+          >
             Reset
           </Text>
         </Pressable>
@@ -773,14 +1070,32 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
 
       <Image
         source={{ uri: photo }}
-        contentFit="cover"
+        contentFit="contain"
         cachePolicy="disk"
+        onLoad={(e: any) => {
+          const w = e?.source?.width;
+          const h = e?.source?.height;
+          if (
+            typeof w === 'number' &&
+            typeof h === 'number' &&
+            w > 0 &&
+            h > 0
+          ) {
+            setImageAspect(w / h);
+          }
+        }}
         style={{ width: '100%', height: '100%' }}
       />
       {markers.filter(hasAnyColors).map((m) => {
-        const cx = m.x * width;
-        const cy = m.y * height;
+        const safe = clampRelToStayInside(m.x, m.y, DOT_RADIUS);
+        const cx = imageLayoutRect.left + safe.xRel * imageLayoutRect.width;
+        const cy = imageLayoutRect.top + safe.yRel * imageLayoutRect.height;
         const angleDeg = getAngle(m.id);
+
+        const markerCenterAbsX =
+          (activeRect?.x ?? 0) + safe.xRel * (activeRect?.width ?? 0);
+        const markerCenterAbsY =
+          (activeRect?.y ?? 0) + safe.yRel * (activeRect?.height ?? 0);
 
         // direction (in radians) to initialize the title label angle
         const radDir = (angleDeg * Math.PI) / 180;
@@ -789,6 +1104,126 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         const ARROW_CENTER_OFFSET_X = -6;
         const ARROW_CENTER_OFFSET_Y = 6;
         const TIP_RADIUS = MARKER_ICON_SIZE / 2;
+
+        const markerPan = makeMarkerPanHandlers(
+          m.id,
+          markerCenterAbsX,
+          markerCenterAbsY,
+        );
+        const MARKER_DRAG_HANDLE_SIZE = 40;
+        const MARKER_DRAG_HANDLE_RADIUS = MARKER_DRAG_HANDLE_SIZE / 2;
+
+        // +/- angle controls rect (marker-local coords). Used to avoid overlap with drag handle.
+        const CONTROLS_W = 2 * 28 + 6; // 2 buttons (~28px) + gap
+        const CONTROLS_H = 28;
+        const CONTROLS_MARGIN = 6;
+        const controlsLeft = clampBetween(
+          -36,
+          CONTROLS_MARGIN - cx,
+          width - CONTROLS_MARGIN - cx - CONTROLS_W,
+        );
+        const controlsTop = clampBetween(
+          -36,
+          CONTROLS_MARGIN - cy,
+          height - CONTROLS_MARGIN - cy - CONTROLS_H,
+        );
+
+        const a = (angleDeg * Math.PI) / 180;
+        const arrowDirX = -Math.cos(a);
+        const arrowDirY = Math.sin(a);
+        const markerHandleCenterX =
+          ARROW_CENTER_OFFSET_X +
+          arrowDirX * (MARKER_ICON_SIZE / 2 + MARKER_DRAG_HANDLE_RADIUS + 2);
+        const markerHandleCenterY =
+          ARROW_CENTER_OFFSET_Y +
+          arrowDirY * (MARKER_ICON_SIZE / 2 + MARKER_DRAG_HANDLE_RADIUS + 2);
+
+        const oppositeHandleCenterX =
+          ARROW_CENTER_OFFSET_X +
+          -arrowDirX * (MARKER_ICON_SIZE / 2 + MARKER_DRAG_HANDLE_RADIUS + 2);
+        const oppositeHandleCenterY =
+          ARROW_CENTER_OFFSET_Y +
+          -arrowDirY * (MARKER_ICON_SIZE / 2 + MARKER_DRAG_HANDLE_RADIUS + 2);
+
+        // Keep the drag handle reachable even if the marker is near the edge.
+        const HANDLE_MARGIN = 8;
+        const safeMarkerHandleCenterX = clampBetween(
+          markerHandleCenterX,
+          HANDLE_MARGIN - cx + MARKER_DRAG_HANDLE_RADIUS,
+          width - HANDLE_MARGIN - cx - MARKER_DRAG_HANDLE_RADIUS,
+        );
+        const safeMarkerHandleCenterY = clampBetween(
+          markerHandleCenterY,
+          HANDLE_MARGIN - cy + MARKER_DRAG_HANDLE_RADIUS,
+          height - HANDLE_MARGIN - cy - MARKER_DRAG_HANDLE_RADIUS,
+        );
+
+        const safeOppositeHandleCenterX = clampBetween(
+          oppositeHandleCenterX,
+          HANDLE_MARGIN - cx + MARKER_DRAG_HANDLE_RADIUS,
+          width - HANDLE_MARGIN - cx - MARKER_DRAG_HANDLE_RADIUS,
+        );
+        const safeOppositeHandleCenterY = clampBetween(
+          oppositeHandleCenterY,
+          HANDLE_MARGIN - cy + MARKER_DRAG_HANDLE_RADIUS,
+          height - HANDLE_MARGIN - cy - MARKER_DRAG_HANDLE_RADIUS,
+        );
+
+        const handleOverlapsControls = (centerX: number, centerY: number) => {
+          if (!moveOnly) return false;
+          const handleLeft = centerX - MARKER_DRAG_HANDLE_RADIUS;
+          const handleTop = centerY - MARKER_DRAG_HANDLE_RADIUS;
+          return rectOverlapsRect(
+            handleLeft,
+            handleTop,
+            MARKER_DRAG_HANDLE_SIZE,
+            MARKER_DRAG_HANDLE_SIZE,
+            controlsLeft,
+            controlsTop,
+            CONTROLS_W,
+            CONTROLS_H,
+          );
+        };
+
+        const pickSafeHandleCenter = () => {
+          const candidates: [number, number][] = [
+            [safeMarkerHandleCenterX, safeMarkerHandleCenterY],
+            [safeOppositeHandleCenterX, safeOppositeHandleCenterY],
+            // Above controls
+            [
+              clampBetween(
+                safeMarkerHandleCenterX,
+                HANDLE_MARGIN - cx + MARKER_DRAG_HANDLE_RADIUS,
+                width - HANDLE_MARGIN - cx - MARKER_DRAG_HANDLE_RADIUS,
+              ),
+              clampBetween(
+                controlsTop - 6 - MARKER_DRAG_HANDLE_RADIUS,
+                HANDLE_MARGIN - cy + MARKER_DRAG_HANDLE_RADIUS,
+                height - HANDLE_MARGIN - cy - MARKER_DRAG_HANDLE_RADIUS,
+              ),
+            ],
+            // Below controls
+            [
+              clampBetween(
+                safeMarkerHandleCenterX,
+                HANDLE_MARGIN - cx + MARKER_DRAG_HANDLE_RADIUS,
+                width - HANDLE_MARGIN - cx - MARKER_DRAG_HANDLE_RADIUS,
+              ),
+              clampBetween(
+                controlsTop + CONTROLS_H + 6 + MARKER_DRAG_HANDLE_RADIUS,
+                HANDLE_MARGIN - cy + MARKER_DRAG_HANDLE_RADIUS,
+                height - HANDLE_MARGIN - cy - MARKER_DRAG_HANDLE_RADIUS,
+              ),
+            ],
+          ];
+
+          for (const [x, y] of candidates) {
+            if (!handleOverlapsControls(x, y)) return { x, y };
+          }
+          return { x: safeMarkerHandleCenterX, y: safeMarkerHandleCenterY };
+        };
+
+        const pickedHandleCenter = pickSafeHandleCenter();
 
         // NEW: title label angle around a ring (defaults to arrow direction)
         const titleKey = `${m.id}__title__`;
@@ -811,15 +1246,16 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
 
         // DnD handler for title label — motion along the circle only
         const handleTitleDrag = (e: GestureResponderEvent) => {
-          if (!moveOnly || !containerRect) return;
-          const { pageX, pageY } = e.nativeEvent;
-          const centerAbsX =
-            (containerRect.x ?? 0) + cx + ARROW_CENTER_OFFSET_X;
-          const centerAbsY =
-            (containerRect.y ?? 0) + cy + ARROW_CENTER_OFFSET_Y;
-          const dx = pageX - centerAbsX;
-          const dyScreen = pageY - centerAbsY;
-          const dyMath = -dyScreen;
+          if (!moveOnly) return;
+          const { locationX, locationY } = e.nativeEvent;
+
+          // marker-local coords; center is the arrow center offset.
+          const fingerX = titleLeft + locationX;
+          const fingerY = titleTop + locationY;
+          const centerX = ARROW_CENTER_OFFSET_X;
+          const centerY = ARROW_CENTER_OFFSET_Y;
+          const dx = fingerX - centerX;
+          const dyMath = -(fingerY - centerY);
           const phi = Math.atan2(dyMath, dx);
           setTitleAngleRad(m.id, phi);
         };
@@ -831,61 +1267,60 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           <View
             key={m.id}
             style={{ position: 'absolute', left: cx, top: cy }}
-            onStartShouldSetResponder={() => {
-              if (moveOnly && isActive) updateContainerRect(); // NEW
-              return moveOnly;
-            }}
-            onResponderMove={handleMove(m.id)}
-            onResponderRelease={handleMove(m.id)}
+            pointerEvents="box-none"
           >
             {/* +/- buttons to change angle, only in moveOnly */}
-            {moveOnly ? (
-              <View
-                style={{
-                  position: 'absolute',
-                  left: -36,
-                  top: -36,
-                  flexDirection: 'row',
-                  zIndex: 20,
-                  elevation: 20,
-                }}
-              >
-                {/* LEFT: redo (+10) */}
-                <Pressable
-                  onPress={() => adjustAngle(m.id, +10)}
-                  style={{
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    padding: 6,
-                    borderRadius: 14,
-                    marginRight: 6,
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="undo"
-                    size={16}
-                    color="#fff"
-                    style={{ transform: [{ rotate: '-30deg' }] }} // changed from 30deg to -30deg
-                  />
-                </Pressable>
+            {moveOnly
+              ? (() => {
+                  return (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: controlsLeft,
+                        top: controlsTop,
+                        flexDirection: 'row',
+                        zIndex: 20,
+                        elevation: 20,
+                      }}
+                    >
+                      {/* LEFT: redo (+10) */}
+                      <Pressable
+                        onPress={() => adjustAngle(m.id, +10)}
+                        style={{
+                          backgroundColor: 'rgba(0,0,0,0.6)',
+                          padding: 6,
+                          borderRadius: 14,
+                          marginRight: 6,
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name="undo"
+                          size={16}
+                          color="#fff"
+                          style={{ transform: [{ rotate: '-30deg' }] }} // changed from 30deg to -30deg
+                        />
+                      </Pressable>
 
-                {/* RIGHT: undo (-10) */}
-                <Pressable
-                  onPress={() => adjustAngle(m.id, -10)}
-                  style={{
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    padding: 6,
-                    borderRadius: 14,
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="redo"
-                    size={16}
-                    color="#fff"
-                    style={{ transform: [{ rotate: '30deg' }] }}
-                  />
-                </Pressable>
-              </View>
-            ) : null}
+                      {/* RIGHT: undo (-10) */}
+                      <Pressable
+                        onPress={() => adjustAngle(m.id, -10)}
+                        style={{
+                          backgroundColor: 'rgba(0,0,0,0.6)',
+                          padding: 6,
+                          borderRadius: 14,
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name="redo"
+                          size={16}
+                          color="#fff"
+                          style={{ transform: [{ rotate: '30deg' }] }}
+                        />
+                      </Pressable>
+                    </View>
+                  );
+                })()
+              : null}
 
             {/* marker: arrow following marker angle (tip opposite to previous logic) */}
             <MaterialCommunityIcons
@@ -902,11 +1337,39 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
               }}
             />
 
+            {/* Drag handle: marker can be moved ONLY via this icon */}
+            {moveOnly ? (
+              <View
+                {...markerPan.panHandlers}
+                style={{
+                  position: 'absolute',
+                  left: pickedHandleCenter.x - MARKER_DRAG_HANDLE_RADIUS,
+                  top: pickedHandleCenter.y - MARKER_DRAG_HANDLE_RADIUS,
+                  width: MARKER_DRAG_HANDLE_SIZE,
+                  height: MARKER_DRAG_HANDLE_SIZE,
+                  borderRadius: MARKER_DRAG_HANDLE_RADIUS,
+                  backgroundColor: '#fff',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 15,
+                  elevation: 15,
+                  opacity: 0.95,
+                }}
+              >
+                <MaterialCommunityIcons name="drag" size={25} color="#000" />
+              </View>
+            ) : null}
+
             {/* NEW: title label — DnD along circle + drag icon, avoids overlapping color labels */}
             {showLabels && m.title ? (
               <View
                 pointerEvents={moveOnly ? 'auto' : 'none'}
                 onStartShouldSetResponder={() => moveOnly}
+                onStartShouldSetResponderCapture={() => {
+                  return moveOnly;
+                }}
+                onMoveShouldSetResponderCapture={() => moveOnly}
+                onResponderTerminationRequest={() => false}
                 onResponderMove={handleTitleDrag}
                 onResponderRelease={handleTitleDrag}
                 onLayout={(e) =>
@@ -965,9 +1428,13 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
 
       {Array.isArray(paletteMarkers) && paletteMarkers.length
         ? paletteMarkers.slice(0, 5).map((pm) => {
-            const cx = pm.x * width;
-            const cy = pm.y * height;
+            const safe = clampRelToStayInside(pm.x, pm.y, paletteSafeRadiusPx);
+            const cxImg = safe.xRel * imageLayoutRect.width;
+            const cyImg = safe.yRel * imageLayoutRect.height;
+            const cx = imageLayoutRect.left + cxImg;
+            const cy = imageLayoutRect.top + cyImg;
             const fill = String(paletteHexColors?.[pm.colorIndex] ?? '#C2B39A');
+            const label = String(paletteLabels?.[pm.colorIndex] ?? '').trim();
             const angleDeg = pm.angleDeg ?? 45;
 
             const a = (angleDeg * Math.PI) / 180;
@@ -976,7 +1443,26 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
             const arrowCenterX = tipDirX * PALETTE_ARROW_CENTER_OFFSET_PX;
             const arrowCenterY = tipDirY * PALETTE_ARROW_CENTER_OFFSET_PX;
 
-            const pan = makePalettePanHandlers(pm.id, angleDeg);
+            const PALETTE_DRAG_HANDLE_SIZE = 40;
+            const PALETTE_DRAG_HANDLE_RADIUS = PALETTE_DRAG_HANDLE_SIZE / 2;
+            const paletteHandleCenterX =
+              arrowCenterX +
+              tipDirX *
+                (PALETTE_ARROW_SIZE / 2 + PALETTE_DRAG_HANDLE_RADIUS + 2);
+            const paletteHandleCenterY =
+              arrowCenterY +
+              tipDirY *
+                (PALETTE_ARROW_SIZE / 2 + PALETTE_DRAG_HANDLE_RADIUS + 2);
+
+            const paletteCenterAbsX = (activeRect?.x ?? 0) + cxImg;
+            const paletteCenterAbsY = (activeRect?.y ?? 0) + cyImg;
+
+            const pan = makePalettePanHandlers(
+              pm.id,
+              angleDeg,
+              paletteCenterAbsX,
+              paletteCenterAbsY,
+            );
 
             return (
               <View
@@ -991,67 +1477,108 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                 }}
               >
                 {/* +/- buttons to change angle, only in palette edit mode */}
-                {paletteMoveOnly && onSetPaletteMarkerAngle ? (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      left: -36,
-                      top: -36,
-                      flexDirection: 'row',
-                      zIndex: 30,
-                      elevation: 30,
-                    }}
-                  >
-                    <Pressable
-                      onPress={() =>
-                        onSetPaletteMarkerAngle(
-                          photo,
-                          pm.id,
-                          (angleDeg + 10 + 360) % 360,
-                        )
-                      }
-                      style={{
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        padding: 6,
-                        borderRadius: 14,
-                        marginRight: 6,
-                      }}
-                    >
-                      <MaterialCommunityIcons
-                        name="undo"
-                        size={16}
-                        color="#fff"
-                        style={{ transform: [{ rotate: '-30deg' }] }}
-                      />
-                    </Pressable>
+                {paletteMoveOnly && onSetPaletteMarkerAngle
+                  ? (() => {
+                      const CONTROLS_W = 2 * 28 + 6;
+                      const CONTROLS_H = 28;
+                      const MARGIN = 6;
+                      const left = clampBetween(
+                        -36,
+                        MARGIN - cx,
+                        width - MARGIN - cx - CONTROLS_W,
+                      );
+                      const top = clampBetween(
+                        -36,
+                        MARGIN - cy,
+                        height - MARGIN - cy - CONTROLS_H,
+                      );
 
-                    <Pressable
-                      onPress={() =>
-                        onSetPaletteMarkerAngle(
-                          photo,
-                          pm.id,
-                          (angleDeg - 10 + 360) % 360,
-                        )
-                      }
-                      style={{
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        padding: 6,
-                        borderRadius: 14,
-                      }}
-                    >
-                      <MaterialCommunityIcons
-                        name="redo"
-                        size={16}
-                        color="#fff"
-                        style={{ transform: [{ rotate: '30deg' }] }}
-                      />
-                    </Pressable>
-                  </View>
-                ) : null}
+                      const safeSetAngle = (nextAngleDeg: number) => {
+                        if (!activeRect) return;
+                        // Block angle changes that would push the arrow handle outside the image.
+                        const a = (nextAngleDeg * Math.PI) / 180;
+                        const handleCenterAbsX =
+                          activeRect.x +
+                          cxImg +
+                          -Math.cos(a) * PALETTE_ARROW_CENTER_OFFSET_PX;
+                        const handleCenterAbsY =
+                          activeRect.y +
+                          cyImg +
+                          Math.sin(a) * PALETTE_ARROW_CENTER_OFFSET_PX;
 
-                {/* DOT = jedyny obszar łapania dla kółka */}
+                        const handleLeft =
+                          handleCenterAbsX - PALETTE_ARROW_SIZE / 2;
+                        const handleRight =
+                          handleCenterAbsX + PALETTE_ARROW_SIZE / 2;
+                        const handleTop =
+                          handleCenterAbsY - PALETTE_ARROW_SIZE / 2;
+                        const handleBottom =
+                          handleCenterAbsY + PALETTE_ARROW_SIZE / 2;
+
+                        const within =
+                          handleLeft >= activeRect.x &&
+                          handleRight <= activeRect.x + activeRect.width &&
+                          handleTop >= activeRect.y &&
+                          handleBottom <= activeRect.y + activeRect.height;
+
+                        if (within) {
+                          onSetPaletteMarkerAngle(photo, pm.id, nextAngleDeg);
+                        }
+                      };
+
+                      return (
+                        <View
+                          style={{
+                            position: 'absolute',
+                            left,
+                            top,
+                            flexDirection: 'row',
+                            zIndex: 30,
+                            elevation: 30,
+                          }}
+                        >
+                          <Pressable
+                            onPress={() =>
+                              safeSetAngle((angleDeg + 10 + 360) % 360)
+                            }
+                            style={{
+                              backgroundColor: 'rgba(0,0,0,0.6)',
+                              padding: 6,
+                              borderRadius: 14,
+                              marginRight: 6,
+                            }}
+                          >
+                            <MaterialCommunityIcons
+                              name="undo"
+                              size={16}
+                              color="#fff"
+                              style={{ transform: [{ rotate: '-30deg' }] }}
+                            />
+                          </Pressable>
+
+                          <Pressable
+                            onPress={() =>
+                              safeSetAngle((angleDeg - 10 + 360) % 360)
+                            }
+                            style={{
+                              backgroundColor: 'rgba(0,0,0,0.6)',
+                              padding: 6,
+                              borderRadius: 14,
+                            }}
+                          >
+                            <MaterialCommunityIcons
+                              name="redo"
+                              size={16}
+                              color="#fff"
+                              style={{ transform: [{ rotate: '30deg' }] }}
+                            />
+                          </Pressable>
+                        </View>
+                      );
+                    })()
+                  : null}
+
                 <View
-                  {...pan.panHandlers}
                   style={{
                     position: 'absolute',
                     left: -PALETTE_DOT_RADIUS,
@@ -1068,9 +1595,43 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                   }}
                 />
 
-                {/* ARROW = drugi obszar łapania (łatwiej złapać strzałkę) */}
+                {label ? (
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      position: 'absolute',
+                      left: -80,
+                      top: PALETTE_DOT_RADIUS + 6,
+                      width: 160,
+                      alignItems: 'center',
+                      zIndex: 28,
+                      elevation: 28,
+                    }}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 10,
+                        maxWidth: 160,
+                      }}
+                    >
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          color: '#fff',
+                          fontSize: 10,
+                          fontWeight: '700',
+                        }}
+                      >
+                        {label}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+
                 <View
-                  {...pan.panHandlers}
                   style={{
                     position: 'absolute',
                     left: arrowCenterX - PALETTE_ARROW_SIZE / 2,
@@ -1090,6 +1651,33 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                     style={{ transform: [{ rotate: `${-angleDeg}deg` }] }}
                   />
                 </View>
+
+                {/* Drag handle: palette marker can be moved ONLY via this icon */}
+                {paletteMoveOnly ? (
+                  <View
+                    {...pan.panHandlers}
+                    style={{
+                      position: 'absolute',
+                      left: paletteHandleCenterX - PALETTE_DRAG_HANDLE_RADIUS,
+                      top: paletteHandleCenterY - PALETTE_DRAG_HANDLE_RADIUS,
+                      width: PALETTE_DRAG_HANDLE_SIZE,
+                      height: PALETTE_DRAG_HANDLE_SIZE,
+                      borderRadius: PALETTE_DRAG_HANDLE_RADIUS,
+                      backgroundColor: '#fff',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 27,
+                      elevation: 27,
+                      opacity: 0.95,
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="drag"
+                      size={18}
+                      color="#000"
+                    />
+                  </View>
+                ) : null}
               </View>
             );
           })

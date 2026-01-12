@@ -80,7 +80,7 @@ export default function ProjectTitleDescryption({ title, description }: Props) {
   };
 
   return (
-    <View style={{ flexShrink: 1, marginBottom: 15 }}>
+    <View style={{ flexShrink: 1, marginBottom: description ? -15 : 15 }}>
       <Text style={styles.title}>{title}</Text>
       {description ? (
         <View
@@ -98,7 +98,7 @@ export default function ProjectTitleDescryption({ title, description }: Props) {
               paddingBottom: canExpandDescription
                 ? showFullDescription
                   ? 55 + BUTTON_SIZE + 6
-                  : 5 + BUTTON_SIZE + 6
+                  : 25 + BUTTON_SIZE + 6
                 : 0,
             }}
           >
@@ -110,23 +110,6 @@ export default function ProjectTitleDescryption({ title, description }: Props) {
                 if (!showFullDescription && collapsedH == null) {
                   setCollapsedH(e.nativeEvent.layout.height);
                 }
-              }}
-              onTextLayout={(e) => {
-                const lines = e.nativeEvent.lines;
-                if (!lines?.length) return;
-                const lastIdx = showFullDescription
-                  ? lines.length - 1
-                  : Math.min(1, lines.length - 1);
-                const last = lines[lastIdx];
-                const containerWidth = containerW ?? 0;
-
-                // Use line.x + line.width to position at the actual end of text
-                const gap = showFullDescription ? 0 : 8; // small gap before ellipsis when collapsed
-                const rawLeft = (last.x ?? 0) + (last.width ?? 0) + gap;
-                const maxLeft = Math.max(0, containerWidth - BUTTON_SIZE - 2);
-                const left = Math.max(0, Math.min(rawLeft, maxLeft));
-
-                const top = last.y + last.height / 2 - BUTTON_SIZE / 2;
               }}
             >
               {description}

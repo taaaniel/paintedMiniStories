@@ -1,88 +1,114 @@
 import React from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import paletteColors from '../../../assets/data/palleteColors.json';
 import SimplyInput from '../../../components/inputs/SimplyInput';
+import type { PaletteColor } from './palette.types';
+import { isValidHex, normalizeHex } from './palette.types';
 
 type Props = {
   photoUri: string;
   maxWidth: number;
-  colors?: string[];
-  onChangeColors: (next: string[]) => void;
-  onAfterGenerate?: (next: string[]) => void;
+  palette?: PaletteColor[];
+  onChangeLabel: (idx: number, nextLabel: string) => void;
+  onChangeHex: (idx: number, nextHex: string) => void;
 };
-
-const isHex = (s: string) => /^#?[0-9a-f]{6}$/i.test(s.trim());
-const normalizeHex = (s: string) => {
-  const t = s.trim();
-  if (!t) return '';
-  if (!isHex(t)) return t;
-  return t.startsWith('#') ? t.toUpperCase() : `#${t.toUpperCase()}`;
-};
-
-function pickFallback(count = 5): string[] {
-  const list = (paletteColors as any[])
-    .map((c) => String(c.colorHex || '').trim())
-    .filter(Boolean);
-  const uniq: string[] = [];
-  for (const h of list) {
-    const n = normalizeHex(h);
-    if (isHex(n) && !uniq.includes(n)) uniq.push(n);
-    if (uniq.length >= count) break;
-  }
-  while (uniq.length < count) uniq.push('#C2B39A');
-  return uniq.slice(0, count);
-}
 
 export default function PaletteTab({
   photoUri,
   maxWidth,
-  colors,
-  onChangeColors,
-  onAfterGenerate,
+  palette,
+  onChangeHex,
+  onChangeLabel,
 }: Props) {
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const effective = React.useMemo(() => {
-    const base =
-      Array.isArray(colors) && colors.length ? colors : pickFallback(5);
-    return base.slice(0, 5).map((c) => normalizeHex(c) || c);
-  }, [colors]);
-
-  const setAt = (idx: number, value: string) => {
-    const next = [...effective];
-    next[idx] = value;
-    onChangeColors(next);
-  };
+  const effective = React.useMemo<PaletteColor[]>(() => {
+    const list = Array.isArray(palette) ? palette : [];
+    return new Array(5).fill(null).map((_, idx) => {
+      const c = list[idx];
+      return {
+        id: c?.id ?? `pal-${idx + 1}`,
+        label: (c?.label || '').trim() || `Color ${idx + 1}`,
+        hex: (c?.hex || '').trim() || '#C2B39A',
+        position: c?.position ?? { x: (idx + 1) / 6, y: 0.5 },
+        angleDeg: c?.angleDeg ?? 45,
+        matchedPaint: c?.matchedPaint,
+      };
+    });
+  }, [palette]);
 
   return (
     <View style={{ width: '100%', alignItems: 'center', marginTop: 10 }}>
       <View style={{ maxWidth, width: '100%' }}>
-        {error ? (
-          <View style={{ alignItems: 'center', marginBottom: 10 }}>
-            <Text style={{ color: '#d0175e', fontWeight: '600' }}>{error}</Text>
-          </View>
-        ) : null}
+        {effective.map((c, idx) => {
+          const normalized = isValidHex(c.hex) ? normalizeHex(c.hex) : c.hex;
+          const swatchColor = isValidHex(c.hex)
+            ? normalizeHex(c.hex)
+            : '#C2B39A';
 
-        {effective.map((hex, idx) => (
-          <View key={`${photoUri}-input-${idx}`} style={{ marginBottom: 10 }}>
-            <SimplyInput
-              label={`Color ${idx + 1}`}
-              value={hex}
-              onChangeText={(t) => setAt(idx, normalizeHex(t))}
-              placeholder="#RRGGBB"
-              height={44}
-              width="100%"
-            />
-          </View>
-        ))}
+          const matchText = c.matchedPaint
+            ? `${
+                c.matchedPaint.matchType === 'exact' ? 'Exact' : 'Probable'
+              }: ${c.matchedPaint.name}${
+                c.matchedPaint.owned ? ' (owned)' : ''
+              }`
+            : 'No match';
 
-        {isLoading ? (
-          <View style={{ alignItems: 'center', marginTop: 6 }}>
-            <ActivityIndicator />
-          </View>
-        ) : null}
+          return (
+            <View
+              key={`${photoUri}-palette-${c.id}-${idx}`}
+              style={{ marginBottom: 12 }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 6,
+                    backgroundColor: String(swatchColor),
+                    borderWidth: 1,
+                    borderColor: '#2D2D2D',
+                    marginRight: 10,
+                  }}
+                />
+                <View style={{ flex: 1 }}>
+                  <SimplyInput
+                    label={`Label ${idx + 1}`}
+                    value={c.label}
+                    onChangeText={(t) => onChangeLabel(idx, t)}
+                    placeholder="Color name"
+                    height={42}
+                    width="100%"
+                  />
+                </View>
+              </View>
+
+              <View style={{ height: 8 }} />
+
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ width: 22, marginRight: 10 }} />
+                <View style={{ flex: 1 }}>
+                  <SimplyInput
+                    label={`Hex ${idx + 1}`}
+                    value={normalized}
+                    onChangeText={(t) => onChangeHex(idx, t)}
+                    placeholder="#RRGGBB"
+                    height={42}
+                    width="100%"
+                  />
+                  <Text
+                    style={{
+                      marginTop: 6,
+                      fontSize: 12,
+                      color: '#2D2D2D',
+                      fontWeight: '600',
+                    }}
+                  >
+                    {matchText}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          );
+        })}
       </View>
     </View>
   );

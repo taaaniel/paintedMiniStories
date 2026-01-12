@@ -9,6 +9,7 @@ import {
   LayoutAnimation,
   Platform,
   Pressable,
+  Image as RNImage,
   ScrollView,
   Text,
   UIManager,
@@ -17,6 +18,7 @@ import {
 import 'react-native-gesture-handler';
 import ViewShot from 'react-native-view-shot';
 
+import paletteColors from '../../../assets/data/palleteColors.json';
 import ColorsPaletteTabSelector from '../../../components/tabs/ColorsPaletteTabSelector';
 import MainView from '../../MainView';
 import AddColorMarkerDialog from './AddColorMarkerDialog';
@@ -29,7 +31,16 @@ import {
   sampleHexFromImage,
 } from './extractPaletteFromImage';
 import { useProjectMarkers } from './hooks/useProjectMarkers';
+import { useProjectPalette } from './hooks/useProjectPalette';
 import MarkerList from './MarkerList'; // new import
+import {
+  type AssetPaint,
+  type Paint,
+  type PaletteColor,
+  isValidHex,
+  matchPaintForHex,
+  normalizeHex,
+} from './palette.types';
 import PaletteTab from './PaletteTab';
 import { styles } from './Project.styles';
 import { extraStyles } from './ProjectExtras.styles';
@@ -42,19 +53,6 @@ type Project = {
   photos: string[];
 };
 
-type PaletteMarker = {
-  id: string;
-  x: number;
-  y: number;
-  colorIndex: number;
-  angleDeg: number;
-};
-
-type PaletteState = {
-  colors: string[];
-  markers: PaletteMarker[];
-};
-
 export default function SingleProjectScreen() {
   const { id: rawId, idx } = useLocalSearchParams();
   const projectId =
@@ -64,9 +62,6 @@ export default function SingleProjectScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<'colors' | 'palette'>('colors');
-  const [paletteByPhoto, setPaletteByPhoto] = useState<
-    Record<string, PaletteState>
-  >({});
   const [paletteEditingPhotoMove, setPaletteEditingPhotoMove] = useState<
     string | null
   >(null);
@@ -74,12 +69,87 @@ export default function SingleProjectScreen() {
   const [activeIndex, setActiveIndex] = useState(0); // simplification
   const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
   const [editingPhotoMove, setEditingPhotoMove] = useState<string | null>(null); // NEW
+
+  const scrollRef = React.useRef<ScrollView>(null);
+  const scrollContentRef = React.useRef<View>(null);
+  const carouselSectionRef = React.useRef<View>(null);
+  const pendingEnterModeTimeoutRef = React.useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+
+  const clearPendingEnterMode = React.useCallback(() => {
+    if (pendingEnterModeTimeoutRef.current) {
+      clearTimeout(pendingEnterModeTimeoutRef.current);
+      pendingEnterModeTimeoutRef.current = null;
+    }
+  }, []);
+
+  const scrollToCarouselThen = React.useCallback(
+    (after: () => void) => {
+      if (
+        !scrollRef.current ||
+        !scrollContentRef.current ||
+        !carouselSectionRef.current
+      ) {
+        after();
+        return;
+      }
+
+      carouselSectionRef.current.measureLayout(
+        scrollContentRef.current,
+        (_x, y) => {
+          scrollRef.current?.scrollTo({
+            y: Math.max(0, y - 12),
+            animated: true,
+          });
+          clearPendingEnterMode();
+          pendingEnterModeTimeoutRef.current = setTimeout(after, 250);
+        },
+        () => after(),
+      );
+    },
+    [clearPendingEnterMode],
+  );
+
+  const requestEnterMoveMarkerMode = React.useCallback(
+    (photoId: string | null) => {
+      clearPendingEnterMode();
+      if (!photoId) {
+        setEditingPhotoMove(null);
+        return;
+      }
+
+      scrollToCarouselThen(() => setEditingPhotoMove(photoId));
+    },
+    [clearPendingEnterMode, scrollToCarouselThen],
+  );
+
+  const requestEnterPaletteMarkerMode = React.useCallback(
+    (photoId: string | null) => {
+      clearPendingEnterMode();
+      if (!photoId) {
+        setPaletteEditingPhotoMove(null);
+        return;
+      }
+
+      scrollToCarouselThen(() => setPaletteEditingPhotoMove(photoId));
+    },
+    [clearPendingEnterMode, scrollToCarouselThen],
+  );
+
+  // Bump to force SlideImageWithMarkers to re-load AsyncStorage overlay settings.
+  const [overlaySettingsVersion, setOverlaySettingsVersion] = useState(0);
+  const bumpOverlaySettingsVersion = React.useCallback(
+    () => setOverlaySettingsVersion((v) => v + 1),
+    [],
+  );
   // pending marker coord before form submit
   const [pendingCoord, setPendingCoord] = useState<{
     x: number;
     y: number;
     photo: string;
   } | null>(null);
+  const [pendingMarkerId, setPendingMarkerId] = useState<string | null>(null);
   // form fields
   const [mTitle, setMTitle] = useState('');
   const [mBase, setMBase] = useState('');
@@ -98,122 +168,290 @@ export default function SingleProjectScreen() {
   >({});
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
-  const contentWidth = Math.min(screenWidth - 40, 1000);
-  const carouselWidth = screenWidth;
-  const carouselHeight = Math.round(screenHeight / 2); // half of the screen height
+  const contentWidth = Math.min(screenWidth - 50, 1000);
+  const carouselWidth = contentWidth;
+  const [carouselHeight, setCarouselHeight] = useState(
+    Math.round(screenHeight / 2),
+  );
+
+  // Make the carousel tall enough to fit the largest image (shown fully).
+  React.useEffect(() => {
+    if (!project?.photos?.length || !carouselWidth) return;
+
+    let cancelled = false;
+
+    const tasks = project.photos.map(
+      (uri) =>
+        new Promise<{ w: number; h: number } | null>((resolve) => {
+          RNImage.getSize(
+            uri,
+            (w, h) => resolve({ w, h }),
+            () => resolve(null),
+          );
+        }),
+    );
+
+    Promise.all(tasks).then((sizes) => {
+      if (cancelled) return;
+      const heights = sizes
+        .filter((s): s is { w: number; h: number } => !!s && s.w > 0 && s.h > 0)
+        .map((s) => carouselWidth * (s.h / s.w));
+      if (!heights.length) return;
+      const next = Math.round(Math.max(...heights));
+      if (next > 0) setCarouselHeight(next);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [carouselWidth, project?.photos]);
 
   const activePhotoUri = project?.photos?.[activeIndex] ?? '';
 
-  const paletteColors = activePhotoUri
-    ? paletteByPhoto[activePhotoUri]?.colors ?? []
+  const { markersByPhoto, addMarker, updateMarker } = useProjectMarkers(
+    project?.id,
+  );
+
+  const { paletteByPhoto, setPaletteForPhoto, updatePaletteColor } =
+    useProjectPalette(project?.id);
+
+  const paletteForActivePhoto: PaletteColor[] = activePhotoUri
+    ? paletteByPhoto[activePhotoUri] ?? []
     : [];
 
-  const paletteMarkersByPhoto = React.useMemo(() => {
-    const out: Record<string, PaletteMarker[]> = {};
-    for (const [photo, state] of Object.entries(paletteByPhoto)) {
-      out[photo] = state.markers;
-    }
-    return out;
-  }, [paletteByPhoto]);
-
-  const paletteColorsByPhoto = React.useMemo(() => {
+  const paletteHexColorsByPhoto = React.useMemo(() => {
     const out: Record<string, string[]> = {};
-    for (const [photo, state] of Object.entries(paletteByPhoto)) {
-      out[photo] = state.colors;
+    for (const [photo, list] of Object.entries(paletteByPhoto)) {
+      out[photo] = (Array.isArray(list) ? list : []).slice(0, 5).map((c) => {
+        const raw = String(c.hex || '').trim();
+        if (!raw) return '#C2B39A';
+        const normalized = normalizeHex(raw);
+        return isValidHex(normalized) ? normalized : '#C2B39A';
+      });
     }
     return out;
   }, [paletteByPhoto]);
 
-  const setPaletteColorsForActivePhoto = React.useCallback(
-    (next: string[]) => {
-      if (!activePhotoUri) return;
-      setPaletteByPhoto((prev) => {
-        const existing = prev[activePhotoUri] ?? { colors: [], markers: [] };
+  const paletteLabelsByPhoto = React.useMemo(() => {
+    const out: Record<string, string[]> = {};
+    for (const [photo, list] of Object.entries(paletteByPhoto)) {
+      out[photo] = (Array.isArray(list) ? list : [])
+        .slice(0, 5)
+        .map((c, idx) => String(c.label || '').trim() || `Color ${idx + 1}`);
+    }
+    return out;
+  }, [paletteByPhoto]);
+
+  const paletteMarkersByPhoto = React.useMemo(() => {
+    const out: Record<
+      string,
+      {
+        id: string;
+        x: number;
+        y: number;
+        colorIndex: number;
+        angleDeg: number;
+      }[]
+    > = {};
+
+    for (const [photo, list] of Object.entries(paletteByPhoto)) {
+      const safe = (Array.isArray(list) ? list : []).slice(0, 5);
+      out[photo] = safe.map((c, idx) => ({
+        id: c.id,
+        x: Math.max(0, Math.min(1, c.position?.x ?? (idx + 1) / 6)),
+        y: Math.max(0, Math.min(1, c.position?.y ?? 0.5)),
+        colorIndex: idx,
+        angleDeg: c.angleDeg ?? 45,
+      }));
+    }
+
+    return out;
+  }, [paletteByPhoto]);
+
+  const assetPaints = React.useMemo<AssetPaint[]>(() => {
+    return (Array.isArray(paletteColors) ? paletteColors : [])
+      .map((c: any): AssetPaint | null => {
+        const brand = String(c.name ?? '').trim();
+        const name = String(c.colorName ?? '').trim();
+        const colorHex = normalizeHex(String(c.colorHex ?? '').trim());
+        if (!name || !colorHex) return null;
         return {
-          ...prev,
-          [activePhotoUri]: {
-            ...existing,
-            colors: next.slice(0, 5),
-          },
+          sourceId: `${brand}__${name}__${colorHex}`,
+          brand,
+          name,
+          colorHex,
         };
+      })
+      .filter(Boolean) as AssetPaint[];
+  }, []);
+
+  const [myPaints, setMyPaints] = useState<Paint[]>([]);
+  const loadMyPaints = React.useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem('paintBank.paints');
+      const parsed = raw ? JSON.parse(raw) : [];
+      setMyPaints(Array.isArray(parsed) ? (parsed as Paint[]) : []);
+    } catch {
+      setMyPaints([]);
+    }
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      void loadMyPaints();
+    }, [loadMyPaints]),
+  );
+
+  const computeMatchedPaint = React.useCallback(
+    (hex: string) =>
+      matchPaintForHex({
+        hex,
+        myPaints,
+        assetPaints,
+      }),
+    [assetPaints, myPaints],
+  );
+
+  React.useEffect(() => {
+    const same = (
+      a?: { paintId: string; name: string; matchType: string; owned: boolean },
+      b?: { paintId: string; name: string; matchType: string; owned: boolean },
+    ) =>
+      a?.paintId === b?.paintId &&
+      a?.name === b?.name &&
+      a?.matchType === b?.matchType &&
+      a?.owned === b?.owned;
+
+    for (const [photo, list] of Object.entries(paletteByPhoto)) {
+      if (!Array.isArray(list) || !list.length) continue;
+
+      let changed = false;
+      const next = list.map((c) => {
+        const raw = String(c.hex || '').trim();
+        const normalized = raw ? normalizeHex(raw) : '';
+        const match =
+          normalized && isValidHex(normalized)
+            ? computeMatchedPaint(normalized)
+            : undefined;
+
+        if (!same(c.matchedPaint as any, match as any)) {
+          changed = true;
+          return { ...c, matchedPaint: match };
+        }
+        return c;
       });
+
+      if (changed) setPaletteForPhoto(photo, next);
+    }
+  }, [computeMatchedPaint, paletteByPhoto, setPaletteForPhoto]);
+
+  const setPaletteAtIndexForActivePhoto = React.useCallback(
+    (idx: number, patch: Partial<PaletteColor>) => {
+      if (!activePhotoUri) return;
+
+      const list = Array.isArray(paletteByPhoto[activePhotoUri])
+        ? paletteByPhoto[activePhotoUri]
+        : [];
+
+      const base: PaletteColor[] = new Array(5).fill(null).map((_, i) => {
+        const existing = list[i];
+        return (
+          existing ?? {
+            id: `pal-${i + 1}`,
+            label: `Color ${i + 1}`,
+            hex: '#C2B39A',
+            position: { x: (i + 1) / 6, y: 0.5 },
+            angleDeg: 45,
+            matchedPaint: undefined,
+          }
+        );
+      });
+
+      const current = base[idx];
+      if (!current) return;
+
+      const nextItem: PaletteColor = { ...current, ...patch };
+
+      if (patch.hex != null) {
+        const raw = String(patch.hex).trim();
+        const normalized = raw ? normalizeHex(raw) : '';
+        if (!normalized) {
+          nextItem.hex = '';
+          nextItem.matchedPaint = undefined;
+        } else if (isValidHex(normalized)) {
+          nextItem.hex = normalized;
+          nextItem.matchedPaint = computeMatchedPaint(normalized);
+        } else {
+          // Ignore invalid input and keep the previous valid hex.
+          nextItem.hex = current.hex;
+        }
+      }
+
+      const next = base.slice();
+      next[idx] = nextItem;
+      setPaletteForPhoto(activePhotoUri, next);
     },
-    [activePhotoUri],
+    [activePhotoUri, computeMatchedPaint, paletteByPhoto, setPaletteForPhoto],
   );
 
   const autoPlacePaletteMarkers = React.useCallback(
-    async (photoUri: string, colors: string[]) => {
+    async (photoUri: string, nextHexes: string[]) => {
       if (!photoUri) return;
-      const positions = await findPaletteMarkerPositions(photoUri, colors);
-      setPaletteByPhoto((prev) => {
-        const existing = prev[photoUri] ?? { colors: [], markers: [] };
-        const markers: PaletteMarker[] = positions
-          .slice(0, 5)
-          .map((p, idx) => ({
-            id: `pal-${idx}`,
-            colorIndex: idx,
-            x: Math.max(0, Math.min(1, p.x)),
-            y: Math.max(0, Math.min(1, p.y)),
-            angleDeg: 45,
-          }));
+
+      const positions = await findPaletteMarkerPositions(photoUri, nextHexes);
+      const prev = Array.isArray(paletteByPhoto[photoUri])
+        ? paletteByPhoto[photoUri]
+        : [];
+
+      const next: PaletteColor[] = new Array(5).fill(null).map((_, idx) => {
+        const existing = prev[idx];
+        const hexRaw = nextHexes[idx] ?? '#C2B39A';
+        const hex = isValidHex(hexRaw) ? normalizeHex(hexRaw) : hexRaw;
+        const pos = positions[idx] ?? { x: (idx + 1) / 6, y: 0.5 };
+
         return {
-          ...prev,
-          [photoUri]: {
-            ...existing,
-            colors: colors.slice(0, 5),
-            markers,
+          id: existing?.id ?? `pal-${idx + 1}`,
+          label: existing?.label ?? `Color ${idx + 1}`,
+          hex,
+          position: {
+            x: Math.max(0, Math.min(1, pos.x)),
+            y: Math.max(0, Math.min(1, pos.y)),
           },
+          angleDeg: existing?.angleDeg ?? 45,
+          matchedPaint: computeMatchedPaint(hex),
         };
       });
+
+      setPaletteForPhoto(photoUri, next);
     },
-    [],
+    [computeMatchedPaint, paletteByPhoto, setPaletteForPhoto],
   );
 
   const onSetPaletteMarkerAngle = React.useCallback(
-    (photoId: string, markerId: string, angleDeg: number) => {
-      setPaletteByPhoto((prev) => {
-        const existing = prev[photoId];
-        if (!existing) return prev;
-        return {
-          ...prev,
-          [photoId]: {
-            ...existing,
-            markers: existing.markers.map((m) =>
-              m.id === markerId
-                ? { ...m, angleDeg: ((angleDeg % 360) + 360) % 360 }
-                : m,
-            ),
-          },
-        };
+    (photoId: string, paletteColorId: string, angleDeg: number) => {
+      updatePaletteColor(photoId, paletteColorId, {
+        angleDeg: ((angleDeg % 360) + 360) % 360,
       });
     },
-    [],
+    [updatePaletteColor],
   );
 
   const onDropPaletteMarker = React.useCallback(
-    async (photoId: string, markerId: string, xRel: number, yRel: number) => {
+    async (
+      photoId: string,
+      paletteColorId: string,
+      xRel: number,
+      yRel: number,
+    ) => {
       const sampled = await sampleHexFromImage(photoId, xRel, yRel, 5);
       if (!sampled) return;
-
-      setPaletteByPhoto((prev) => {
-        const existing = prev[photoId];
-        if (!existing) return prev;
-        const moved = existing.markers.find((m) => m.id === markerId);
-        if (!moved) return prev;
-        const idx = moved.colorIndex;
-        const nextColors = [...(existing.colors ?? [])];
-        while (nextColors.length < 5) nextColors.push('#C2B39A');
-        nextColors[idx] = sampled;
-        return {
-          ...prev,
-          [photoId]: {
-            ...existing,
-            colors: nextColors.slice(0, 5),
-          },
-        };
+      const hex = normalizeHex(sampled);
+      updatePaletteColor(photoId, paletteColorId, {
+        hex,
+        matchedPaint: computeMatchedPaint(hex),
       });
     },
-    [],
+    [computeMatchedPaint, updatePaletteColor],
   );
 
   const [imageWindowRect, setImageWindowRect] = useState<{
@@ -325,14 +563,30 @@ export default function SingleProjectScreen() {
     }
   }, [idx, project]);
 
-  const { markersByPhoto, addMarker, updateMarker } = useProjectMarkers(
-    project?.id,
+  const persistDotSizeIdxByKey = React.useCallback(
+    async (photoId: string, dotSizeIdxByKey: Record<string, number>) => {
+      const storageKey = `SlideImageWithMarkers:${photoId}`;
+      try {
+        const raw = await AsyncStorage.getItem(storageKey);
+        const parsed = raw ? (JSON.parse(raw) as any) : {};
+        parsed.dotSizeIdxByKey = {
+          ...(parsed.dotSizeIdxByKey ?? {}),
+          ...dotSizeIdxByKey,
+        };
+        await AsyncStorage.setItem(storageKey, JSON.stringify(parsed));
+        bumpOverlaySettingsVersion();
+      } catch {
+        // noop
+      }
+    },
+    [bumpOverlaySettingsVersion],
   );
 
   const openMarkerForm = (photo: string, x: number, y: number) => {
     // Defer to avoid opening dialog in the same frame as closing overlay
     setTimeout(() => {
       setPendingCoord({ photo, x, y });
+      setPendingMarkerId(`${Date.now()}_${Math.random()}`);
       setMTitle('');
       setMBase('');
       setMShadow('');
@@ -359,6 +613,7 @@ export default function SingleProjectScreen() {
     baseMixesNote?: string;
     shadowMixesNote?: string;
     highlightMixesNote?: string;
+    dotSizeIdxByKey?: Record<string, number>;
   }) => {
     if (!pendingCoord) return;
     // if payload provided from dialog, use it; otherwise fallback to legacy fields
@@ -371,33 +626,50 @@ export default function SingleProjectScreen() {
       mixShadowColors: [],
       mixHighlightColors: [],
     };
-    addMarker(pendingCoord.photo, pendingCoord.x, pendingCoord.y, {
-      title: data.title?.trim() || undefined,
-      baseColor: data.base?.trim() || undefined,
-      shadowColor: data.shadow?.trim() || undefined,
-      highlightColor: data.highlight?.trim() || undefined,
-      // mixes
-      mixBaseColors: data.mixBaseColors?.length
-        ? data.mixBaseColors.slice(0, 2)
-        : undefined,
-      mixShadowColors: data.mixShadowColors?.length
-        ? data.mixShadowColors.slice(0, 2)
-        : undefined,
-      mixHighlightColors: data.mixHighlightColors?.length
-        ? data.mixHighlightColors.slice(0, 2)
-        : undefined,
-      baseMixesNote: data.baseMixesNote?.trim() || undefined,
-      shadowMixesNote: data.shadowMixesNote?.trim() || undefined,
-      highlightMixesNote: data.highlightMixesNote?.trim() || undefined,
-    } as Parameters<typeof addMarker>[3]);
+    const markerId = addMarker(
+      pendingCoord.photo,
+      pendingCoord.x,
+      pendingCoord.y,
+      {
+        id: pendingMarkerId ?? undefined,
+        title: data.title?.trim() || undefined,
+        baseColor: data.base?.trim() || undefined,
+        shadowColor: data.shadow?.trim() || undefined,
+        highlightColor: data.highlight?.trim() || undefined,
+        // mixes
+        mixBaseColors: data.mixBaseColors?.length
+          ? data.mixBaseColors.slice(0, 2)
+          : undefined,
+        mixShadowColors: data.mixShadowColors?.length
+          ? data.mixShadowColors.slice(0, 2)
+          : undefined,
+        mixHighlightColors: data.mixHighlightColors?.length
+          ? data.mixHighlightColors.slice(0, 2)
+          : undefined,
+        baseMixesNote: data.baseMixesNote?.trim() || undefined,
+        shadowMixesNote: data.shadowMixesNote?.trim() || undefined,
+        highlightMixesNote: data.highlightMixesNote?.trim() || undefined,
+      } as Parameters<typeof addMarker>[3],
+    );
+
+    if (
+      markerId &&
+      data.dotSizeIdxByKey &&
+      Object.keys(data.dotSizeIdxByKey).length
+    ) {
+      void persistDotSizeIdxByKey(pendingCoord.photo, data.dotSizeIdxByKey);
+    }
+
     setEditingPhoto(null);
     setPendingCoord(null);
+    setPendingMarkerId(null);
   };
 
   const cancelMarkerForm = () => {
     // exit edit mode on cancel
     setEditingPhoto(null);
     setPendingCoord(null);
+    setPendingMarkerId(null);
   };
 
   React.useEffect(() => {
@@ -450,7 +722,6 @@ export default function SingleProjectScreen() {
     setIsGeneratingPalette(true);
     try {
       const next = await extractPaletteFromImage(activePhotoUri, 5);
-      setPaletteColorsForActivePhoto(next);
       await autoPlacePaletteMarkers(activePhotoUri, next);
     } catch (e) {
       console.error('Palette generation failed:', e);
@@ -458,7 +729,7 @@ export default function SingleProjectScreen() {
     } finally {
       setIsGeneratingPalette(false);
     }
-  }, [activePhotoUri, autoPlacePaletteMarkers, setPaletteColorsForActivePhoto]);
+  }, [activePhotoUri, autoPlacePaletteMarkers]);
 
   // LIVE preview sampling (throttled) for palette markers
   const livePaletteSampleRef = React.useRef<
@@ -507,22 +778,10 @@ export default function SingleProjectScreen() {
           );
           if (!sampled) return;
 
-          setPaletteByPhoto((prev) => {
-            const existing = prev[photoId];
-            if (!existing) return prev;
-
-            const moved = existing.markers.find((m) => m.id === markerId);
-            if (!moved) return prev;
-
-            const idx = moved.colorIndex;
-            const nextColors = [...(existing.colors ?? [])];
-            while (nextColors.length < 5) nextColors.push('#C2B39A');
-            nextColors[idx] = sampled;
-
-            return {
-              ...prev,
-              [photoId]: { ...existing, colors: nextColors.slice(0, 5) },
-            };
+          const hex = normalizeHex(sampled);
+          updatePaletteColor(photoId, markerId, {
+            hex,
+            matchedPaint: computeMatchedPaint(hex),
           });
         } finally {
           st.inFlight = false;
@@ -536,7 +795,7 @@ export default function SingleProjectScreen() {
 
       run();
     },
-    [],
+    [computeMatchedPaint, updatePaletteColor],
   );
 
   React.useEffect(() => {
@@ -558,24 +817,11 @@ export default function SingleProjectScreen() {
       sampleXRel?: number,
       sampleYRel?: number,
     ) => {
-      setPaletteByPhoto((prev) => {
-        const existing = prev[photoId];
-        if (!existing) return prev;
-        return {
-          ...prev,
-          [photoId]: {
-            ...existing,
-            markers: existing.markers.map((m) =>
-              m.id === markerId
-                ? {
-                    ...m,
-                    x: Math.max(0, Math.min(1, xRel)),
-                    y: Math.max(0, Math.min(1, yRel)),
-                  }
-                : m,
-            ),
-          },
-        };
+      updatePaletteColor(photoId, markerId, {
+        position: {
+          x: Math.max(0, Math.min(1, xRel)),
+          y: Math.max(0, Math.min(1, yRel)),
+        },
       });
 
       // NEW: live preview of the color under the marker while dragging
@@ -586,7 +832,7 @@ export default function SingleProjectScreen() {
         sampleYRel ?? yRel,
       );
     },
-    [schedulePaletteLiveSample],
+    [schedulePaletteLiveSample, updatePaletteColor],
   );
 
   return (
@@ -608,6 +854,7 @@ export default function SingleProjectScreen() {
           }}
         >
           <ScrollView
+            ref={scrollRef}
             style={{ flex: 1 }}
             contentContainerStyle={{
               // minimal padding to prevent overlap with BottomNavigation
@@ -618,106 +865,120 @@ export default function SingleProjectScreen() {
               !editingPhotoMove && !paletteEditingPhotoMove && !editingPhoto
             }
           >
-            <View style={styles.header}>
-              <View style={{ flexShrink: 1, flexGrow: 1 }}>
-                <ProjectTitleDescryption
-                  title={project.name}
-                  description={project.description}
-                />
-              </View>
-            </View>
-            <View style={styles.carouselSection}>
-              <ViewShot
-                ref={exportShotRef}
-                options={{ format: 'png', quality: 1, result: 'tmpfile' }}
-                style={{ width: carouselWidth }}
-              >
-                <CarouselWithMarkers
-                  photos={project.photos}
-                  activeIndex={activeIndex}
-                  setActiveIndex={setActiveIndex}
-                  width={carouselWidth}
-                  height={carouselHeight}
-                  mode={activeTab}
-                  exportMode={exportMode}
-                  markersByPhoto={markersByPhoto}
-                  editingPhoto={editingPhoto}
-                  setEditingPhoto={setEditingPhoto}
-                  onPlaceMarker={(photo, x, y) => openMarkerForm(photo, x, y)}
-                  onImageWindowRectChange={setImageWindowRect}
-                  onMoveMarker={(photoId, markerId, xRel, yRel) => {
-                    const clamp = (v: number) => Math.max(0, Math.min(1, v));
-                    updateMarker(photoId, markerId, {
-                      x: clamp(xRel),
-                      y: clamp(yRel),
-                    });
-                  }}
-                  editingPhotoMove={editingPhotoMove}
-                  setEditingPhotoMove={setEditingPhotoMove}
-                  paletteColorsByPhoto={paletteColorsByPhoto}
-                  paletteMarkersByPhoto={paletteMarkersByPhoto}
-                  paletteEditingPhotoMove={paletteEditingPhotoMove}
-                  setPaletteEditingPhotoMove={setPaletteEditingPhotoMove}
-                  onMovePaletteMarker={onMovePaletteMarker}
-                  onDropPaletteMarker={onDropPaletteMarker}
-                  onSetPaletteMarkerAngle={onSetPaletteMarkerAngle}
-                  onGeneratePalette={onGeneratePalette}
-                  isGeneratingPalette={isGeneratingPalette}
-                />
-              </ViewShot>
-            </View>
-
-            {/* Tabs under the 3 RectangleGemButtons */}
-            <View
-              style={{
-                width: '100%',
-                alignItems: 'center',
-                marginTop: 50,
-                marginBottom: 10,
-              }}
-            >
-              <ColorsPaletteTabSelector
-                value={activeTab}
-                onChange={setActiveTab}
-                maxWidth={contentWidth}
-              />
-            </View>
-
-            <View style={{ width: '100%' }}>
-              {/* Keep both tabs mounted to avoid resetting existing behavior */}
-              <View
-                style={{ display: activeTab === 'colors' ? 'flex' : 'none' }}
-              >
-                {/* Marker list — existing Colors view */}
-                {project.photos[activeIndex] && (
-                  <MarkerList
-                    photoId={project.photos[activeIndex]}
-                    markers={markersByPhoto[project.photos[activeIndex]] || []}
-                    expanded={expandedMarkers}
-                    onToggle={toggleMarkerAccordion}
-                    onUpdate={(markerId, patch) =>
-                      updateMarker(project.photos[activeIndex], markerId, patch)
-                    }
-                    maxWidth={contentWidth}
+            <View ref={scrollContentRef}>
+              <View style={styles.header}>
+                <View style={{ flexShrink: 1, flexGrow: 1 }}>
+                  <ProjectTitleDescryption
+                    title={project.name}
+                    description={project.description}
                   />
-                )}
+                </View>
+              </View>
+              <View ref={carouselSectionRef} style={styles.carouselSection}>
+                <ViewShot
+                  ref={exportShotRef}
+                  options={{ format: 'png', quality: 1, result: 'tmpfile' }}
+                  style={{ width: carouselWidth }}
+                >
+                  <CarouselWithMarkers
+                    photos={project.photos}
+                    activeIndex={activeIndex}
+                    setActiveIndex={setActiveIndex}
+                    width={carouselWidth}
+                    height={carouselHeight}
+                    mode={activeTab}
+                    exportMode={exportMode}
+                    overlaySettingsVersion={overlaySettingsVersion}
+                    markersByPhoto={markersByPhoto}
+                    editingPhoto={editingPhoto}
+                    setEditingPhoto={setEditingPhoto}
+                    onPlaceMarker={(photo, x, y) => openMarkerForm(photo, x, y)}
+                    onImageWindowRectChange={setImageWindowRect}
+                    onMoveMarker={(photoId, markerId, xRel, yRel) => {
+                      const clamp = (v: number) => Math.max(0, Math.min(1, v));
+                      updateMarker(photoId, markerId, {
+                        x: clamp(xRel),
+                        y: clamp(yRel),
+                      });
+                    }}
+                    editingPhotoMove={editingPhotoMove}
+                    setEditingPhotoMove={requestEnterMoveMarkerMode}
+                    paletteColorsByPhoto={paletteHexColorsByPhoto}
+                    paletteLabelsByPhoto={paletteLabelsByPhoto}
+                    paletteMarkersByPhoto={paletteMarkersByPhoto}
+                    paletteEditingPhotoMove={paletteEditingPhotoMove}
+                    setPaletteEditingPhotoMove={requestEnterPaletteMarkerMode}
+                    onMovePaletteMarker={onMovePaletteMarker}
+                    onDropPaletteMarker={onDropPaletteMarker}
+                    onSetPaletteMarkerAngle={onSetPaletteMarkerAngle}
+                    onGeneratePalette={onGeneratePalette}
+                    isGeneratingPalette={isGeneratingPalette}
+                  />
+                </ViewShot>
               </View>
 
+              {/* Tabs under the 3 RectangleGemButtons */}
               <View
                 style={{
-                  display: activeTab === 'palette' ? 'flex' : 'none',
-                  marginBottom: 30,
+                  width: '100%',
+                  alignItems: 'center',
+                  marginTop: activeTab === 'palette' ? -15 : 30,
+                  marginBottom: 10,
                 }}
               >
-                <PaletteTab
-                  photoUri={activePhotoUri}
+                <ColorsPaletteTabSelector
+                  value={activeTab}
+                  onChange={setActiveTab}
                   maxWidth={contentWidth}
-                  colors={paletteColors}
-                  onChangeColors={setPaletteColorsForActivePhoto}
-                  onAfterGenerate={(next) =>
-                    autoPlacePaletteMarkers(activePhotoUri, next)
-                  }
                 />
+              </View>
+
+              <View style={{ width: '100%' }}>
+                {/* Keep both tabs mounted to avoid resetting existing behavior */}
+                <View
+                  style={{ display: activeTab === 'colors' ? 'flex' : 'none' }}
+                >
+                  {/* Marker list — existing Colors view */}
+                  {project.photos[activeIndex] && (
+                    <MarkerList
+                      photoId={project.photos[activeIndex]}
+                      markers={
+                        markersByPhoto[project.photos[activeIndex]] || []
+                      }
+                      expanded={expandedMarkers}
+                      onToggle={toggleMarkerAccordion}
+                      onUpdate={(markerId, patch) =>
+                        updateMarker(
+                          project.photos[activeIndex],
+                          markerId,
+                          patch,
+                        )
+                      }
+                      maxWidth={contentWidth}
+                      overlaySettingsVersion={overlaySettingsVersion}
+                      onOverlaySettingsChanged={bumpOverlaySettingsVersion}
+                    />
+                  )}
+                </View>
+
+                <View
+                  style={{
+                    display: activeTab === 'palette' ? 'flex' : 'none',
+                    marginBottom: 30,
+                  }}
+                >
+                  <PaletteTab
+                    photoUri={activePhotoUri}
+                    maxWidth={contentWidth}
+                    palette={paletteForActivePhoto}
+                    onChangeLabel={(idx, nextLabel) =>
+                      setPaletteAtIndexForActivePhoto(idx, { label: nextLabel })
+                    }
+                    onChangeHex={(idx, nextHex) =>
+                      setPaletteAtIndexForActivePhoto(idx, { hex: nextHex })
+                    }
+                  />
+                </View>
               </View>
             </View>
           </ScrollView>
@@ -783,6 +1044,7 @@ export default function SingleProjectScreen() {
             visible={!!pendingCoord}
             onSubmit={submitMarkerForm}
             onCancel={cancelMarkerForm}
+            markerId={pendingMarkerId ?? undefined}
             mTitle={mTitle}
             setMTitle={setMTitle}
             mBase={mBase}

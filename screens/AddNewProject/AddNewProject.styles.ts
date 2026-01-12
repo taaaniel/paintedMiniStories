@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-around',
     marginTop: 16,
     marginBottom: 24,
   },
@@ -48,10 +48,10 @@ export const styles = StyleSheet.create({
   },
   galleryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     marginTop: 16,
     marginBottom: 32,
-    gap: 16,
+    gap: 12,
   },
   photosList: {
     flexDirection: 'row',

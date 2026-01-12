@@ -22,6 +22,7 @@ type Props = {
   options: Option[];
   value?: string;
   onChange: (value: string) => void;
+  getOptionLabel?: (value: string) => string | undefined;
   placeholder?: string;
   width?: DimensionValue;
   height?: number; // default 56
@@ -51,6 +52,7 @@ export default function SimplySelect({
   options,
   value,
   onChange,
+  getOptionLabel,
   placeholder = 'Select…',
   width = '100%',
   height = 56,
@@ -81,6 +83,14 @@ export default function SimplySelect({
     () => options.find((o) => o.value === value),
     [options, value],
   );
+
+  const resolvedSelectedLabel = useMemo(() => {
+    if (selected?.label) return selected.label;
+    if (!value) return undefined;
+    return getOptionLabel?.(value);
+  }, [getOptionLabel, selected?.label, value]);
+
+  const hasSelected = !!(selected || resolvedSelectedLabel);
   const hasLeftArrow = arrowPosition === 'left';
   const filteredOptions = useMemo(() => {
     if (!searchable || !query.trim()) return options;
@@ -200,14 +210,14 @@ export default function SimplySelect({
         <Text
           style={[
             {
-              color: selected ? effectiveTextColor : placeholderTextColor,
+              color: hasSelected ? effectiveTextColor : placeholderTextColor,
               fontSize: size === 'small' ? 13 : 14,
               paddingVertical: size === 'small' ? 6 : 10,
               paddingHorizontal: 12 + (hasLeftArrow ? iconSize + 8 : 0),
               paddingRight:
                 12 +
                 (!hasLeftArrow ? iconSize + 8 : 0) +
-                (showColorSwatch && selected
+                (showColorSwatch && (selected || isValidHexColor(value))
                   ? swatchSize + swatchMargin + 4
                   : 0),
             },
@@ -215,11 +225,13 @@ export default function SimplySelect({
           ]}
           numberOfLines={1}
         >
-          {selected ? selected.label : placeholder}
+          {hasSelected
+            ? resolvedSelectedLabel ?? selected?.label ?? value
+            : placeholder}
         </Text>
 
         {/* Color swatch in field */}
-        {showColorSwatch && selected && (
+        {showColorSwatch && (selected || isValidHexColor(value)) && (
           <View
             pointerEvents="none"
             style={{
@@ -230,7 +242,8 @@ export default function SimplySelect({
               height: swatchSize,
               borderRadius: swatchSize / 2,
               // use only a valid HEX, otherwise fallback
-              backgroundColor: normalizeHex(selected.value) ?? '#00000000',
+              backgroundColor:
+                normalizeHex(selected?.value ?? value) ?? '#00000000',
               borderWidth: 1,
               borderColor: '#00000022',
             }}
@@ -314,7 +327,7 @@ export default function SimplySelect({
               <FlatList
                 style={{ maxHeight: computedMaxHeight }}
                 data={dataToRender}
-                keyExtractor={(o) => o.value}
+                keyExtractor={(o, idx) => `${o.value}-${o.label}-${idx}`}
                 nestedScrollEnabled
                 keyboardShouldPersistTaps="handled"
                 initialNumToRender={20}
@@ -370,12 +383,12 @@ export default function SimplySelect({
               />
             ) : (
               <ScrollView style={{ maxHeight: computedMaxHeight }}>
-                {dataToRender.map((o) => {
+                {dataToRender.map((o, idx) => {
                   const active = o.value === value;
                   const swatchBg = normalizeHex(o.value) ?? '#00000000';
                   return (
                     <Pressable
-                      key={o.value}
+                      key={`${o.value}-${o.label}-${idx}`}
                       onPress={() => {
                         onChange(o.value);
                         setOpen(false);

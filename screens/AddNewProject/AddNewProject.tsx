@@ -334,14 +334,16 @@ export default function AddNewProjectScreen() {
             <RectangleGemButton
               label="FROM GALLERY"
               color="#A100C2"
-              width={160}
+              width={120}
               onPress={pickImage}
+              fontSize={12}
             />
             <RectangleGemButton
               label="FROM CAMERA"
               color="#A100C2"
-              width={160}
+              width={120}
               onPress={takePhoto}
+              fontSize={12}
             />
           </View>
 
@@ -403,18 +405,18 @@ export default function AddNewProjectScreen() {
           <View style={styles.headerRow}>
             {editingId && (
               <RectangleGemButton
-                fontSize={16}
+                fontSize={12}
                 label="DELETE PROJECT"
                 color="#C2B39A"
-                width={150}
+                width={120}
                 onPress={handleDelete}
               />
             )}
             <RectangleGemButton
-              fontSize={16}
+              fontSize={12}
               label={editingId ? 'UPDATE' : 'SAVE'}
               color="#A100C2"
-              width={180}
+              width={120}
               onPress={handleSave}
             />
           </View>

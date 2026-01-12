@@ -2,14 +2,24 @@ import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import React from 'react';
-import { SectionList, StyleSheet, Text, View } from 'react-native';
+import {
+  Dimensions,
+  ScrollView,
+  SectionList,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import paletteColors from '../../assets/data/palleteColors.json';
 import CustomDialog from '../../components/CustomDialog/CustomDialog';
 import GemButton from '../../components/buttons/GemButton';
 import RectangleGemButton from '../../components/buttons/RectangleGemButton';
+import ColorPicker from '../../components/inputs/ColorPicker';
 import SimplyInput from '../../components/inputs/SimplyInput';
 import SimplySelect from '../../components/inputs/SimplySelect';
+import PaintBankTabSelector from '../../components/tabs/PaintBankTabSelector';
 import MainView from '../MainView';
 
 type Paint = {
@@ -18,6 +28,13 @@ type Paint = {
   colorHex: string;
   brand?: string;
   note?: string;
+};
+
+type AssetPaint = {
+  sourceId: string;
+  name: string;
+  brand: string;
+  colorHex: string;
 };
 
 const PAINTS_KEY = 'paintBank.paints';
@@ -40,8 +57,26 @@ const makeId = (): string =>
   `${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
 export default function PaintBankScreen() {
+  const { width: screenWidth } = useWindowDimensions();
+  // MainView has horizontal padding=30
+  const contentWidth = Math.max(0, screenWidth - 60);
+
+  // Keep the add/edit dialog within the tappable viewport.
+  const dialogFormMaxHeight = Math.round(
+    Dimensions.get('window').height * 0.62,
+  );
+  const pickerWidth = Math.min(240, contentWidth);
+
+  const [activeTab, setActiveTab] = React.useState<'list' | 'my'>('my');
   const [paints, setPaints] = React.useState<Paint[]>([]);
-  const [query, setQuery] = React.useState('');
+
+  // Paint List state
+  const [listQuery, setListQuery] = React.useState('');
+  const [listBrandFilter, setListBrandFilter] = React.useState('');
+
+  // My PaintBank state
+  const [myQuery, setMyQuery] = React.useState('');
+  const [myBrandFilter, setMyBrandFilter] = React.useState('');
 
   // form
   const [formVisible, setFormVisible] = React.useState(false);
@@ -58,23 +93,32 @@ export default function PaintBankScreen() {
     null,
   );
 
-  const paletteOptions = React.useMemo(
-    () =>
-      (Array.isArray(paletteColors) ? paletteColors : []).map((c: any) => ({
-        label: String(c.colorName ?? c.name ?? c.colorHex ?? ''),
-        value: String(c.colorHex ?? ''),
-      })),
-    [],
-  );
-
-  const paletteByHex = React.useMemo(() => {
-    const map = new Map<string, any>();
-    (Array.isArray(paletteColors) ? paletteColors : []).forEach((c: any) => {
-      const hex = normalizeHex(String(c.colorHex ?? ''));
-      if (hex) map.set(hex, c);
-    });
-    return map;
+  const assetPaints = React.useMemo<AssetPaint[]>(() => {
+    return (Array.isArray(paletteColors) ? paletteColors : [])
+      .map((c: any): AssetPaint | null => {
+        const brand = String(c.name ?? '').trim();
+        const name = String(c.colorName ?? '').trim();
+        const colorHex = normalizeHex(String(c.colorHex ?? '').trim());
+        if (!name || !colorHex) return null;
+        return {
+          sourceId: `${brand}__${name}__${colorHex}`,
+          brand,
+          name,
+          colorHex,
+        };
+      })
+      .filter(Boolean) as AssetPaint[];
   }, []);
+
+  const assetBrandOptions = React.useMemo(() => {
+    const brands = Array.from(
+      new Set(assetPaints.map((p) => p.brand).filter(Boolean)),
+    ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    return [
+      { label: 'All brands', value: '' },
+      ...brands.map((b) => ({ label: b, value: b })),
+    ];
+  }, [assetPaints]);
 
   const loadPaints = React.useCallback(async () => {
     try {
@@ -101,19 +145,42 @@ export default function PaintBankScreen() {
     }, [loadPaints]),
   );
 
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return paints;
-    return paints.filter((p) => (p.name || '').toLowerCase().includes(q));
-  }, [paints, query]);
+  const OTHER = 'Inne';
 
-  const sections = React.useMemo(() => {
+  const myFiltered = React.useMemo(() => {
+    const q = myQuery.trim().toLowerCase();
+    const brandFilter = myBrandFilter.trim().toLowerCase();
+    return paints.filter((p) => {
+      const nameOk = !q
+        ? true
+        : (p.name || '').toLowerCase().includes(q) ||
+          (p.note || '').toLowerCase().includes(q);
+      if (!nameOk) return false;
+      if (!brandFilter) return true;
+      const b = ((p.brand || '').trim() || OTHER).toLowerCase();
+      return b === brandFilter;
+    });
+  }, [paints, myQuery, myBrandFilter]);
+
+  const myBrandOptions = React.useMemo(() => {
+    const map = new Set<string>();
+    for (const p of paints) {
+      map.add(((p.brand || '').trim() || OTHER).trim());
+    }
+    const brands = Array.from(map)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    return [
+      { label: 'All brands', value: '' },
+      ...brands.map((b) => ({ label: b, value: b })),
+    ];
+  }, [paints]);
+
+  const mySections = React.useMemo(() => {
     const map = new Map<string, Paint[]>();
-    const OTHER = 'Inne';
 
-    for (const p of filtered) {
-      const b = (p.brand || '').trim();
-      const key = b || OTHER;
+    for (const p of myFiltered) {
+      const key = ((p.brand || '').trim() || OTHER).trim();
       const arr = map.get(key) ?? [];
       arr.push(p);
       map.set(key, arr);
@@ -145,13 +212,49 @@ export default function PaintBankScreen() {
     }
 
     return out;
-  }, [filtered]);
+  }, [myFiltered]);
 
-  const openAdd = () => {
+  const listFiltered = React.useMemo(() => {
+    const q = listQuery.trim().toLowerCase();
+    const brandFilter = listBrandFilter.trim().toLowerCase();
+    return assetPaints.filter((p) => {
+      if (brandFilter && p.brand.toLowerCase() !== brandFilter) return false;
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)
+      );
+    });
+  }, [assetPaints, listQuery, listBrandFilter]);
+
+  const listSections = React.useMemo(() => {
+    const map = new Map<string, AssetPaint[]>();
+    for (const p of listFiltered) {
+      const key = (p.brand || OTHER).trim() || OTHER;
+      const arr = map.get(key) ?? [];
+      arr.push(p);
+      map.set(key, arr);
+    }
+
+    const brands = Array.from(map.keys());
+    brands.sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: 'base' }),
+    );
+
+    return brands.map((brand) => ({
+      title: brand,
+      data: (map.get(brand) ?? [])
+        .slice()
+        .sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+        ),
+    }));
+  }, [listFiltered]);
+
+  const openAddCustom = () => {
     setEditingId(null);
     setName('');
     setBrand('');
-    setColorHex('');
+    setColorHex('#FFFFFF');
     setNote('');
     setNameError(undefined);
     setColorError(undefined);
@@ -171,11 +274,15 @@ export default function PaintBankScreen() {
 
   const savePaint = async () => {
     const trimmedName = name.trim();
+    const trimmedBrand = brand.trim();
     const normalizedHex = normalizeHex(colorHex);
 
     const duplicate = paints.some((p) => {
       if (editingId && p.id === editingId) return false;
-      return (p.name || '').trim().toLowerCase() === trimmedName.toLowerCase();
+      return (
+        (p.name || '').trim().toLowerCase() === trimmedName.toLowerCase() &&
+        (p.brand || '').trim().toLowerCase() === trimmedBrand.toLowerCase()
+      );
     });
 
     const nextNameError = !trimmedName
@@ -195,7 +302,7 @@ export default function PaintBankScreen() {
     const payload: Paint = {
       id: editingId ?? makeId(),
       name: trimmedName,
-      brand: brand.trim() ? brand.trim() : undefined,
+      brand: trimmedBrand ? trimmedBrand : undefined,
       colorHex: normalizedHex,
       note: note.trim() ? note.trim() : undefined,
     };
@@ -216,6 +323,35 @@ export default function PaintBankScreen() {
     setFormVisible(false);
   };
 
+  const isAlreadyInMyBank = React.useCallback(
+    (asset: AssetPaint): boolean => {
+      const nameKey = asset.name.trim().toLowerCase();
+      const brandKey = asset.brand.trim().toLowerCase();
+      return paints.some(
+        (p) =>
+          (p.name || '').trim().toLowerCase() === nameKey &&
+          (p.brand || '').trim().toLowerCase() === brandKey,
+      );
+    },
+    [paints],
+  );
+
+  const addFromList = React.useCallback(
+    async (asset: AssetPaint) => {
+      if (isAlreadyInMyBank(asset)) return;
+      const payload: Paint = {
+        id: makeId(),
+        name: asset.name.trim(),
+        brand: asset.brand.trim() ? asset.brand.trim() : undefined,
+        colorHex: normalizeHex(asset.colorHex),
+      };
+
+      await persistPaints([payload, ...paints]);
+      setActiveTab('my');
+    },
+    [isAlreadyInMyBank, paints, persistPaints],
+  );
+
   const confirmDelete = async () => {
     if (!confirmDeleteId) return;
     const next = paints.filter((p) => p.id !== confirmDeleteId);
@@ -231,86 +367,230 @@ export default function PaintBankScreen() {
   return (
     <MainView
       dashboard={{
-        paintBankCount: paints.length, // NEW: realtime header counter while editing
+        paintBankCount: paints.length,
       }}
     >
       <View style={styles.container}>
         <Text style={styles.title}>Paint Bank</Text>
 
-        {/* SECTION 1: list + search */}
-        <View style={styles.section}>
-          <SimplyInput
-            inputFieldColor="#fff"
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search paints by name…"
-            width="100%"
+        <View
+          style={{
+            width: '100%',
+            alignItems: 'center',
+            marginTop: 10,
+            marginBottom: 14,
+          }}
+        >
+          <PaintBankTabSelector
+            value={activeTab}
+            onChange={setActiveTab}
+            maxWidth={contentWidth}
           />
+        </View>
 
-          <View style={styles.listWrap}>
-            <SectionList
-              sections={sections}
-              keyExtractor={(x) => x.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-              renderSectionHeader={({ section }) => (
-                <Text style={styles.sectionHeader}>{section.title}</Text>
-              )}
-              renderItem={({ item }) => (
-                <View style={styles.item}>
-                  <View
-                    style={[
-                      styles.swatch,
-                      {
-                        backgroundColor: isValidHex(item.colorHex)
-                          ? normalizeHex(item.colorHex)
-                          : '#ffffff',
-                      },
-                    ]}
-                  />
+        {/* Keep both tabs mounted to avoid resetting inputs */}
+        <View style={{ width: '100%', flex: 1 }}>
+          {/* Paint List */}
+          <View
+            style={{ display: activeTab === 'list' ? 'flex' : 'none', flex: 1 }}
+          >
+            <View style={styles.section}>
+              <Text style={styles.hintLabel}>
+                Search paints and add them to your bank
+              </Text>
 
-                  <View style={styles.itemText}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    {item.note ? (
-                      <Text style={styles.itemNote}>{item.note}</Text>
-                    ) : null}
-                  </View>
+              <SimplyInput
+                inputFieldColor="#fff"
+                value={listQuery}
+                onChangeText={setListQuery}
+                placeholder="Search paint by name…"
+                width="100%"
+                style={{ zIndex: 30, position: 'relative' }}
+              />
 
-                  <View style={styles.itemActions}>
-                    <GemButton
-                      size={40}
-                      color="#47B0D7"
-                      iconNode={
-                        <MaterialIcons name="edit" size={18} color="#0f172a" />
-                      }
-                      onPress={() => openEdit(item)}
-                    />
-                    <GemButton
-                      size={40}
-                      color="#C2B39A"
-                      iconNode={
-                        <MaterialIcons
-                          name="delete"
-                          size={18}
-                          color="#0f172a"
+              <SimplySelect
+                options={assetBrandOptions}
+                value={listBrandFilter}
+                onChange={setListBrandFilter}
+                placeholder="Filter by brand…"
+                searchable
+                searchPlaceholder="Search brand…"
+                showColorSwatch={false}
+                width="100%"
+                size="small"
+                borderless
+                allowVirtualized={false}
+                style={{ zIndex: 20, position: 'relative' }}
+              />
+
+              <View
+                style={[styles.listWrap, { zIndex: 0, position: 'relative' }]}
+              >
+                <SectionList
+                  sections={listSections}
+                  extraData={paints}
+                  keyExtractor={(x) => x.sourceId}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.listContent}
+                  stickySectionHeadersEnabled={true}
+                  renderSectionHeader={({ section }) => (
+                    <View style={styles.sectionHeaderWrap}>
+                      <Text style={styles.sectionHeader}>{section.title}</Text>
+                    </View>
+                  )}
+                  renderItem={({ item }) => {
+                    const already = isAlreadyInMyBank(item);
+                    return (
+                      <View style={styles.item}>
+                        <View
+                          style={[
+                            styles.swatch,
+                            {
+                              backgroundColor: isValidHex(item.colorHex)
+                                ? normalizeHex(item.colorHex)
+                                : '#ffffff',
+                            },
+                          ]}
                         />
-                      }
-                      onPress={() => setConfirmDeleteId(item.id)}
-                    />
-                  </View>
-                </View>
-              )}
-            />
+
+                        <View style={styles.itemText}>
+                          <Text style={styles.itemName}>{item.name}</Text>
+                          <Text style={styles.itemBrand}>{item.brand}</Text>
+                        </View>
+
+                        <View style={styles.itemActions}>
+                          <GemButton
+                            size={40}
+                            color={already ? '#C2B39A' : '#A100C2'}
+                            disabled={already}
+                            iconNode={
+                              <MaterialIcons
+                                name={already ? 'check' : 'add'}
+                                size={18}
+                                color={already ? '#0f172a' : '#FFFFFF'}
+                              />
+                            }
+                            onPress={() => void addFromList(item)}
+                          />
+                        </View>
+                      </View>
+                    );
+                  }}
+                />
+              </View>
+            </View>
           </View>
 
-          <View style={styles.addBtnRow}>
-            <Text style={styles.addGemLabel}>Add new paint</Text>
-            <GemButton
-              size={52}
-              color="#A100C2"
-              iconNode={<MaterialIcons name="add" size={22} color="#FFFFFF" />}
-              onPress={openAdd}
-            />
+          {/* My PaintBank */}
+          <View
+            style={{ display: activeTab === 'my' ? 'flex' : 'none', flex: 1 }}
+          >
+            <View style={styles.section}>
+              <SimplyInput
+                inputFieldColor="#fff"
+                value={myQuery}
+                onChangeText={setMyQuery}
+                placeholder="Search paints by name…"
+                width="100%"
+                style={{ zIndex: 30, position: 'relative' }}
+              />
+
+              <SimplySelect
+                options={myBrandOptions}
+                value={myBrandFilter}
+                onChange={setMyBrandFilter}
+                placeholder="Filter by brand…"
+                searchable
+                searchPlaceholder="Search brand…"
+                showColorSwatch={false}
+                width="100%"
+                size="small"
+                borderless
+                allowVirtualized={false}
+                style={{ zIndex: 20, position: 'relative' }}
+              />
+
+              <View
+                style={[styles.listWrap, { zIndex: 0, position: 'relative' }]}
+              >
+                <SectionList
+                  sections={mySections}
+                  extraData={paints}
+                  keyExtractor={(x) => x.id}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.listContent}
+                  stickySectionHeadersEnabled={true}
+                  renderSectionHeader={({ section }) => (
+                    <View style={styles.sectionHeaderWrap}>
+                      <Text style={styles.sectionHeader}>{section.title}</Text>
+                    </View>
+                  )}
+                  renderItem={({ item }) => (
+                    <View style={styles.item}>
+                      <View
+                        style={[
+                          styles.swatch,
+                          {
+                            backgroundColor: isValidHex(item.colorHex)
+                              ? normalizeHex(item.colorHex)
+                              : '#ffffff',
+                          },
+                        ]}
+                      />
+
+                      <View style={styles.itemText}>
+                        <Text style={styles.itemName}>{item.name}</Text>
+                        <Text style={styles.itemBrand}>
+                          {((item.brand || '').trim() || OTHER).trim()}
+                        </Text>
+                        {item.note ? (
+                          <Text style={styles.itemNote}>{item.note}</Text>
+                        ) : null}
+                      </View>
+
+                      <View style={styles.itemActions}>
+                        <GemButton
+                          size={40}
+                          color="#47B0D7"
+                          iconNode={
+                            <MaterialIcons
+                              name="edit"
+                              size={18}
+                              color="#0f172a"
+                            />
+                          }
+                          onPress={() => openEdit(item)}
+                        />
+                        <GemButton
+                          size={40}
+                          color="#C2B39A"
+                          iconNode={
+                            <MaterialIcons
+                              name="delete"
+                              size={18}
+                              color="#0f172a"
+                            />
+                          }
+                          onPress={() => setConfirmDeleteId(item.id)}
+                        />
+                      </View>
+                    </View>
+                  )}
+                />
+              </View>
+
+              <View style={styles.addBtnRow}>
+                <Text style={styles.addGemLabel}>Add custom paint</Text>
+                <GemButton
+                  size={52}
+                  color="#A100C2"
+                  iconNode={
+                    <MaterialIcons name="add" size={22} color="#FFFFFF" />
+                  }
+                  onPress={openAddCustom}
+                />
+              </View>
+            </View>
           </View>
         </View>
 
@@ -318,7 +598,7 @@ export default function PaintBankScreen() {
         <CustomDialog
           visible={formVisible}
           onClose={() => setFormVisible(false)}
-          title={editingId ? 'Edit paint' : 'Add new paint'}
+          title={editingId ? 'Edit paint' : 'Add custom paint'}
           maxWidth={420}
           actions={
             <View style={styles.dialogActions}>
@@ -332,34 +612,24 @@ export default function PaintBankScreen() {
             </View>
           }
         >
-          <View style={styles.form}>
-            <SimplySelect
-              useLightBg
-              options={paletteOptions}
-              value={
-                paletteOptions.find(
-                  (o) => normalizeHex(o.value) === normalizeHex(colorHex),
-                )?.value
-              }
+          <ScrollView
+            style={{ maxHeight: dialogFormMaxHeight }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            contentContainerStyle={{ paddingTop: 6, paddingBottom: 24 }}
+            showsVerticalScrollIndicator
+          >
+            <ColorPicker
+              value={isValidHex(colorHex) ? normalizeHex(colorHex) : '#FFFFFF'}
               onChange={(hex) => {
-                const normalized = normalizeHex(hex);
-                const found = paletteByHex.get(normalized);
-                setColorHex(normalized);
-                if (found?.colorName) setName(String(found.colorName));
-                if (found?.name) setBrand(String(found.name));
+                setColorHex(hex);
                 if (colorError) setColorError(undefined);
-                if (nameError) setNameError(undefined);
               }}
-              placeholder="Search color…"
-              arrowPosition="right"
-              searchable
-              width="100%"
-              size="small"
-              borderless
-              allowVirtualized={false}
+              size={pickerWidth}
+              style={{ width: pickerWidth, alignSelf: 'center' }}
             />
 
-            <View style={{ height: 10 }} />
+            <View style={{ height: 14 }} />
 
             <SimplyInput
               useLightBg
@@ -373,6 +643,7 @@ export default function PaintBankScreen() {
               placeholder="e.g. AK11065 Dark Brown"
               error={nameError}
               width="100%"
+              placeholderTextColor="#fff"
             />
 
             <View style={{ height: 10 }} />
@@ -391,6 +662,7 @@ export default function PaintBankScreen() {
                   placeholder="#ffffff"
                   error={colorError}
                   width="100%"
+                  placeholderTextColor="#fff"
                 />
               </View>
             </View>
@@ -405,6 +677,7 @@ export default function PaintBankScreen() {
               label="Brand (optional)"
               placeholder="e.g. AK Interactive"
               width="100%"
+              placeholderTextColor="#fff"
             />
 
             <View style={{ height: 10 }} />
@@ -418,7 +691,7 @@ export default function PaintBankScreen() {
               placeholder="e.g. thin layers, great coverage"
               width="100%"
             />
-          </View>
+          </ScrollView>
         </CustomDialog>
 
         <CustomDialog
@@ -429,7 +702,12 @@ export default function PaintBankScreen() {
           }”?`}
           maxWidth={420}
           onConfirm={() => void confirmDelete()}
-        />
+        >
+          <Text style={{ color: '#2D2D2D', marginTop: 8, textAlign: 'center' }}>
+            If you used this paint in your projects, it will be shown as
+            “Unknown”.
+          </Text>
+        </CustomDialog>
       </View>
     </MainView>
   );
@@ -465,10 +743,18 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     gap: 8,
   },
-  sectionHeader: {
-    marginTop: 6,
-    marginBottom: 2,
+
+  sectionHeaderWrap: {
+    // nieprzezroczyste tło, żeby itemy "chowały się" pod brand label
+    backgroundColor: '#F5F0EB',
+    paddingTop: 6,
+    paddingBottom: 2,
     paddingHorizontal: 2,
+    zIndex: 50,
+    elevation: 50,
+  },
+  sectionHeader: {
+    // przeniesione spacing do wrappera
     fontSize: 13,
     fontWeight: '900',
     color: '#2D2D2D',
@@ -528,6 +814,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
     color: '#2D2D2D',
+  },
+  hintLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2D2D2D',
+    opacity: 0.85,
+    paddingHorizontal: 2,
   },
   form: {
     marginTop: 6,

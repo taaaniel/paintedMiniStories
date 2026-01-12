@@ -16,7 +16,9 @@ export default function ColorsPaletteTabSelector({
   onChange,
   maxWidth,
 }: Props) {
-  const frameWidth = Math.min(maxWidth, 313);
+  // Keep a small horizontal margin so the frame never touches screen edges.
+  const safeMaxWidth = Math.max(1, maxWidth - 16);
+  const frameWidth = Math.min(safeMaxWidth, 313);
   const frameHeight = Math.round((frameWidth * 61) / 313);
 
   return (

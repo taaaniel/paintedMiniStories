@@ -6,6 +6,8 @@ export interface Marker {
   x: number;
   y: number;
   title?: string;
+  // Size (diameter in px) for the color dots rendered on the image.
+  dotSize?: number;
   baseColor?: string;
   shadowColor?: string;
   highlightColor?: string;
@@ -52,15 +54,18 @@ export function useProjectMarkers(projectId?: string) {
 
   const addMarker = useCallback(
     (photoUrl: string, x: number, y: number, meta?: Partial<Marker>) => {
+      const { id: metaId, ...restMeta } = (meta ?? {}) as Partial<Marker>;
+      const id = metaId ?? Date.now() + '_' + Math.random();
       setMarkersByPhoto((curr) => {
         const nextForPhoto = [
           ...(curr[photoUrl] || []),
-          { id: Date.now() + '_' + Math.random(), x, y, ...meta },
+          { id, x, y, ...restMeta },
         ];
         const next = { ...curr, [photoUrl]: nextForPhoto };
         persist(next);
         return next;
       });
+      return id;
     },
     [persist],
   );

@@ -14,6 +14,8 @@ const DECODED_JPEG_CACHE = new Map<
   { width: number; height: number; data: Uint8Array }
 >();
 
+const PALETTE_SAFE_MARGIN_PX = 35;
+
 const B64_CHARS =
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const B64_LOOKUP: Record<string, number> = (() => {
@@ -339,6 +341,18 @@ export async function extractPaletteFromImage(
   const data = decoded?.data;
   if (!data?.length) return pickFallback(count);
 
+  const w = decoded.width;
+  const h = decoded.height;
+  const margin = PALETTE_SAFE_MARGIN_PX;
+  const hasSafeArea = w > margin * 2 && h > margin * 2;
+  const isInsideSafeArea = (i: number) => {
+    if (!hasSafeArea) return true;
+    const p = ((i / 4) | 0) as number;
+    const x = p % w;
+    const y = (p / w) | 0;
+    return x >= margin && x < w - margin && y >= margin && y < h - margin;
+  };
+
   const totalPx = decoded.width * decoded.height;
 
   // Moderate sampling: 35k samples is a sweet spot.
@@ -348,6 +362,7 @@ export async function extractPaletteFromImage(
 
   const globalCounts = new Map<number, number>();
   for (let i = 0; i < data.length; i += step) {
+    if (!isInsideSafeArea(i)) continue;
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
@@ -414,6 +429,7 @@ export async function extractPaletteFromImage(
     const bins = new Map<number, Bin>();
 
     for (let i = 0; i < data.length; i += step) {
+      if (!isInsideSafeArea(i)) continue;
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
@@ -608,6 +624,9 @@ export async function findPaletteMarkerPositions(
   const stepPx = Math.max(1, Math.floor(totalPx / 45000));
   const step = stepPx * 4;
 
+  const margin = PALETTE_SAFE_MARGIN_PX;
+  const hasSafeArea = width > margin * 2 && height > margin * 2;
+
   for (let i = 0; i < data.length; i += step) {
     const r = data[i];
     const g = data[i + 1];
@@ -617,6 +636,16 @@ export async function findPaletteMarkerPositions(
 
     const px = ((i / 4) | 0) % width;
     const py = (((i / 4) | 0) / width) | 0;
+
+    if (
+      hasSafeArea &&
+      (px < margin ||
+        px >= width - margin ||
+        py < margin ||
+        py >= height - margin)
+    ) {
+      continue;
+    }
 
     for (let k = 0; k < 5; k++) {
       const t = targets[k];
