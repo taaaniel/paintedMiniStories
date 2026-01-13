@@ -46,6 +46,11 @@ export default function AddNewProjectScreen() {
   const [initialName, setInitialName] = useState(''); // track original name in edit mode
   const navigation = useNavigation();
 
+  const photosRef = React.useRef<string[]>([]);
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
+
   useEffect(() => {
     if (!editingId) {
       // add mode: clear form and photos
@@ -145,8 +150,8 @@ export default function AddNewProjectScreen() {
     }
   };
 
-  const pickImage = async () => {
-    if (photos.length >= MAX_PHOTOS) return;
+  const pickImage = useCallback(async () => {
+    if (photosRef.current.length >= MAX_PHOTOS) return;
     const result = await launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
@@ -154,13 +159,16 @@ export default function AddNewProjectScreen() {
     });
     if (!result.canceled && result.assets && result.assets[0]?.uri) {
       const persistent = await ensurePersistentUri(result.assets[0].uri);
-      setPhotos([...photos, persistent]);
+      setPhotos((prev) => {
+        if (prev.length >= MAX_PHOTOS) return prev;
+        return [...prev, persistent];
+      });
     }
-  };
+  }, []);
 
-  const takePhoto = async () => {
+  const takePhoto = useCallback(async () => {
     try {
-      if (photos.length >= MAX_PHOTOS) return;
+      if (photosRef.current.length >= MAX_PHOTOS) return;
       const perm = await requestCameraPermissionsAsync();
       if (perm.status !== 'granted') {
         Alert.alert(
@@ -175,13 +183,16 @@ export default function AddNewProjectScreen() {
       });
       if (!result.canceled && result.assets && result.assets[0]?.uri) {
         const persistent = await ensurePersistentUri(result.assets[0].uri);
-        setPhotos((prev) => [...prev, persistent]);
+        setPhotos((prev) => {
+          if (prev.length >= MAX_PHOTOS) return prev;
+          return [...prev, persistent];
+        });
       }
     } catch (e) {
       console.error('Camera error:', e);
       Alert.alert('Error', 'Failed to take a photo');
     }
-  };
+  }, []);
 
   const removePhoto = (idx: number) => {
     setPhotos(photos.filter((_, i) => i !== idx));

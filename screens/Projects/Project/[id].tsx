@@ -8,7 +8,6 @@ import {
   Dimensions,
   LayoutAnimation,
   Platform,
-  Pressable,
   Image as RNImage,
   ScrollView,
   Text,
@@ -25,6 +24,7 @@ import AddColorMarkerDialog from './AddColorMarkerDialog';
 import { BottomNavigation } from './components/BottomNavigation';
 import { CarouselWithMarkers } from './components/CarouselWithMarkers';
 import InstagramExportPopup from './components/InstagramExportPopup';
+import PaletteMarkerEditorModal from './components/PaletteMarkerEditorModal';
 import {
   extractPaletteFromImage,
   findPaletteMarkerPositions,
@@ -43,7 +43,6 @@ import {
 } from './palette.types';
 import PaletteTab from './PaletteTab';
 import { styles } from './Project.styles';
-import { extraStyles } from './ProjectExtras.styles';
 import ProjectTitleDescryption from './ProjectTitleDescryption';
 
 type Project = {
@@ -120,6 +119,19 @@ export default function SingleProjectScreen() {
       }
 
       scrollToCarouselThen(() => setEditingPhotoMove(photoId));
+    },
+    [clearPendingEnterMode, scrollToCarouselThen],
+  );
+
+  const requestEnterAddColorMode = React.useCallback(
+    (photoId: string | null) => {
+      clearPendingEnterMode();
+      if (!photoId) {
+        setEditingPhoto(null);
+        return;
+      }
+
+      scrollToCarouselThen(() => setEditingPhoto(photoId));
     },
     [clearPendingEnterMode, scrollToCarouselThen],
   );
@@ -443,7 +455,7 @@ export default function SingleProjectScreen() {
       xRel: number,
       yRel: number,
     ) => {
-      const sampled = await sampleHexFromImage(photoId, xRel, yRel, 5);
+      const sampled = await sampleHexFromImage(photoId, xRel, yRel, 0, 1024);
       if (!sampled) return;
       const hex = normalizeHex(sampled);
       updatePaletteColor(photoId, paletteColorId, {
@@ -453,13 +465,6 @@ export default function SingleProjectScreen() {
     },
     [computeMatchedPaint, updatePaletteColor],
   );
-
-  const [imageWindowRect, setImageWindowRect] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
 
   const exportShotRef = React.useRef<any>(null);
   const [isPreparingExport, setIsPreparingExport] = useState(false);
@@ -515,6 +520,13 @@ export default function SingleProjectScreen() {
   useFocusEffect(
     React.useCallback(() => {
       let alive = true;
+
+      // Leaving and coming back should not keep any edit/move modes.
+      setEditingPhoto(null);
+      setEditingPhotoMove(null);
+      setPaletteEditingPhotoMove(null);
+      clearPendingEnterMode();
+
       setIsLoading(true);
 
       (async () => {
@@ -551,7 +563,7 @@ export default function SingleProjectScreen() {
       return () => {
         alive = false;
       };
-    }, [projectId]),
+    }, [clearPendingEnterMode, projectId]),
   );
 
   useEffect(() => {
@@ -774,7 +786,8 @@ export default function SingleProjectScreen() {
             photoId,
             coords.xRel,
             coords.yRel,
-            5,
+            0,
+            1024,
           );
           if (!sampled) return;
 
@@ -835,6 +848,11 @@ export default function SingleProjectScreen() {
     [schedulePaletteLiveSample, updatePaletteColor],
   );
 
+  const paletteEditorPhotoUri = paletteEditingPhotoMove;
+  const paletteForEditorPhoto: PaletteColor[] = paletteEditorPhotoUri
+    ? paletteByPhoto[paletteEditorPhotoUri] ?? []
+    : [];
+
   return (
     <MainView>
       {isLoading || !project ? (
@@ -891,9 +909,8 @@ export default function SingleProjectScreen() {
                     overlaySettingsVersion={overlaySettingsVersion}
                     markersByPhoto={markersByPhoto}
                     editingPhoto={editingPhoto}
-                    setEditingPhoto={setEditingPhoto}
+                    setEditingPhoto={requestEnterAddColorMode}
                     onPlaceMarker={(photo, x, y) => openMarkerForm(photo, x, y)}
-                    onImageWindowRectChange={setImageWindowRect}
                     onMoveMarker={(photoId, markerId, xRel, yRel) => {
                       const clamp = (v: number) => Math.max(0, Math.min(1, v));
                       updateMarker(photoId, markerId, {
@@ -983,35 +1000,6 @@ export default function SingleProjectScreen() {
             </View>
           </ScrollView>
 
-          {/* REPLACE the non-interactive overlay with a full-screen Pressable */}
-          {!!editingPhoto &&
-            !!imageWindowRect &&
-            editingPhotoMove !== editingPhoto && (
-              <Pressable
-                style={[
-                  extraStyles.overlayCapture,
-                  { zIndex: 260 }, // above carousel overlay (250)
-                ]}
-                onPress={(e: any) => {
-                  const r = imageWindowRect;
-                  if (!r || !editingPhoto) return;
-
-                  const { pageX, pageY } = e.nativeEvent;
-                  const insideX = pageX >= r.x && pageX <= r.x + r.width;
-                  const insideY = pageY >= r.y && pageY <= r.y + r.height;
-                  const inside = insideX && insideY;
-
-                  if (inside) {
-                    const xRel = (pageX - r.x) / r.width;
-                    const yRel = (pageY - r.y) / r.height;
-                    openMarkerForm(editingPhoto, xRel, yRel);
-                  } else {
-                    cancelMarkerForm();
-                  }
-                }}
-              />
-            )}
-
           {project.photos?.length > 0 && (
             <BottomNavigation
               photosLength={project.photos.length}
@@ -1019,6 +1007,12 @@ export default function SingleProjectScreen() {
               goPrev={goPrev}
               goNext={goNext}
               router={router}
+              arrowsDisabled={
+                !!editingPhoto ||
+                !!editingPhotoMove ||
+                !!paletteEditingPhotoMove ||
+                !!pendingCoord
+              }
               instagramDisabled={isPreparingExport}
               onOpenInstagramExport={() => void openInstagramExport()}
               // NEW: edit project button action
@@ -1037,6 +1031,17 @@ export default function SingleProjectScreen() {
             onClose={() => {
               setShowExport(false);
               setExportImageUri(null);
+            }}
+          />
+
+          <PaletteMarkerEditorModal
+            visible={!!paletteEditorPhotoUri}
+            photoUri={paletteEditorPhotoUri ?? activePhotoUri}
+            palette={paletteForEditorPhoto}
+            onDone={(next) => {
+              if (!paletteEditorPhotoUri) return;
+              setPaletteForPhoto(paletteEditorPhotoUri, next);
+              setPaletteEditingPhotoMove(null);
             }}
           />
 

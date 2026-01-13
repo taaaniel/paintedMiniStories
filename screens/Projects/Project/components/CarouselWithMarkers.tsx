@@ -21,7 +21,6 @@ export function CarouselWithMarkers({
   editingPhoto,
   setEditingPhoto,
   onPlaceMarker,
-  onImageWindowRectChange,
   onMoveMarker,
   editingPhotoMove,
   setEditingPhotoMove,
@@ -49,12 +48,6 @@ export function CarouselWithMarkers({
   editingPhoto: string | null;
   setEditingPhoto: (p: string | null) => void;
   onPlaceMarker: (photo: string, x: number, y: number) => void;
-  onImageWindowRectChange: (r: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }) => void;
   onMoveMarker?: (
     photoId: string,
     markerId: string,
@@ -102,6 +95,8 @@ export function CarouselWithMarkers({
   onGeneratePalette?: () => void;
   isGeneratingPalette?: boolean;
 }) {
+  const ADD_COLOR_SAFE_INSET_PX = 10;
+
   const scrollRef = useRef<ScrollView>(null);
   const wrapRef = useRef<View>(null);
 
@@ -249,16 +244,15 @@ export function CarouselWithMarkers({
     </View>
   );
 
+  const isCarouselScrollEnabled =
+    !editingPhotoMove && !editingPhoto && !paletteEditingPhotoMove;
+
+  const isAddColorMode =
+    mode === 'colors' && !!editingPhoto && !editingPhotoMove && !exportMode;
+
   return (
     <View
       ref={wrapRef}
-      onLayout={() => {
-        if (wrapRef.current) {
-          wrapRef.current.measureInWindow((x, y, w, h) => {
-            onImageWindowRectChange({ x, y, width: w, height: h });
-          });
-        }
-      }}
       style={[
         styles.carouselWrap,
         {
@@ -316,10 +310,7 @@ export function CarouselWithMarkers({
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          // block scrolling in either mode
-          scrollEnabled={
-            !editingPhotoMove && !editingPhoto && !paletteEditingPhotoMove
-          }
+          scrollEnabled={isCarouselScrollEnabled}
           decelerationRate="fast"
           snapToInterval={width}
           onMomentumScrollEnd={(e) => {
@@ -334,11 +325,8 @@ export function CarouselWithMarkers({
           {photos.map((item) => {
             const isAddColour = editingPhoto === item;
             const isMoveMode = editingPhotoMove === item;
-            const isPaletteMoveMode = paletteEditingPhotoMove === item;
             const borderColor =
-              isAddColour || isMoveMode || isPaletteMoveMode
-                ? '#d0175e'
-                : 'transparent';
+              isAddColour || isMoveMode ? '#d0175e' : 'transparent';
             return (
               <View
                 key={item}
@@ -362,7 +350,7 @@ export function CarouselWithMarkers({
                   editing={
                     mode === 'colors'
                       ? editingPhoto === item || editingPhotoMove === item
-                      : isPaletteMoveMode
+                      : false
                   }
                   showLabels={mode === 'colors' ? showLabels : false}
                   onMoveMarker={mode === 'colors' ? onMoveMarker : undefined}
@@ -384,11 +372,7 @@ export function CarouselWithMarkers({
                       ? paletteLabelsByPhoto?.[item]
                       : undefined
                   }
-                  paletteMoveOnly={
-                    mode === 'palette'
-                      ? paletteEditingPhotoMove === item
-                      : false
-                  }
+                  paletteMoveOnly={false}
                   onMovePaletteMarker={
                     mode === 'palette' ? onMovePaletteMarker : undefined
                   }
@@ -414,15 +398,66 @@ export function CarouselWithMarkers({
         </View>
       )}
 
+      {/* Add colour: show a 10px "no add" border around the photo area */}
+      {!!editingPhoto && !editingPhotoMove && !exportMode ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: PADDING,
+            left: PADDING,
+            right: PADDING,
+            bottom: PADDING,
+            zIndex: 255,
+            borderWidth: ADD_COLOR_SAFE_INSET_PX,
+            borderColor: 'rgba(128,128,128,0.35)',
+          }}
+        />
+      ) : null}
+
+      {/* Add colour: allow placing only on the photo area (buttons below remain clickable) */}
+      {isAddColorMode ? (
+        <Pressable
+          style={{
+            position: 'absolute',
+            top: PADDING,
+            left: PADDING,
+            right: PADDING,
+            bottom: PADDING,
+            zIndex: 254,
+          }}
+          onPress={(e) => {
+            if (!editingPhoto) return;
+
+            const { locationX, locationY } = e.nativeEvent;
+            const inset = ADD_COLOR_SAFE_INSET_PX;
+
+            // Ignore taps in the 10px border.
+            if (
+              locationX < inset ||
+              locationY < inset ||
+              locationX > width - inset ||
+              locationY > height - inset
+            ) {
+              return;
+            }
+
+            const xRel = locationX / (width || 1);
+            const yRel = locationY / (height || 1);
+            onPlaceMarker(editingPhoto, xRel, yRel);
+          }}
+        />
+      ) : null}
+
       {(() => {
         const isAnyMode =
-          !!editingPhoto || !!editingPhotoMove || !!paletteEditingPhotoMove;
+          !!editingPhoto || !!editingPhotoMove || !!paletteEditingPhotoMove; // FIX
         if (!isAnyMode) return null;
         const modeText = paletteEditingPhotoMove
           ? 'Move palette marker mode: drag markers or the button to exit'
           : editingPhotoMove
           ? 'Move marker mode: drag markers or the button to exit'
-          : 'Add colour mode: tap anywhere or the button to exit';
+          : 'Add colour mode: tap on the photo or use DONE to exit';
         return (
           <View
             pointerEvents="none"
@@ -463,7 +498,7 @@ export function CarouselWithMarkers({
           }}
         >
           <Text style={{ color: 'white', fontWeight: '600', fontSize: 10 }}>
-            Tip:Tap a colour dot to change its size
+            Tip: Tap a colour dot to change its size
           </Text>
         </View>
       ) : null}
@@ -541,13 +576,16 @@ export function CarouselWithMarkers({
                         ? 'DONE'
                         : 'Add colour'
                     }
-                    color={'#d0175e'}
-                    onPress={() =>
-                      setEditingPhoto(
-                        editingPhoto === photos[activeIndex]
-                          ? null
-                          : photos[activeIndex],
-                      )
+                    color={editingPhotoMove ? '#C2B39A' : '#d0175e'}
+                    onPress={
+                      editingPhotoMove
+                        ? undefined
+                        : () =>
+                            setEditingPhoto(
+                              editingPhoto === photos[activeIndex]
+                                ? null
+                                : photos[activeIndex],
+                            )
                     }
                   />
                   <RectangleGemButton
@@ -644,25 +682,6 @@ export function CarouselWithMarkers({
         </View>
       )}
 
-      {!!editingPhoto &&
-        photos.length > 0 &&
-        photos[activeIndex] === editingPhoto && (
-          <Pressable
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 250,
-            }}
-            onPress={() => {
-              // exit Add colour mode on any tap
-              setEditingPhoto(null);
-            }}
-          />
-        )}
-
       {/* Restored simple overlay for Move mode: tap anywhere to exit */}
       {!!editingPhotoMove &&
         photos.length > 0 &&
@@ -678,23 +697,6 @@ export function CarouselWithMarkers({
               zIndex: 250,
             }}
             onPress={() => setEditingPhotoMove?.(null)}
-          />
-        )}
-
-      {!!paletteEditingPhotoMove &&
-        photos.length > 0 &&
-        photos[activeIndex] === paletteEditingPhotoMove && (
-          <Pressable
-            pointerEvents="box-none"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 250,
-            }}
-            onPress={() => setPaletteEditingPhotoMove?.(null)}
           />
         )}
     </View>

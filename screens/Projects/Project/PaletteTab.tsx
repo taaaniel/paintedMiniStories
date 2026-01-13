@@ -26,7 +26,7 @@ export default function PaletteTab({
       const c = list[idx];
       return {
         id: c?.id ?? `pal-${idx + 1}`,
-        label: (c?.label || '').trim() || `Color ${idx + 1}`,
+        label: c?.label == null ? `Color ${idx + 1}` : String(c.label ?? ''),
         hex: (c?.hex || '').trim() || '#C2B39A',
         position: c?.position ?? { x: (idx + 1) / 6, y: 0.5 },
         angleDeg: c?.angleDeg ?? 45,
@@ -46,17 +46,34 @@ export default function PaletteTab({
 
           const matchText = c.matchedPaint
             ? `${
-                c.matchedPaint.matchType === 'exact' ? 'Exact' : 'Probable'
+                c.matchedPaint.matchType === 'exact'
+                  ? 'Exact color'
+                  : 'Probably color'
               }: ${c.matchedPaint.name}${
                 c.matchedPaint.owned ? ' (owned)' : ''
               }`
-            : 'No match';
+            : 'Not found';
 
           return (
             <View
               key={`${photoUri}-palette-${c.id}-${idx}`}
               style={{ marginBottom: 12 }}
             >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <SimplyInput
+                    label={`Label ${idx + 1}`}
+                    value={c.label}
+                    onChangeText={(t) => onChangeLabel(idx, t)}
+                    placeholder={`Color ${idx + 1}`}
+                    height={42}
+                    width="100%"
+                  />
+                </View>
+              </View>
+
+              <View style={{ height: 8 }} />
+
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View
                   style={{
@@ -70,30 +87,15 @@ export default function PaletteTab({
                   }}
                 />
                 <View style={{ flex: 1 }}>
-                  <SimplyInput
-                    label={`Label ${idx + 1}`}
-                    value={c.label}
-                    onChangeText={(t) => onChangeLabel(idx, t)}
-                    placeholder="Color name"
-                    height={42}
-                    width="100%"
-                  />
-                </View>
-              </View>
-
-              <View style={{ height: 8 }} />
-
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ width: 22, marginRight: 10 }} />
-                <View style={{ flex: 1 }}>
-                  <SimplyInput
-                    label={`Hex ${idx + 1}`}
-                    value={normalized}
-                    onChangeText={(t) => onChangeHex(idx, t)}
-                    placeholder="#RRGGBB"
-                    height={42}
-                    width="100%"
-                  />
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: '#2D2D2D',
+                      fontWeight: '700',
+                    }}
+                  >
+                    {`Hex ${idx + 1}: ${String(normalized || '')}`}
+                  </Text>
                   <Text
                     style={{
                       marginTop: 6,

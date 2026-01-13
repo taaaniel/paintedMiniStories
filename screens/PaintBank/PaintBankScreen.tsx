@@ -347,7 +347,6 @@ export default function PaintBankScreen() {
       };
 
       await persistPaints([payload, ...paints]);
-      setActiveTab('my');
     },
     [isAlreadyInMyBank, paints, persistPaints],
   );
@@ -413,8 +412,6 @@ export default function PaintBankScreen() {
                 value={listBrandFilter}
                 onChange={setListBrandFilter}
                 placeholder="Filter by brand…"
-                searchable
-                searchPlaceholder="Search brand…"
                 showColorSwatch={false}
                 width="100%"
                 size="small"
@@ -500,8 +497,6 @@ export default function PaintBankScreen() {
                 value={myBrandFilter}
                 onChange={setMyBrandFilter}
                 placeholder="Filter by brand…"
-                searchable
-                searchPlaceholder="Search brand…"
                 showColorSwatch={false}
                 width="100%"
                 size="small"

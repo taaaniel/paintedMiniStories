@@ -304,12 +304,12 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       );
       if (!next) return;
 
-      // Sample at the arrow tip (not the marker center).
+      // Sample exactly under the arrow tip.
       const a = (angleDeg * Math.PI) / 180;
-      const tipRadiusPx = PALETTE_ARROW_TIP_RADIUS_PX;
-      const tipAbsX = centerAbsX + -Math.cos(a) * tipRadiusPx;
-      const tipAbsY = centerAbsY + Math.sin(a) * tipRadiusPx;
-
+      const tipDirX = -Math.cos(a);
+      const tipDirY = Math.sin(a);
+      const tipAbsX = centerAbsX + tipDirX * PALETTE_ARROW_TIP_RADIUS_PX;
+      const tipAbsY = centerAbsY + tipDirY * PALETTE_ARROW_TIP_RADIUS_PX;
       const tipRel = clampRelToStayInside(
         (tipAbsX - activeRect.x) / activeRect.width,
         (tipAbsY - activeRect.y) / activeRect.height,
@@ -335,12 +335,10 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     if (!paletteMoveOnly || !onDropPaletteMarker || !activeRect) return;
 
     const a = (angleDeg * Math.PI) / 180;
-    const tipRadiusPx = PALETTE_ARROW_TIP_RADIUS_PX;
-
-    // arrow-left-bold points LEFT by default; we rotate by -angleDeg
-    const tipAbsX = centerAbsX + -Math.cos(a) * tipRadiusPx;
-    const tipAbsY = centerAbsY + Math.sin(a) * tipRadiusPx;
-
+    const tipDirX = -Math.cos(a);
+    const tipDirY = Math.sin(a);
+    const tipAbsX = centerAbsX + tipDirX * PALETTE_ARROW_TIP_RADIUS_PX;
+    const tipAbsY = centerAbsY + tipDirY * PALETTE_ARROW_TIP_RADIUS_PX;
     const tipRel = clampRelToStayInside(
       (tipAbsX - activeRect.x) / activeRect.width,
       (tipAbsY - activeRect.y) / activeRect.height,
@@ -1092,6 +1090,9 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         const cy = imageLayoutRect.top + safe.yRel * imageLayoutRect.height;
         const angleDeg = getAngle(m.id);
 
+        // Used for collision avoidance of the big drag handle.
+        const MAX_COLOR_DOT_RADIUS = Math.max(...COLOR_DOT_SIZES) / 2;
+
         const markerCenterAbsX =
           (activeRect?.x ?? 0) + safe.xRel * (activeRect?.width ?? 0);
         const markerCenterAbsY =
@@ -1185,6 +1186,52 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           );
         };
 
+        const markerColorDotCenters = (() => {
+          const startOffset = START_OFFSET;
+          const rad = (angleDeg * Math.PI) / 180;
+          const dirX = Math.cos(rad);
+          const dirY = Math.sin(rad);
+
+          const entries = [
+            { mainHex: m.shadowColor, mixes: m.mixShadowColors },
+            { mainHex: m.baseColor, mixes: m.mixBaseColors },
+            { mainHex: m.highlightColor, mixes: m.mixHighlightColors },
+          ] as const;
+
+          const circles: { x: number; y: number; r: number }[] = [];
+          entries.forEach((e, idx) => {
+            if (!e.mainHex) return;
+            const shift = startOffset + idx * MAIN_DOT_SPACING;
+            const mainCX = shift * dirX;
+            const mainCY = -shift * dirY;
+            circles.push({ x: mainCX, y: mainCY, r: MAX_COLOR_DOT_RADIUS });
+
+            const mixCount = Math.min(e.mixes?.length ?? 0, 2);
+            for (let i = 0; i < mixCount; i++) {
+              const step = (i + 1) * 20;
+              circles.push({
+                x: mainCX + step,
+                y: mainCY,
+                r: MAX_COLOR_DOT_RADIUS,
+              });
+            }
+          });
+
+          return circles;
+        })();
+
+        const handleOverlapsColorDots = (centerX: number, centerY: number) => {
+          const HANDLE_CLEARANCE_PX = 2;
+          const rH = MARKER_DRAG_HANDLE_RADIUS + HANDLE_CLEARANCE_PX;
+          for (const c of markerColorDotCenters) {
+            const dx = centerX - c.x;
+            const dy = centerY - c.y;
+            const rr = rH + c.r;
+            if (dx * dx + dy * dy < rr * rr) return true;
+          }
+          return false;
+        };
+
         const pickSafeHandleCenter = () => {
           const candidates: [number, number][] = [
             [safeMarkerHandleCenterX, safeMarkerHandleCenterY],
@@ -1218,7 +1265,9 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           ];
 
           for (const [x, y] of candidates) {
-            if (!handleOverlapsControls(x, y)) return { x, y };
+            if (handleOverlapsControls(x, y)) continue;
+            if (handleOverlapsColorDots(x, y)) continue;
+            return { x, y };
           }
           return { x: safeMarkerHandleCenterX, y: safeMarkerHandleCenterY };
         };
@@ -1427,260 +1476,381 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       })}
 
       {Array.isArray(paletteMarkers) && paletteMarkers.length
-        ? paletteMarkers.slice(0, 5).map((pm) => {
-            const safe = clampRelToStayInside(pm.x, pm.y, paletteSafeRadiusPx);
-            const cxImg = safe.xRel * imageLayoutRect.width;
-            const cyImg = safe.yRel * imageLayoutRect.height;
-            const cx = imageLayoutRect.left + cxImg;
-            const cy = imageLayoutRect.top + cyImg;
-            const fill = String(paletteHexColors?.[pm.colorIndex] ?? '#C2B39A');
-            const label = String(paletteLabels?.[pm.colorIndex] ?? '').trim();
-            const angleDeg = pm.angleDeg ?? 45;
+        ? (() => {
+            const LABEL_MAX_W = 160;
+            const LABEL_MIN_W = 56;
+            const LABEL_PAD_H = 8;
+            const LABEL_PAD_V = 4;
+            const LABEL_GAP_PX = 8;
+            const LABEL_FONT_SIZE = 10;
+            const LABEL_LINE_H = 12;
+            const labelBoxH = LABEL_LINE_H + LABEL_PAD_V * 2;
 
-            const a = (angleDeg * Math.PI) / 180;
-            const tipDirX = -Math.cos(a);
-            const tipDirY = Math.sin(a);
-            const arrowCenterX = tipDirX * PALETTE_ARROW_CENTER_OFFSET_PX;
-            const arrowCenterY = tipDirY * PALETTE_ARROW_CENTER_OFFSET_PX;
+            const items = paletteMarkers.slice(0, 5).map((pm) => {
+              const safe = clampRelToStayInside(
+                pm.x,
+                pm.y,
+                paletteSafeRadiusPx,
+              );
+              const cxImg = safe.xRel * imageLayoutRect.width;
+              const cyImg = safe.yRel * imageLayoutRect.height;
+              const cx = imageLayoutRect.left + cxImg;
+              const cy = imageLayoutRect.top + cyImg;
+              const fill = String(
+                paletteHexColors?.[pm.colorIndex] ?? '#C2B39A',
+              );
+              const label = String(
+                paletteLabels?.[pm.colorIndex] ?? `Color ${pm.colorIndex + 1}`,
+              ).trim();
+              const angleDeg = pm.angleDeg ?? 45;
+              return { pm, safe, cxImg, cyImg, cx, cy, fill, label, angleDeg };
+            });
 
-            const PALETTE_DRAG_HANDLE_SIZE = 40;
-            const PALETTE_DRAG_HANDLE_RADIUS = PALETTE_DRAG_HANDLE_SIZE / 2;
-            const paletteHandleCenterX =
-              arrowCenterX +
-              tipDirX *
-                (PALETTE_ARROW_SIZE / 2 + PALETTE_DRAG_HANDLE_RADIUS + 2);
-            const paletteHandleCenterY =
-              arrowCenterY +
-              tipDirY *
-                (PALETTE_ARROW_SIZE / 2 + PALETTE_DRAG_HANDLE_RADIUS + 2);
+            const paletteDotCenters = items.map((it) => ({
+              id: it.pm.id,
+              cx: it.cx,
+              cy: it.cy,
+            }));
 
-            const paletteCenterAbsX = (activeRect?.x ?? 0) + cxImg;
-            const paletteCenterAbsY = (activeRect?.y ?? 0) + cyImg;
+            const collidesWithAnyDot = (
+              selfId: string,
+              rect: { x0: number; y0: number; x1: number; y1: number },
+            ) => {
+              const r = PALETTE_DOT_RADIUS + 2;
+              for (const d of paletteDotCenters) {
+                if (d.id === selfId) continue;
+                const x0 = d.cx - r;
+                const x1 = d.cx + r;
+                const y0 = d.cy - r;
+                const y1 = d.cy + r;
+                const overlap =
+                  rect.x0 < x1 && rect.x1 > x0 && rect.y0 < y1 && rect.y1 > y0;
+                if (overlap) return true;
+              }
+              return false;
+            };
 
-            const pan = makePalettePanHandlers(
-              pm.id,
-              angleDeg,
-              paletteCenterAbsX,
-              paletteCenterAbsY,
-            );
+            const pickLabelPos = (
+              selfId: string,
+              cx: number,
+              cy: number,
+              labelW: number,
+            ) => {
+              const candidates = [
+                {
+                  name: 'right' as const,
+                  left: PALETTE_DOT_RADIUS + LABEL_GAP_PX,
+                  top: -labelBoxH / 2,
+                },
+                {
+                  name: 'left' as const,
+                  left: -PALETTE_DOT_RADIUS - LABEL_GAP_PX - labelW,
+                  top: -labelBoxH / 2,
+                },
+                {
+                  name: 'top' as const,
+                  left: -labelW / 2,
+                  top: -PALETTE_DOT_RADIUS - LABEL_GAP_PX - labelBoxH,
+                },
+              ];
 
-            return (
-              <View
-                key={`palette-${pm.id}`}
-                pointerEvents="box-none"
-                style={{
-                  position: 'absolute',
-                  left: cx,
-                  top: cy,
-                  zIndex: 20,
-                  elevation: 20,
-                }}
-              >
-                {/* +/- buttons to change angle, only in palette edit mode */}
-                {paletteMoveOnly && onSetPaletteMarkerAngle
-                  ? (() => {
-                      const CONTROLS_W = 2 * 28 + 6;
-                      const CONTROLS_H = 28;
-                      const MARGIN = 6;
-                      const left = clampBetween(
-                        -36,
-                        MARGIN - cx,
-                        width - MARGIN - cx - CONTROLS_W,
-                      );
-                      const top = clampBetween(
-                        -36,
-                        MARGIN - cy,
-                        height - MARGIN - cy - CONTROLS_H,
-                      );
+              const isWithin = (r: {
+                x0: number;
+                y0: number;
+                x1: number;
+                y1: number;
+              }) => r.x0 >= 0 && r.y0 >= 0 && r.x1 <= width && r.y1 <= height;
 
-                      const safeSetAngle = (nextAngleDeg: number) => {
-                        if (!activeRect) return;
-                        // Block angle changes that would push the arrow handle outside the image.
-                        const a = (nextAngleDeg * Math.PI) / 180;
-                        const handleCenterAbsX =
-                          activeRect.x +
-                          cxImg +
-                          -Math.cos(a) * PALETTE_ARROW_CENTER_OFFSET_PX;
-                        const handleCenterAbsY =
-                          activeRect.y +
-                          cyImg +
-                          Math.sin(a) * PALETTE_ARROW_CENTER_OFFSET_PX;
+              for (const c of candidates) {
+                const rect = {
+                  x0: cx + c.left,
+                  y0: cy + c.top,
+                  x1: cx + c.left + labelW,
+                  y1: cy + c.top + labelBoxH,
+                };
+                if (!isWithin(rect)) continue;
+                if (collidesWithAnyDot(selfId, rect)) continue;
+                return { left: c.left, top: c.top };
+              }
 
-                        const handleLeft =
-                          handleCenterAbsX - PALETTE_ARROW_SIZE / 2;
-                        const handleRight =
-                          handleCenterAbsX + PALETTE_ARROW_SIZE / 2;
-                        const handleTop =
-                          handleCenterAbsY - PALETTE_ARROW_SIZE / 2;
-                        const handleBottom =
-                          handleCenterAbsY + PALETTE_ARROW_SIZE / 2;
+              // Fallback: top, clamped into view.
+              const unclampedLeft = -labelW / 2;
+              const unclampedTop =
+                -PALETTE_DOT_RADIUS - LABEL_GAP_PX - labelBoxH;
+              const clampedGlobalX0 = clampBetween(
+                cx + unclampedLeft,
+                0,
+                Math.max(0, width - labelW),
+              );
+              const clampedGlobalY0 = clampBetween(
+                cy + unclampedTop,
+                0,
+                Math.max(0, height - labelBoxH),
+              );
+              return { left: clampedGlobalX0 - cx, top: clampedGlobalY0 - cy };
+            };
 
-                        const within =
-                          handleLeft >= activeRect.x &&
-                          handleRight <= activeRect.x + activeRect.width &&
-                          handleTop >= activeRect.y &&
-                          handleBottom <= activeRect.y + activeRect.height;
+            return items.map(
+              ({ pm, cxImg, cyImg, cx, cy, fill, label, angleDeg }) => {
+                const a = (angleDeg * Math.PI) / 180;
+                const tipDirX = -Math.cos(a);
+                const tipDirY = Math.sin(a);
+                const arrowCenterX = tipDirX * PALETTE_ARROW_CENTER_OFFSET_PX;
+                const arrowCenterY = tipDirY * PALETTE_ARROW_CENTER_OFFSET_PX;
 
-                        if (within) {
-                          onSetPaletteMarkerAngle(photo, pm.id, nextAngleDeg);
-                        }
-                      };
+                const PALETTE_DRAG_HANDLE_SIZE = 40;
+                const PALETTE_DRAG_HANDLE_RADIUS = PALETTE_DRAG_HANDLE_SIZE / 2;
+                const paletteHandleCenterX =
+                  arrowCenterX +
+                  tipDirX *
+                    (PALETTE_ARROW_SIZE / 2 + PALETTE_DRAG_HANDLE_RADIUS + 2);
+                const paletteHandleCenterY =
+                  arrowCenterY +
+                  tipDirY *
+                    (PALETTE_ARROW_SIZE / 2 + PALETTE_DRAG_HANDLE_RADIUS + 2);
 
-                      return (
-                        <View
-                          style={{
-                            position: 'absolute',
-                            left,
-                            top,
-                            flexDirection: 'row',
-                            zIndex: 30,
-                            elevation: 30,
-                          }}
-                        >
-                          <Pressable
-                            onPress={() =>
-                              safeSetAngle((angleDeg + 10 + 360) % 360)
-                            }
-                            style={{
-                              backgroundColor: 'rgba(0,0,0,0.6)',
-                              padding: 6,
-                              borderRadius: 14,
-                              marginRight: 6,
-                            }}
-                          >
-                            <MaterialCommunityIcons
-                              name="undo"
-                              size={16}
-                              color="#fff"
-                              style={{ transform: [{ rotate: '-30deg' }] }}
-                            />
-                          </Pressable>
+                const paletteCenterAbsX = (activeRect?.x ?? 0) + cxImg;
+                const paletteCenterAbsY = (activeRect?.y ?? 0) + cyImg;
 
-                          <Pressable
-                            onPress={() =>
-                              safeSetAngle((angleDeg - 10 + 360) % 360)
-                            }
-                            style={{
-                              backgroundColor: 'rgba(0,0,0,0.6)',
-                              padding: 6,
-                              borderRadius: 14,
-                            }}
-                          >
-                            <MaterialCommunityIcons
-                              name="redo"
-                              size={16}
-                              color="#fff"
-                              style={{ transform: [{ rotate: '30deg' }] }}
-                            />
-                          </Pressable>
-                        </View>
-                      );
-                    })()
-                  : null}
+                const pan = makePalettePanHandlers(
+                  pm.id,
+                  angleDeg,
+                  paletteCenterAbsX,
+                  paletteCenterAbsY,
+                );
 
-                <View
-                  style={{
-                    position: 'absolute',
-                    left: -PALETTE_DOT_RADIUS,
-                    top: -PALETTE_DOT_RADIUS,
-                    width: PALETTE_DOT_SIZE,
-                    height: PALETTE_DOT_SIZE,
-                    borderRadius: PALETTE_DOT_RADIUS,
-                    backgroundColor: fill,
-                    borderWidth: 2,
-                    borderColor: '#000',
-                    opacity: 0.95,
-                    zIndex: 25,
-                    elevation: 25,
-                  }}
-                />
+                const approxTextW = LABEL_PAD_H * 2 + label.length * 6.8;
+                const labelW = clampBetween(
+                  approxTextW,
+                  LABEL_MIN_W,
+                  LABEL_MAX_W,
+                );
+                const labelPos = pickLabelPos(pm.id, cx, cy, labelW);
 
-                {label ? (
+                return (
                   <View
-                    pointerEvents="none"
+                    key={`palette-${pm.id}`}
+                    pointerEvents="box-none"
                     style={{
                       position: 'absolute',
-                      left: -80,
-                      top: PALETTE_DOT_RADIUS + 6,
-                      width: 160,
-                      alignItems: 'center',
-                      zIndex: 28,
-                      elevation: 28,
+                      left: cx,
+                      top: cy,
+                      zIndex: 20,
+                      elevation: 20,
                     }}
                   >
+                    {/* +/- buttons to change angle, only in palette edit mode */}
+                    {paletteMoveOnly && onSetPaletteMarkerAngle
+                      ? (() => {
+                          const CONTROLS_W = 2 * 28 + 6;
+                          const CONTROLS_H = 28;
+                          const MARGIN = 6;
+                          const left = clampBetween(
+                            -36,
+                            MARGIN - cx,
+                            width - MARGIN - cx - CONTROLS_W,
+                          );
+                          const top = clampBetween(
+                            -36,
+                            MARGIN - cy,
+                            height - MARGIN - cy - CONTROLS_H,
+                          );
+
+                          const safeSetAngle = (nextAngleDeg: number) => {
+                            if (!activeRect) return;
+                            // Block angle changes that would push the arrow handle outside the image.
+                            const a = (nextAngleDeg * Math.PI) / 180;
+                            const handleCenterAbsX =
+                              activeRect.x +
+                              cxImg +
+                              -Math.cos(a) * PALETTE_ARROW_CENTER_OFFSET_PX;
+                            const handleCenterAbsY =
+                              activeRect.y +
+                              cyImg +
+                              Math.sin(a) * PALETTE_ARROW_CENTER_OFFSET_PX;
+
+                            const handleLeft =
+                              handleCenterAbsX - PALETTE_ARROW_SIZE / 2;
+                            const handleRight =
+                              handleCenterAbsX + PALETTE_ARROW_SIZE / 2;
+                            const handleTop =
+                              handleCenterAbsY - PALETTE_ARROW_SIZE / 2;
+                            const handleBottom =
+                              handleCenterAbsY + PALETTE_ARROW_SIZE / 2;
+
+                            const within =
+                              handleLeft >= activeRect.x &&
+                              handleRight <= activeRect.x + activeRect.width &&
+                              handleTop >= activeRect.y &&
+                              handleBottom <= activeRect.y + activeRect.height;
+
+                            if (within) {
+                              onSetPaletteMarkerAngle(
+                                photo,
+                                pm.id,
+                                nextAngleDeg,
+                              );
+                            }
+                          };
+
+                          return (
+                            <View
+                              style={{
+                                position: 'absolute',
+                                left,
+                                top,
+                                flexDirection: 'row',
+                                zIndex: 30,
+                                elevation: 30,
+                              }}
+                            >
+                              <Pressable
+                                onPress={() =>
+                                  safeSetAngle((angleDeg + 10 + 360) % 360)
+                                }
+                                style={{
+                                  backgroundColor: 'rgba(0,0,0,0.6)',
+                                  padding: 6,
+                                  borderRadius: 14,
+                                  marginRight: 6,
+                                }}
+                              >
+                                <MaterialCommunityIcons
+                                  name="undo"
+                                  size={16}
+                                  color="#fff"
+                                  style={{ transform: [{ rotate: '-30deg' }] }}
+                                />
+                              </Pressable>
+
+                              <Pressable
+                                onPress={() =>
+                                  safeSetAngle((angleDeg - 10 + 360) % 360)
+                                }
+                                style={{
+                                  backgroundColor: 'rgba(0,0,0,0.6)',
+                                  padding: 6,
+                                  borderRadius: 14,
+                                }}
+                              >
+                                <MaterialCommunityIcons
+                                  name="redo"
+                                  size={16}
+                                  color="#fff"
+                                  style={{ transform: [{ rotate: '30deg' }] }}
+                                />
+                              </Pressable>
+                            </View>
+                          );
+                        })()
+                      : null}
+
                     <View
                       style={{
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                        borderRadius: 10,
-                        maxWidth: 160,
+                        position: 'absolute',
+                        left: -PALETTE_DOT_RADIUS,
+                        top: -PALETTE_DOT_RADIUS,
+                        width: PALETTE_DOT_SIZE,
+                        height: PALETTE_DOT_SIZE,
+                        borderRadius: PALETTE_DOT_RADIUS,
+                        backgroundColor: fill,
+                        borderWidth: 2,
+                        borderColor: '#000',
+                        opacity: 0.95,
+                        zIndex: 25,
+                        elevation: 25,
                       }}
-                    >
-                      <Text
-                        numberOfLines={1}
+                    />
+
+                    {label ? (
+                      <View
+                        pointerEvents="none"
                         style={{
-                          color: '#fff',
-                          fontSize: 10,
-                          fontWeight: '700',
+                          position: 'absolute',
+                          left: labelPos.left,
+                          top: labelPos.top,
+                          width: labelW,
+                          zIndex: 28,
+                          elevation: 28,
                         }}
                       >
-                        {label}
-                      </Text>
+                        <View
+                          style={{
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: 10,
+                            maxWidth: LABEL_MAX_W,
+                          }}
+                        >
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              color: '#fff',
+                              fontSize: LABEL_FONT_SIZE,
+                              fontWeight: '700',
+                            }}
+                          >
+                            {label}
+                          </Text>
+                        </View>
+                      </View>
+                    ) : null}
+
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: arrowCenterX - PALETTE_ARROW_SIZE / 2,
+                        top: arrowCenterY - PALETTE_ARROW_SIZE / 2,
+                        width: PALETTE_ARROW_SIZE,
+                        height: PALETTE_ARROW_SIZE,
+                        zIndex: 26,
+                        elevation: 26,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <MaterialCommunityIcons
+                        name="arrow-left-bold"
+                        size={PALETTE_ARROW_SIZE}
+                        color="#ffffff"
+                        style={{ transform: [{ rotate: `${-angleDeg}deg` }] }}
+                      />
                     </View>
-                  </View>
-                ) : null}
 
-                <View
-                  style={{
-                    position: 'absolute',
-                    left: arrowCenterX - PALETTE_ARROW_SIZE / 2,
-                    top: arrowCenterY - PALETTE_ARROW_SIZE / 2,
-                    width: PALETTE_ARROW_SIZE,
-                    height: PALETTE_ARROW_SIZE,
-                    zIndex: 26,
-                    elevation: 26,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="arrow-left-bold"
-                    size={PALETTE_ARROW_SIZE}
-                    color="#ffffff"
-                    style={{ transform: [{ rotate: `${-angleDeg}deg` }] }}
-                  />
-                </View>
-
-                {/* Drag handle: palette marker can be moved ONLY via this icon */}
-                {paletteMoveOnly ? (
-                  <View
-                    {...pan.panHandlers}
-                    style={{
-                      position: 'absolute',
-                      left: paletteHandleCenterX - PALETTE_DRAG_HANDLE_RADIUS,
-                      top: paletteHandleCenterY - PALETTE_DRAG_HANDLE_RADIUS,
-                      width: PALETTE_DRAG_HANDLE_SIZE,
-                      height: PALETTE_DRAG_HANDLE_SIZE,
-                      borderRadius: PALETTE_DRAG_HANDLE_RADIUS,
-                      backgroundColor: '#fff',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 27,
-                      elevation: 27,
-                      opacity: 0.95,
-                    }}
-                  >
-                    <MaterialCommunityIcons
-                      name="drag"
-                      size={18}
-                      color="#000"
-                    />
+                    {/* Drag handle: palette marker can be moved ONLY via this icon */}
+                    {paletteMoveOnly ? (
+                      <View
+                        {...pan.panHandlers}
+                        style={{
+                          position: 'absolute',
+                          left:
+                            paletteHandleCenterX - PALETTE_DRAG_HANDLE_RADIUS,
+                          top:
+                            paletteHandleCenterY - PALETTE_DRAG_HANDLE_RADIUS,
+                          width: PALETTE_DRAG_HANDLE_SIZE,
+                          height: PALETTE_DRAG_HANDLE_SIZE,
+                          borderRadius: PALETTE_DRAG_HANDLE_RADIUS,
+                          backgroundColor: '#fff',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 27,
+                          elevation: 27,
+                          opacity: 0.95,
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name="drag"
+                          size={18}
+                          color="#000"
+                        />
+                      </View>
+                    ) : null}
                   </View>
-                ) : null}
-              </View>
+                );
+              },
             );
-          })
+          })()
         : null}
     </View>
   );

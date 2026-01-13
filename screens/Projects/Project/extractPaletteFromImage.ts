@@ -551,10 +551,11 @@ export async function sampleHexFromImage(
   xRel: number,
   yRel: number,
   radiusPx = 5,
+  maxSide = 320,
 ): Promise<string | null> {
   if (!uri) return null;
 
-  const decoded = await decodeSmallJpeg(uri, 320);
+  const decoded = await decodeSmallJpeg(uri, maxSide);
   if (!decoded) return null;
 
   const x = Math.max(

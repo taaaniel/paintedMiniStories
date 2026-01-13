@@ -15,6 +15,7 @@ export function BottomNavigation({
   onOpenInstagramExport,
   instagramDisabled,
   onEditProject,
+  arrowsDisabled,
 }: {
   photosLength: number;
   activeIndex: number;
@@ -24,6 +25,7 @@ export function BottomNavigation({
   onOpenInstagramExport?: () => void;
   instagramDisabled?: boolean;
   onEditProject?: () => void;
+  arrowsDisabled?: boolean;
 }) {
   if (!photosLength) return null;
 
@@ -79,9 +81,9 @@ export function BottomNavigation({
               active={false}
               Icon={ArrowLeft}
               size={55}
-              disabled={activeIndex <= 0}
+              disabled={!!arrowsDisabled || activeIndex <= 0}
               onPress={() => {
-                if (activeIndex > 0) goPrev();
+                if (!arrowsDisabled && activeIndex > 0) goPrev();
               }}
               label="Prev"
             />
@@ -90,9 +92,9 @@ export function BottomNavigation({
               active={false}
               Icon={ArrowRight}
               size={55}
-              disabled={activeIndex >= photosLength - 1}
+              disabled={!!arrowsDisabled || activeIndex >= photosLength - 1}
               onPress={() => {
-                if (activeIndex < photosLength - 1) goNext();
+                if (!arrowsDisabled && activeIndex < photosLength - 1) goNext();
               }}
               label="Next"
             />

@@ -59,6 +59,8 @@ export default function GemTabBar({
   const router = useRouter();
   const segments = useSegments();
 
+  const barBottom = Math.max(0, insets.bottom) - 5;
+
   const segmentsKey = useMemo(() => segments.join('/'), [segments]);
 
   // Hide main tab bar on project details screen: /(tabs)/projects/[id]
@@ -202,7 +204,8 @@ export default function GemTabBar({
         style={[
           styles.wrap,
           {
-            paddingBottom: Math.max(insets.bottom, 16),
+            bottom: barBottom,
+            paddingBottom: 0,
             backgroundColor: 'rgba(255,0,0,0.1)',
             borderTopWidth: 1,
             borderColor: 'rgba(255,0,0,0.3)',
@@ -241,7 +244,8 @@ export default function GemTabBar({
         style={[
           styles.wrap,
           {
-            paddingBottom: Math.max(insets.bottom, 16),
+            bottom: barBottom,
+            paddingBottom: 0,
             backgroundColor: 'transparent',
             borderTopWidth: 0,
             borderColor: 'transparent',
@@ -279,7 +283,8 @@ export default function GemTabBar({
       style={[
         styles.wrap,
         {
-          paddingBottom: Math.max(insets.bottom, 16),
+          bottom: barBottom,
+          paddingBottom: 0,
           backgroundColor: 'transparent',
           borderTopWidth: 0,
           borderColor: 'transparent',
@@ -345,7 +350,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: -5,
+    bottom: 0,
     paddingHorizontal: 24,
     paddingTop: 8,
     zIndex: 50, // iOS
