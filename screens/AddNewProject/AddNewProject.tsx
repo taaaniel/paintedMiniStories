@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Crypto from 'expo-crypto';
 import * as FileSystem from 'expo-file-system';
 import { Image } from 'expo-image';
@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import AddPhotoBg from '../../assets/images/addPhotoBg.svg';
 import RectangleGemButton from '../../components/buttons/RectangleGemButton';
+import CustomDialog from '../../components/CustomDialog/CustomDialog';
 import CustomTextarea from '../../components/CustomTextarea/CustomTextarea';
 import SimplyInput from '../../components/inputs/SimplyInput';
 import { getAllProjects, saveProject } from '../../storage/projects';
@@ -44,7 +45,41 @@ export default function AddNewProjectScreen() {
     [params.projectId],
   );
   const [initialName, setInitialName] = useState(''); // track original name in edit mode
+  const [initialDesc, setInitialDesc] = useState('');
+  const [initialPhotos, setInitialPhotos] = useState<string[]>([]);
   const navigation = useNavigation();
+
+  const isBlockingLeaveRef = React.useRef(false);
+  const pendingLeaveProceedRef = React.useRef<null | (() => void)>(null);
+  const [leaveDialogVisible, setLeaveDialogVisible] = React.useState(false);
+
+  const closeLeaveDialog = React.useCallback(() => {
+    setLeaveDialogVisible(false);
+    pendingLeaveProceedRef.current = null;
+    isBlockingLeaveRef.current = false;
+  }, []);
+
+  const openLeaveDialog = React.useCallback((proceed: () => void) => {
+    pendingLeaveProceedRef.current = proceed;
+    setLeaveDialogVisible(true);
+  }, []);
+
+  const resetForm = React.useCallback(() => {
+    setName('');
+    setInitialName('');
+    setInitialDesc('');
+    setInitialPhotos([]);
+    setDesc('');
+    setPhotos([]);
+    setNameError('');
+  }, []);
+
+  const resetToInitial = React.useCallback(() => {
+    setName(initialName);
+    setDesc(initialDesc);
+    setPhotos(initialPhotos);
+    setNameError('');
+  }, [initialDesc, initialName, initialPhotos]);
 
   const photosRef = React.useRef<string[]>([]);
   useEffect(() => {
@@ -54,13 +89,16 @@ export default function AddNewProjectScreen() {
   useEffect(() => {
     if (!editingId) {
       // add mode: clear form and photos
-      setName('');
-      setInitialName('');
-      setDesc('');
-      setPhotos([]);
-      setNameError('');
+      resetForm();
     }
-  }, [editingId]);
+  }, [editingId, resetForm]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Tab screens stay mounted; ensure add-mode is always clean on entry.
+      if (!editingId) resetForm();
+    }, [editingId, resetForm]),
+  );
 
   useEffect(() => {
     if (!editingId) return;
@@ -72,7 +110,9 @@ export default function AddNewProjectScreen() {
           setName(found.name);
           setInitialName(found.name); // remember original project name
           setDesc(found.description || '');
+          setInitialDesc(found.description || '');
           setPhotos(found.photos || []);
+          setInitialPhotos(found.photos || []);
         }
       } catch (e) {
         console.error('Failed to load project for edit:', e);
@@ -232,13 +272,15 @@ export default function AddNewProjectScreen() {
     }
   };
 
-  const handleSave = useCallback(async () => {
-    try {
+  const saveCurrentProject = useCallback(
+    async (opts?: { navigateToProject?: boolean }) => {
+      const navigateToProject = opts?.navigateToProject ?? true;
+
       const trimmedName = name.trim();
       const trimmedDesc = desc.trim();
 
       const isValidName = await validateProjectName(trimmedName);
-      if (!isValidName) return;
+      if (!isValidName) return null;
 
       if (editingId) {
         const all = await getAllProjects();
@@ -258,11 +300,12 @@ export default function AddNewProjectScreen() {
         }
         await AsyncStorage.setItem('projects', JSON.stringify(next));
 
-        router.replace(`/(tabs)/projects/${editingId}`);
-        return;
+        if (navigateToProject) {
+          router.replace(`/(tabs)/projects/${editingId}`);
+        }
+        return editingId;
       }
 
-      // create new
       const newId = Crypto.randomUUID();
       const projectToSave = {
         id: newId,
@@ -272,12 +315,22 @@ export default function AddNewProjectScreen() {
       };
       await saveProject(projectToSave);
 
-      router.replace(`/(tabs)/projects/${newId}`);
+      if (navigateToProject) {
+        router.replace(`/(tabs)/projects/${newId}`);
+      }
+      return newId;
+    },
+    [desc, editingId, name, photos, router, validateProjectName],
+  );
+
+  const handleSave = useCallback(async () => {
+    try {
+      await saveCurrentProject({ navigateToProject: true });
     } catch (error) {
       console.error('Error while saving:', error);
       Alert.alert('Error', 'Failed to save the project');
     }
-  }, [desc, editingId, name, photos, router, validateProjectName]);
+  }, [saveCurrentProject]);
 
   useEffect(() => {
     const navAny = navigation as any;
@@ -301,6 +354,110 @@ export default function AddNewProjectScreen() {
       );
   }, [navigation, handleSave]);
 
+  const hasUnsavedChanges = useMemo(() => {
+    const nameNow = name.trim();
+    const descNow = desc.trim();
+
+    if (!editingId) {
+      return nameNow.length > 0 || descNow.length > 0 || photos.length > 0;
+    }
+
+    const nameWas = initialName.trim();
+    const descWas = initialDesc.trim();
+    const photosWas = initialPhotos;
+    const photosNow = photos;
+
+    const photosChanged =
+      photosNow.length !== photosWas.length ||
+      photosNow.some((p, i) => p !== photosWas[i]);
+
+    return nameNow !== nameWas || descNow !== descWas || photosChanged;
+  }, [desc, editingId, initialDesc, initialName, initialPhotos, name, photos]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const navAny = navigation as any;
+      const parent = navAny.getParent?.();
+
+      const subs: any[] = [];
+
+      const attach = (navObj: any) => {
+        if (!navObj?.addListener) return;
+        const sub = navObj.addListener(
+          'gemAttemptTabSwitch',
+          (e: any /* EventArg */) => {
+            if (!hasUnsavedChanges) return;
+            if (isBlockingLeaveRef.current) return;
+
+            const toRouteName = e?.data?.toRouteName;
+            if (!toRouteName || typeof toRouteName !== 'string') return;
+
+            e.preventDefault?.();
+            isBlockingLeaveRef.current = true;
+
+            openLeaveDialog(() => {
+              navObj.navigate?.(toRouteName);
+            });
+          },
+        );
+        if (sub) subs.push(sub);
+      };
+
+      // Event is emitted from the tab navigator (GemTabBar), but depending on
+      // the screen nesting, `useNavigation()` may point at a child navigator.
+      attach(navAny);
+      attach(parent);
+
+      return () =>
+        subs.forEach((unsub) =>
+          typeof unsub === 'function' ? unsub() : undefined,
+        );
+    }, [
+      desc,
+      editingId,
+      hasUnsavedChanges,
+      name,
+      navigation,
+      photos.length,
+      photos,
+      resetForm,
+      resetToInitial,
+      saveCurrentProject,
+      openLeaveDialog,
+    ]),
+  );
+
+  useEffect(() => {
+    const navAny = navigation as any;
+    const sub = navAny.addListener?.('beforeRemove', (e: any) => {
+      if (!hasUnsavedChanges) return;
+      if (isBlockingLeaveRef.current) return;
+
+      e.preventDefault();
+      isBlockingLeaveRef.current = true;
+
+      openLeaveDialog(() => {
+        navAny.dispatch(e.data.action);
+      });
+    });
+
+    return () => {
+      if (typeof sub === 'function') sub();
+    };
+  }, [
+    desc,
+    editingId,
+    hasUnsavedChanges,
+    name,
+    navigation,
+    photos.length,
+    resetForm,
+    resetToInitial,
+    saveCurrentProject,
+    photos,
+    openLeaveDialog,
+  ]);
+
   // NEW: Handle action parameter from navigation
   useEffect(() => {
     if (!params.action) return;
@@ -318,13 +475,99 @@ export default function AddNewProjectScreen() {
 
   return (
     <MainView>
+      <CustomDialog
+        visible={leaveDialogVisible}
+        onClose={closeLeaveDialog}
+        title={'Save project?'}
+        maxWidth={420}
+        actions={
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              gap: 10,
+            }}
+          >
+            <RectangleGemButton
+              width={90}
+              fontSize={9}
+              label="Cancel"
+              onPress={closeLeaveDialog}
+              color="#336E9E"
+              active
+            />
+            <RectangleGemButton
+              width={90}
+              fontSize={9}
+              label="Discard"
+              onPress={() => {
+                if (editingId) resetToInitial();
+                else resetForm();
+                const proceed = pendingLeaveProceedRef.current;
+                closeLeaveDialog();
+                proceed?.();
+              }}
+              color="#336E9E"
+              active
+            />
+            <RectangleGemButton
+              width={90}
+              fontSize={9}
+              label="Save"
+              onPress={async () => {
+                if (!name.trim()) {
+                  Alert.alert(
+                    'Project name required',
+                    'Please enter a project name before saving.',
+                  );
+                  isBlockingLeaveRef.current = false;
+                  return;
+                }
+
+                try {
+                  const savedId = await saveCurrentProject({
+                    navigateToProject: false,
+                  });
+                  if (!savedId) {
+                    isBlockingLeaveRef.current = false;
+                    return;
+                  }
+
+                  if (editingId) {
+                    setInitialName(name.trim());
+                    setInitialDesc(desc.trim());
+                    setInitialPhotos(photos);
+                  } else {
+                    resetForm();
+                  }
+
+                  const proceed = pendingLeaveProceedRef.current;
+                  closeLeaveDialog();
+                  proceed?.();
+                } catch (err) {
+                  console.error('Error while saving on leave:', err);
+                  Alert.alert('Error', 'Failed to save the project');
+                  isBlockingLeaveRef.current = false;
+                }
+              }}
+              color="#336E9E"
+              active
+            />
+          </View>
+        }
+      >
+        <Text style={{ color: '#F8FAFF', textAlign: 'center' }}>
+          You have unsaved changes. Do you want to save or discard this project?
+        </Text>
+      </CustomDialog>
+
       <View style={styles.contentClip}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.sectionTitle}>My project</Text>
+          <Text style={styles.sectionTitle}>My another mini stories</Text>
           <SimplyInput
             label="Project name"
             value={name}

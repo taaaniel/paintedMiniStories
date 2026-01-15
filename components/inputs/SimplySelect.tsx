@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   DimensionValue,
@@ -17,6 +17,28 @@ import InputFieldLightBg from '../../assets/images/InputFieldLightBg.svg';
 import SimplyInput from './SimplyInput';
 
 type Option = { label: string; value: string };
+
+// Ensure only one SimplySelect dropdown is open at a time.
+let globalOpenSelectId: string | null = null;
+const globalOpenListeners = new Set<(openId: string | null) => void>();
+
+function getGlobalOpenSelectId() {
+  return globalOpenSelectId;
+}
+
+function setGlobalOpenSelectId(next: string | null) {
+  globalOpenSelectId = next;
+  for (const l of globalOpenListeners) l(globalOpenSelectId);
+}
+
+function subscribeGlobalOpenSelectId(
+  listener: (openId: string | null) => void,
+) {
+  globalOpenListeners.add(listener);
+  return () => {
+    globalOpenListeners.delete(listener);
+  };
+}
 
 type Props = {
   options: Option[];
@@ -79,6 +101,31 @@ export default function SimplySelect({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+
+  const instanceIdRef = useRef(
+    `SimplySelect:${Math.random().toString(36).slice(2)}:${Date.now()}`,
+  );
+  const openRef = useRef(open);
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  useEffect(() => {
+    return subscribeGlobalOpenSelectId((openId) => {
+      if (openId !== instanceIdRef.current && openRef.current) {
+        setOpen(false);
+        setQuery('');
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (getGlobalOpenSelectId() === instanceIdRef.current) {
+        setGlobalOpenSelectId(null);
+      }
+    };
+  }, []);
   const selected = useMemo(
     () => options.find((o) => o.value === value),
     [options, value],
@@ -138,7 +185,16 @@ export default function SimplySelect({
     <View style={[{ width, position: 'relative' }, style]}>
       {/* Field */}
       <Pressable
-        onPress={() => setOpen((p) => !p)}
+        onPress={() => {
+          const nextOpen = !openRef.current;
+          if (nextOpen) {
+            setGlobalOpenSelectId(instanceIdRef.current);
+          } else if (getGlobalOpenSelectId() === instanceIdRef.current) {
+            setGlobalOpenSelectId(null);
+            setQuery('');
+          }
+          setOpen(nextOpen);
+        }}
         style={{
           height: fieldHeight,
           justifyContent: 'center',
@@ -265,6 +321,9 @@ export default function SimplySelect({
             onPress={() => {
               setOpen(false);
               setQuery('');
+              if (getGlobalOpenSelectId() === instanceIdRef.current) {
+                setGlobalOpenSelectId(null);
+              }
             }}
           />
           <View
@@ -340,6 +399,9 @@ export default function SimplySelect({
                         onChange(o.value);
                         setOpen(false);
                         setQuery('');
+                        if (getGlobalOpenSelectId() === instanceIdRef.current) {
+                          setGlobalOpenSelectId(null);
+                        }
                       }}
                       style={{
                         height: itemHeight,
@@ -393,6 +455,9 @@ export default function SimplySelect({
                         onChange(o.value);
                         setOpen(false);
                         setQuery('');
+                        if (getGlobalOpenSelectId() === instanceIdRef.current) {
+                          setGlobalOpenSelectId(null);
+                        }
                       }}
                       style={{
                         height: itemHeight,

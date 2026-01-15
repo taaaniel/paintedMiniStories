@@ -220,7 +220,19 @@ export default function GemTabBar({
   }
 
   if (renderMainRow) {
-    const go = (name: string) => navigation.navigate(name as never);
+    const go = (name: string) => {
+      if (name !== currentRouteName) {
+        const attempt = navigation.emit({
+          type: 'gemAttemptTabSwitch',
+          canPreventDefault: true,
+          data: { toRouteName: name },
+        } as any) as { defaultPrevented?: boolean };
+
+        if (attempt.defaultPrevented) return;
+      }
+
+      navigation.navigate(name as never);
+    };
 
     const mainKeys = [
       TabRoutes.Dashboard,
@@ -316,6 +328,16 @@ export default function GemTabBar({
 
             // safety: shouldn't happen, but prevents runtime crash
             if (!route) return;
+
+            if (!focused) {
+              const attempt = navigation.emit({
+                type: 'gemAttemptTabSwitch',
+                canPreventDefault: true,
+                data: { toRouteName: route.name },
+              } as any) as { defaultPrevented?: boolean };
+
+              if (attempt.defaultPrevented) return;
+            }
 
             const evt = navigation.emit({
               type: 'tabPress',

@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontFamily: 'Anton',
-    fontSize: 52,
+    fontSize: 42,
     color: '#1B2C8F',
     textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 0, height: 2 },

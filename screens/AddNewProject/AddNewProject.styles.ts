@@ -8,7 +8,6 @@ export const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 16,
     marginBottom: 24,
   },
   buttonsRow: {
@@ -39,7 +38,6 @@ export const styles = StyleSheet.create({
   sectionSubtitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 24,
     marginBottom: 8,
   },
   addPhotoContainer: {
