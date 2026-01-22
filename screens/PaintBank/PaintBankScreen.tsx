@@ -1,9 +1,12 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import { Asset } from 'expo-asset';
+import { Image as ExpoImage } from 'expo-image';
 import React from 'react';
 import {
   Dimensions,
+  Pressable,
   ScrollView,
   SectionList,
   StyleSheet,
@@ -27,6 +30,7 @@ type Paint = {
   name: string;
   colorHex: string;
   brand?: string;
+  collectionLine?: string;
   note?: string;
 };
 
@@ -34,7 +38,63 @@ type AssetPaint = {
   sourceId: string;
   name: string;
   brand: string;
+  brandLabel: string;
+  collectionLine?: string;
   colorHex: string;
+};
+
+type BrandMeta = {
+  label: string;
+  logo?: number;
+  copyright?: string;
+};
+
+const BRAND_META: Record<string, BrandMeta> = {
+  greenStuffWorld: {
+    label: 'Green Stuff World',
+    logo: require('../../assets/images/brands/gsw_brand.png'),
+    copyright: '© 2026 Green Stuff World. All rights reserved.',
+  },
+  twoThinCoatsPaints: {
+    label: 'Two Thin Coats Paints',
+    logo: require('../../assets/images/brands/twoThinCoats_brand.png'),
+    copyright: '© 2026 Trans Atlantis Games. All rights reserved.',
+  },
+};
+
+const BRAND_LOGO_ASSETS: number[] = Object.values(BRAND_META)
+  .map((m) => m.logo)
+  .filter((v): v is number => typeof v === 'number');
+
+const getBrandMeta = (brandIdOrName: string, fallbackLabel?: string) => {
+  const key = (brandIdOrName || '').trim();
+  return (
+    BRAND_META[key] ?? {
+      label: (fallbackLabel || key).trim(),
+    }
+  );
+};
+
+const TWO_THIN_KEY = 'twoThinCoatsPaints';
+const TWO_THIN_LABEL = BRAND_META[TWO_THIN_KEY]?.label;
+
+const brandSortKey = (brandIdOrName: string): number => {
+  const raw = (brandIdOrName || '').trim();
+  if (!raw) return 999;
+  if (raw === TWO_THIN_KEY) return 0;
+  if (TWO_THIN_LABEL && raw.toLowerCase() === TWO_THIN_LABEL.toLowerCase()) {
+    return 0;
+  }
+  return 1;
+};
+
+const compareBrands = (a: string, b: string): number => {
+  const pa = brandSortKey(a);
+  const pb = brandSortKey(b);
+  if (pa !== pb) return pa - pb;
+  const la = getBrandMeta(a).label;
+  const lb = getBrandMeta(b).label;
+  return la.localeCompare(lb, undefined, { sensitivity: 'base' });
 };
 
 const PAINTS_KEY = 'paintBank.paints';
@@ -93,30 +153,60 @@ export default function PaintBankScreen() {
     null,
   );
 
+  const [collapsedSections, setCollapsedSections] = React.useState<
+    Record<string, boolean>
+  >({});
+
+  // Preload brand logos so section headers render instantly.
+  React.useEffect(() => {
+    if (!BRAND_LOGO_ASSETS.length) return;
+    (async () => {
+      try {
+        await Asset.loadAsync(BRAND_LOGO_ASSETS);
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
+
+  const listRef = React.useRef<any>(null);
+  const myRef = React.useRef<any>(null);
+
   const assetPaints = React.useMemo<AssetPaint[]>(() => {
-    return (Array.isArray(paletteColors) ? paletteColors : [])
-      .map((c: any): AssetPaint | null => {
-        const brand = String(c.name ?? '').trim();
-        const name = String(c.colorName ?? '').trim();
-        const colorHex = normalizeHex(String(c.colorHex ?? '').trim());
-        if (!name || !colorHex) return null;
-        return {
-          sourceId: `${brand}__${name}__${colorHex}`,
+    const map = new Map<string, AssetPaint>();
+
+    for (const c of Array.isArray(paletteColors) ? paletteColors : []) {
+      const brand = String((c as any)?.brand ?? '').trim();
+      const brandLabel = String((c as any)?.name ?? '').trim() || brand;
+      const name = String((c as any)?.colorName ?? '').trim();
+      const collectionLine = String((c as any)?.collectionLine ?? '').trim();
+      const colorHex = normalizeHex(String((c as any)?.colorHex ?? '').trim());
+      if (!brand || !name || !colorHex) continue;
+      if (!isValidHex(colorHex)) continue;
+      const sourceId = `${brand}__${name}__${collectionLine}__${colorHex}`;
+      // Keep the first occurrence to ensure stable ordering.
+      if (!map.has(sourceId)) {
+        map.set(sourceId, {
+          sourceId,
           brand,
+          brandLabel,
           name,
+          collectionLine: collectionLine ? collectionLine : undefined,
           colorHex,
-        };
-      })
-      .filter(Boolean) as AssetPaint[];
+        });
+      }
+    }
+
+    return Array.from(map.values());
   }, []);
 
   const assetBrandOptions = React.useMemo(() => {
-    const brands = Array.from(
-      new Set(assetPaints.map((p) => p.brand).filter(Boolean)),
-    ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    const brands = Array.from(new Set(assetPaints.map((p) => p.brand))).sort(
+      compareBrands,
+    );
     return [
       { label: 'All brands', value: '' },
-      ...brands.map((b) => ({ label: b, value: b })),
+      ...brands.map((b) => ({ label: getBrandMeta(b).label, value: b })),
     ];
   }, [assetPaints]);
 
@@ -163,16 +253,14 @@ export default function PaintBankScreen() {
   }, [paints, myQuery, myBrandFilter]);
 
   const myBrandOptions = React.useMemo(() => {
-    const map = new Set<string>();
-    for (const p of paints) {
-      map.add(((p.brand || '').trim() || OTHER).trim());
-    }
-    const brands = Array.from(map)
+    const rawBrands = Array.from(
+      new Set(paints.map((p) => ((p.brand || '').trim() || OTHER).trim())),
+    )
       .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      .sort(compareBrands);
     return [
       { label: 'All brands', value: '' },
-      ...brands.map((b) => ({ label: b, value: b })),
+      ...rawBrands.map((b) => ({ label: getBrandMeta(b).label, value: b })),
     ];
   }, [paints]);
 
@@ -187,22 +275,28 @@ export default function PaintBankScreen() {
     }
 
     const brands = Array.from(map.keys()).filter((k) => k !== OTHER);
-    brands.sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: 'base' }),
-    );
+    brands.sort(compareBrands);
 
-    const out = brands.map((brand) => ({
-      title: brand,
-      data: (map.get(brand) ?? []).slice().sort((a, b) =>
-        (a.name || '').localeCompare(b.name || '', undefined, {
-          sensitivity: 'base',
-        }),
-      ),
-    }));
+    const out = brands.map((brand) => {
+      const meta = getBrandMeta(brand);
+      return {
+        brand,
+        title: meta.label,
+        logo: meta.logo,
+        data: (map.get(brand) ?? []).slice().sort((a, b) =>
+          (a.name || '').localeCompare(b.name || '', undefined, {
+            sensitivity: 'base',
+          }),
+        ),
+      };
+    });
 
     if (map.has(OTHER)) {
+      const meta = getBrandMeta(OTHER);
       out.push({
-        title: OTHER,
+        brand: OTHER,
+        title: meta.label,
+        logo: meta.logo,
         data: (map.get(OTHER) ?? []).slice().sort((a, b) =>
           (a.name || '').localeCompare(b.name || '', undefined, {
             sensitivity: 'base',
@@ -236,19 +330,134 @@ export default function PaintBankScreen() {
     }
 
     const brands = Array.from(map.keys());
-    brands.sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: 'base' }),
-    );
+    brands.sort(compareBrands);
 
-    return brands.map((brand) => ({
-      title: brand,
-      data: (map.get(brand) ?? [])
-        .slice()
-        .sort((a, b) =>
-          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
-        ),
-    }));
+    return brands.map((brand) => {
+      const first = (map.get(brand) ?? [])[0];
+      const meta = getBrandMeta(brand, first?.brandLabel);
+      return {
+        brand,
+        title: meta.label,
+        logo: meta.logo,
+        data: (map.get(brand) ?? [])
+          .slice()
+          .sort((a, b) =>
+            a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+          ),
+      };
+    });
   }, [listFiltered]);
+
+  // Default: collapse brand sections until user expands them.
+  React.useEffect(() => {
+    const wantedKeys: string[] = [];
+    for (const s of listSections as any[]) {
+      wantedKeys.push(`list:${String(s?.brand ?? s?.title ?? '')}`);
+    }
+    for (const s of mySections as any[]) {
+      wantedKeys.push(`my:${String(s?.brand ?? s?.title ?? '')}`);
+    }
+
+    setCollapsedSections((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k of wantedKeys) {
+        if (!k) continue;
+        if (next[k] === undefined) {
+          next[k] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [listSections, mySections]);
+
+  const toggleSectionCollapsed = React.useCallback((key: string) => {
+    setCollapsedSections((prev) => {
+      const nextCollapsed = !prev[key];
+      const prefix = key.startsWith('list:')
+        ? 'list:'
+        : key.startsWith('my:')
+          ? 'my:'
+          : '';
+
+      const next: Record<string, boolean> = { ...prev };
+
+      // Only one open at a time (per tab).
+      if (!nextCollapsed && prefix) {
+        for (const k of Object.keys(next)) {
+          if (k.startsWith(prefix) && k !== key) next[k] = true;
+        }
+      }
+
+      next[key] = nextCollapsed;
+      return next;
+    });
+  }, []);
+
+  const listAccordionSections = React.useMemo(() => {
+    return listSections.map((s) => {
+      const sectionKey = `list:${String((s as any).brand ?? s.title)}`;
+      const isCollapsed = !!collapsedSections[sectionKey];
+      return {
+        ...s,
+        _accordionKey: sectionKey,
+        _collapsed: isCollapsed,
+        data: isCollapsed ? [] : s.data,
+      };
+    });
+  }, [listSections, collapsedSections]);
+
+  const myAccordionSections = React.useMemo(() => {
+    return mySections.map((s) => {
+      const sectionKey = `my:${String((s as any).brand ?? s.title)}`;
+      const isCollapsed = !!collapsedSections[sectionKey];
+      return {
+        ...s,
+        _accordionKey: sectionKey,
+        _collapsed: isCollapsed,
+        data: isCollapsed ? [] : s.data,
+      };
+    });
+  }, [mySections, collapsedSections]);
+
+  const scrollToAccordionSection = React.useCallback(
+    (key: string) => {
+      const isList = key.startsWith('list:');
+      const sections = isList ? listAccordionSections : myAccordionSections;
+      const sectionIndex = (sections as any[]).findIndex(
+        (s) => String(s?._accordionKey) === key,
+      );
+      if (sectionIndex < 0) return;
+
+      const ref = isList ? listRef : myRef;
+
+      // Wait for layout after expand.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try {
+            ref.current?.scrollToLocation({
+              sectionIndex,
+              itemIndex: 0,
+              viewPosition: 0,
+            });
+          } catch {
+            // ignore
+          }
+        });
+      });
+    },
+    [listAccordionSections, myAccordionSections],
+  );
+
+  const onToggleAccordion = React.useCallback(
+    (key: string) => {
+      const willOpen = !!collapsedSections[key];
+      toggleSectionCollapsed(key);
+      if (willOpen) scrollToAccordionSection(key);
+    },
+    [collapsedSections, scrollToAccordionSection, toggleSectionCollapsed],
+  );
 
   const openAddCustom = () => {
     setEditingId(null);
@@ -277,6 +486,8 @@ export default function PaintBankScreen() {
     const trimmedBrand = brand.trim();
     const normalizedHex = normalizeHex(colorHex);
 
+    const existing = editingId ? paints.find((p) => p.id === editingId) : null;
+
     const duplicate = paints.some((p) => {
       if (editingId && p.id === editingId) return false;
       return (
@@ -288,8 +499,8 @@ export default function PaintBankScreen() {
     const nextNameError = !trimmedName
       ? 'Name is required'
       : duplicate
-      ? 'You already have a paint with this name'
-      : undefined;
+        ? 'You already have a paint with this name'
+        : undefined;
     const nextColorError = isValidHex(normalizedHex)
       ? undefined
       : 'Color must be a valid hex (e.g. #FFAA30)';
@@ -303,6 +514,7 @@ export default function PaintBankScreen() {
       id: editingId ?? makeId(),
       name: trimmedName,
       brand: trimmedBrand ? trimmedBrand : undefined,
+      collectionLine: existing?.collectionLine,
       colorHex: normalizedHex,
       note: note.trim() ? note.trim() : undefined,
     };
@@ -343,6 +555,7 @@ export default function PaintBankScreen() {
         id: makeId(),
         name: asset.name.trim(),
         brand: asset.brand.trim() ? asset.brand.trim() : undefined,
+        collectionLine: asset.collectionLine,
         colorHex: normalizeHex(asset.colorHex),
       };
 
@@ -393,199 +606,320 @@ export default function PaintBankScreen() {
           <View
             style={{ display: activeTab === 'list' ? 'flex' : 'none', flex: 1 }}
           >
-            <View style={styles.section}>
-              <Text style={styles.hintLabel}>
-                Search paints and add them to your bank
-              </Text>
+            <SectionList
+              ref={listRef}
+              sections={listAccordionSections}
+              extraData={paints}
+              keyExtractor={(x) => x.sourceId}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={styles.listContent}
+              stickySectionHeadersEnabled={true}
+              ListHeaderComponent={
+                <View style={styles.tabContent}>
+                  <Text style={styles.hintLabel}>
+                    Search paints and add them to your bank
+                  </Text>
 
-              <SimplyInput
-                inputFieldColor="#fff"
-                value={listQuery}
-                onChangeText={setListQuery}
-                placeholder="Search paint by name…"
-                width="100%"
-                style={{ zIndex: 30, position: 'relative' }}
-              />
+                  <SimplyInput
+                    inputFieldColor="#fff"
+                    value={listQuery}
+                    onChangeText={setListQuery}
+                    placeholder="Search paint by name…"
+                    width="100%"
+                    style={{ zIndex: 30, position: 'relative' }}
+                  />
 
-              <SimplySelect
-                options={assetBrandOptions}
-                value={listBrandFilter}
-                onChange={setListBrandFilter}
-                placeholder="Filter by brand…"
-                showColorSwatch={false}
-                width="100%"
-                size="small"
-                borderless
-                allowVirtualized={false}
-                style={{ zIndex: 20, position: 'relative' }}
-              />
-
-              <View
-                style={[styles.listWrap, { zIndex: 0, position: 'relative' }]}
-              >
-                <SectionList
-                  sections={listSections}
-                  extraData={paints}
-                  keyExtractor={(x) => x.sourceId}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={styles.listContent}
-                  stickySectionHeadersEnabled={true}
-                  renderSectionHeader={({ section }) => (
-                    <View style={styles.sectionHeaderWrap}>
-                      <Text style={styles.sectionHeader}>{section.title}</Text>
-                    </View>
-                  )}
-                  renderItem={({ item }) => {
-                    const already = isAlreadyInMyBank(item);
-                    return (
-                      <View style={styles.item}>
-                        <View
-                          style={[
-                            styles.swatch,
-                            {
-                              backgroundColor: isValidHex(item.colorHex)
-                                ? normalizeHex(item.colorHex)
-                                : '#ffffff',
-                            },
-                          ]}
+                  <SimplySelect
+                    options={assetBrandOptions}
+                    value={listBrandFilter}
+                    onChange={setListBrandFilter}
+                    placeholder="Filter by brand…"
+                    showColorSwatch={false}
+                    width="100%"
+                    size="small"
+                    borderless
+                    allowVirtualized={false}
+                    style={{ zIndex: 20, position: 'relative' }}
+                  />
+                </View>
+              }
+              renderSectionHeader={({ section }) => (
+                <Pressable
+                  onPress={() =>
+                    onToggleAccordion((section as any)._accordionKey)
+                  }
+                  style={styles.sectionHeaderWrap}
+                >
+                  {(section as any).logo ? (
+                    <>
+                      <ExpoImage
+                        source={(section as any).logo}
+                        style={styles.brandLogo}
+                        contentFit="contain"
+                        transition={0}
+                      />
+                      {getBrandMeta(
+                        String((section as any).brand ?? ''),
+                        String((section as any).title ?? ''),
+                      ).copyright ? (
+                        <Text style={styles.brandCopyright}>
+                          {
+                            getBrandMeta(
+                              String((section as any).brand ?? ''),
+                              String((section as any).title ?? ''),
+                            ).copyright
+                          }
+                        </Text>
+                      ) : null}
+                    </>
+                  ) : null}
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionHeader}>{section.title}</Text>
+                    <GemButton
+                      size={32}
+                      color={
+                        (section as any)._collapsed ? '#A100C2' : '#C2B39A'
+                      }
+                      iconNode={
+                        <MaterialIcons
+                          name={
+                            (section as any)._collapsed
+                              ? 'keyboard-arrow-down'
+                              : 'keyboard-arrow-up'
+                          }
+                          size={18}
+                          color={
+                            (section as any)._collapsed ? '#FFFFFF' : '#0f172a'
+                          }
                         />
+                      }
+                      onPress={() =>
+                        onToggleAccordion((section as any)._accordionKey)
+                      }
+                    />
+                  </View>
+                  <Text style={styles.sectionHeaderHint}>
+                    {(section as any)._collapsed
+                      ? `Tap to see colors from ${section.title}`
+                      : 'Tap to hide colors'}
+                  </Text>
+                </Pressable>
+              )}
+              renderItem={({ item }) => {
+                const already = isAlreadyInMyBank(item);
+                return (
+                  <View style={styles.item}>
+                    <View
+                      style={[
+                        styles.swatch,
+                        {
+                          backgroundColor: isValidHex(item.colorHex)
+                            ? normalizeHex(item.colorHex)
+                            : '#ffffff',
+                        },
+                      ]}
+                    />
 
-                        <View style={styles.itemText}>
-                          <Text style={styles.itemName}>{item.name}</Text>
-                          <Text style={styles.itemBrand}>{item.brand}</Text>
-                        </View>
+                    <View style={styles.itemText}>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemBrand}>
+                        {item.collectionLine
+                          ? `${getBrandMeta(item.brand, item.brandLabel).label} / ${item.collectionLine}`
+                          : getBrandMeta(item.brand, item.brandLabel).label}
+                      </Text>
+                    </View>
 
-                        <View style={styles.itemActions}>
-                          <GemButton
-                            size={40}
-                            color={already ? '#C2B39A' : '#A100C2'}
-                            disabled={already}
-                            iconNode={
-                              <MaterialIcons
-                                name={already ? 'check' : 'add'}
-                                size={18}
-                                color={already ? '#0f172a' : '#FFFFFF'}
-                              />
-                            }
-                            onPress={() => void addFromList(item)}
+                    <View style={styles.itemActions}>
+                      <GemButton
+                        size={40}
+                        color={already ? '#C2B39A' : '#A100C2'}
+                        disabled={already}
+                        iconNode={
+                          <MaterialIcons
+                            name={already ? 'check' : 'add'}
+                            size={18}
+                            color={already ? '#0f172a' : '#FFFFFF'}
                           />
-                        </View>
-                      </View>
-                    );
-                  }}
-                />
-              </View>
-            </View>
+                        }
+                        onPress={() => void addFromList(item)}
+                      />
+                    </View>
+                  </View>
+                );
+              }}
+            />
           </View>
 
           {/* My PaintBank */}
           <View
             style={{ display: activeTab === 'my' ? 'flex' : 'none', flex: 1 }}
           >
-            <View style={styles.section}>
-              <SimplyInput
-                inputFieldColor="#fff"
-                value={myQuery}
-                onChangeText={setMyQuery}
-                placeholder="Search paints by name…"
-                width="100%"
-                style={{ zIndex: 30, position: 'relative' }}
-              />
+            <SectionList
+              ref={myRef}
+              sections={myAccordionSections}
+              extraData={paints}
+              keyExtractor={(x) => x.id}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={styles.listContent}
+              stickySectionHeadersEnabled={true}
+              ListHeaderComponent={
+                <View style={styles.tabContent}>
+                  <SimplyInput
+                    inputFieldColor="#fff"
+                    value={myQuery}
+                    onChangeText={setMyQuery}
+                    placeholder="Search paints by name…"
+                    width="100%"
+                    style={{ zIndex: 30, position: 'relative' }}
+                  />
 
-              <SimplySelect
-                options={myBrandOptions}
-                value={myBrandFilter}
-                onChange={setMyBrandFilter}
-                placeholder="Filter by brand…"
-                showColorSwatch={false}
-                width="100%"
-                size="small"
-                borderless
-                allowVirtualized={false}
-                style={{ zIndex: 20, position: 'relative' }}
-              />
-
-              <View
-                style={[styles.listWrap, { zIndex: 0, position: 'relative' }]}
-              >
-                <SectionList
-                  sections={mySections}
-                  extraData={paints}
-                  keyExtractor={(x) => x.id}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={styles.listContent}
-                  stickySectionHeadersEnabled={true}
-                  renderSectionHeader={({ section }) => (
-                    <View style={styles.sectionHeaderWrap}>
-                      <Text style={styles.sectionHeader}>{section.title}</Text>
-                    </View>
-                  )}
-                  renderItem={({ item }) => (
-                    <View style={styles.item}>
-                      <View
-                        style={[
-                          styles.swatch,
-                          {
-                            backgroundColor: isValidHex(item.colorHex)
-                              ? normalizeHex(item.colorHex)
-                              : '#ffffff',
-                          },
-                        ]}
-                      />
-
-                      <View style={styles.itemText}>
-                        <Text style={styles.itemName}>{item.name}</Text>
-                        <Text style={styles.itemBrand}>
-                          {((item.brand || '').trim() || OTHER).trim()}
-                        </Text>
-                        {item.note ? (
-                          <Text style={styles.itemNote}>{item.note}</Text>
-                        ) : null}
-                      </View>
-
-                      <View style={styles.itemActions}>
-                        <GemButton
-                          size={40}
-                          color="#47B0D7"
-                          iconNode={
-                            <MaterialIcons
-                              name="edit"
-                              size={18}
-                              color="#0f172a"
-                            />
-                          }
-                          onPress={() => openEdit(item)}
-                        />
-                        <GemButton
-                          size={40}
-                          color="#C2B39A"
-                          iconNode={
-                            <MaterialIcons
-                              name="delete"
-                              size={18}
-                              color="#0f172a"
-                            />
-                          }
-                          onPress={() => setConfirmDeleteId(item.id)}
-                        />
-                      </View>
-                    </View>
-                  )}
-                />
-              </View>
-
-              <View style={styles.addBtnRow}>
-                <Text style={styles.addGemLabel}>Add custom paint</Text>
-                <GemButton
-                  size={52}
-                  color="#A100C2"
-                  iconNode={
-                    <MaterialIcons name="add" size={22} color="#FFFFFF" />
+                  <SimplySelect
+                    options={myBrandOptions}
+                    value={myBrandFilter}
+                    onChange={setMyBrandFilter}
+                    placeholder="Filter by brand…"
+                    showColorSwatch={false}
+                    width="100%"
+                    size="small"
+                    borderless
+                    allowVirtualized={false}
+                    style={{ zIndex: 20, position: 'relative' }}
+                  />
+                </View>
+              }
+              ListFooterComponent={
+                <View style={[styles.tabContent, { paddingTop: 0 }]}>
+                  <View style={styles.addBtnRow}>
+                    <Text style={styles.addGemLabel}>Add custom paint</Text>
+                    <GemButton
+                      size={52}
+                      color="#A100C2"
+                      iconNode={
+                        <MaterialIcons name="add" size={22} color="#FFFFFF" />
+                      }
+                      onPress={openAddCustom}
+                    />
+                  </View>
+                </View>
+              }
+              renderSectionHeader={({ section }) => (
+                <Pressable
+                  onPress={() =>
+                    onToggleAccordion((section as any)._accordionKey)
                   }
-                  onPress={openAddCustom}
-                />
-              </View>
-            </View>
+                  style={styles.sectionHeaderWrap}
+                >
+                  {(section as any).logo ? (
+                    <>
+                      <ExpoImage
+                        source={(section as any).logo}
+                        style={styles.brandLogo}
+                        contentFit="contain"
+                        transition={0}
+                      />
+                      {getBrandMeta(
+                        String((section as any).brand ?? ''),
+                        String((section as any).title ?? ''),
+                      ).copyright ? (
+                        <Text style={styles.brandCopyright}>
+                          {
+                            getBrandMeta(
+                              String((section as any).brand ?? ''),
+                              String((section as any).title ?? ''),
+                            ).copyright
+                          }
+                        </Text>
+                      ) : null}
+                    </>
+                  ) : null}
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionHeader}>{section.title}</Text>
+                    <GemButton
+                      size={32}
+                      color={
+                        (section as any)._collapsed ? '#A100C2' : '#C2B39A'
+                      }
+                      iconNode={
+                        <MaterialIcons
+                          name={
+                            (section as any)._collapsed
+                              ? 'keyboard-arrow-down'
+                              : 'keyboard-arrow-up'
+                          }
+                          size={18}
+                          color={
+                            (section as any)._collapsed ? '#FFFFFF' : '#0f172a'
+                          }
+                        />
+                      }
+                      onPress={() =>
+                        onToggleAccordion((section as any)._accordionKey)
+                      }
+                    />
+                  </View>
+                  <Text style={styles.sectionHeaderHint}>
+                    {(section as any)._collapsed
+                      ? `Tap to see colors from ${section.title}`
+                      : 'Tap to hide colors'}
+                  </Text>
+                </Pressable>
+              )}
+              renderItem={({ item }) => (
+                <View style={styles.item}>
+                  <View
+                    style={[
+                      styles.swatch,
+                      {
+                        backgroundColor: isValidHex(item.colorHex)
+                          ? normalizeHex(item.colorHex)
+                          : '#ffffff',
+                      },
+                    ]}
+                  />
+
+                  <View style={styles.itemText}>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemBrand}>
+                      {item.collectionLine
+                        ? `${getBrandMeta(((item.brand || '').trim() || OTHER).trim()).label} / ${item.collectionLine}`
+                        : getBrandMeta(
+                            ((item.brand || '').trim() || OTHER).trim(),
+                          ).label}
+                    </Text>
+                    {item.note ? (
+                      <Text style={styles.itemNote}>{item.note}</Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.itemActions}>
+                    <GemButton
+                      size={40}
+                      color="#47B0D7"
+                      iconNode={
+                        <MaterialIcons name="edit" size={18} color="#0f172a" />
+                      }
+                      onPress={() => openEdit(item)}
+                    />
+                    <GemButton
+                      size={40}
+                      color="#C2B39A"
+                      iconNode={
+                        <MaterialIcons
+                          name="delete"
+                          size={18}
+                          color="#0f172a"
+                        />
+                      }
+                      onPress={() => setConfirmDeleteId(item.id)}
+                    />
+                  </View>
+                </View>
+              )}
+            />
           </View>
         </View>
 
@@ -730,8 +1064,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     gap: 10,
   },
+  tabContent: {
+    width: '100%',
+    paddingHorizontal: 10,
+    gap: 10,
+    paddingBottom: 18,
+  },
   listWrap: {
-    flex: 1,
     width: '100%',
   },
   listContent: {
@@ -742,11 +1081,36 @@ const styles = StyleSheet.create({
   sectionHeaderWrap: {
     // nieprzezroczyste tło, żeby itemy "chowały się" pod brand label
     backgroundColor: '#F5F0EB',
+    borderWidth: 1,
+    borderColor: '#2D2D2D',
+    borderRadius: 14,
     paddingTop: 6,
     paddingBottom: 2,
     paddingHorizontal: 2,
-    zIndex: 50,
-    elevation: 50,
+    alignItems: 'center',
+    zIndex: 0,
+    elevation: 0,
+  },
+  brandLogo: {
+    width: 70,
+    height: 90,
+    marginBottom: 6,
+    alignSelf: 'center',
+  },
+  brandCopyright: {
+    marginTop: -4,
+    marginBottom: 8,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#2D2D2D',
+    opacity: 0.7,
+    textAlign: 'center',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   sectionHeader: {
     // przeniesione spacing do wrappera
@@ -754,6 +1118,15 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#2D2D2D',
     opacity: 0.85,
+  },
+  sectionHeaderHint: {
+    marginTop: 2,
+    marginBottom: 4,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2D2D2D',
+    opacity: 0.65,
+    textAlign: 'center',
   },
   item: {
     flexDirection: 'row',

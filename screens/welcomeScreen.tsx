@@ -47,7 +47,7 @@ export default function WelcomeScreen() {
         await Font.loadAsync({
           Anton: require('../assets/fonts/Anton-Regular.ttf'),
         });
-        await Asset.loadAsync([require('../assets/images/Background.png')]);
+        await Asset.loadAsync([require('../assets/images/Background1.png')]);
         if (!cancelled) setReady(true);
       } catch (e) {
         console.warn('Asset preload failed:', e);
@@ -83,7 +83,7 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={require('../assets/images/Background.png')}
+        source={require('../assets/images/Background1.png')}
         style={styles.background}
         resizeMode="cover"
       >

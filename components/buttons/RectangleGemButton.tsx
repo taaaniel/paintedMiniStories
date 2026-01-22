@@ -4,6 +4,7 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  View,
   ViewStyle,
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
@@ -233,23 +234,25 @@ const RectangleGemButton: React.FC<RectangleGemButtonProps> = ({
           strokeWidth={0.5}
         />
       </Svg>
-      <Text
-        style={[
-          styles.label,
-          {
-            color: textColor,
-            fontSize,
-            fontFamily: 'Anton',
-            width: width * 0.85,
-            maxWidth: width * 0.85,
-          },
-        ]}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.5}
-      >
-        {label}
-      </Text>
+      <View pointerEvents="none" style={styles.labelWrap}>
+        <Text
+          style={[
+            styles.label,
+            {
+              color: textColor,
+              fontSize,
+              fontFamily: 'Anton',
+              width: width * 0.85,
+              maxWidth: width * 0.85,
+            },
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+        >
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 };
@@ -260,14 +263,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  labelWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   label: {
-    position: 'absolute',
-    left: '7.5%',
-    right: '7.5%',
     textAlign: 'center',
     fontWeight: 'bold',
     letterSpacing: 1,
-    top: '35%',
     includeFontPadding: false,
   },
 });

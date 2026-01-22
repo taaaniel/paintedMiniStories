@@ -2,7 +2,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Router } from 'expo-router';
 import { ArrowLeft, ArrowRight, Home, Instagram } from 'lucide-react-native';
 import React from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GemButton from '../../../../components/buttons/GemButton';
 import { extraStyles } from '../ProjectExtras.styles';
 
@@ -29,10 +30,19 @@ export function BottomNavigation({
 }) {
   if (!photosLength) return null;
 
+  const insets = useSafeAreaInsets();
+
   const showArrows = photosLength > 1;
 
   return (
-    <View style={extraStyles.bottomNavContainer}>
+    <View
+      style={[
+        extraStyles.bottomNavContainer,
+        {
+          bottom: Platform.OS === 'android' ? -30 : -20,
+        },
+      ]}
+    >
       {/* CHANGED: single justified row for all gems */}
       <View
         style={{

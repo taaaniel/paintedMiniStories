@@ -38,6 +38,7 @@ type Props = {
   markers: Marker[];
   editing?: boolean;
   showLabels?: boolean;
+  showPaletteLabels?: boolean;
   moveOnly?: boolean;
   settingsVersion?: number;
   onMoveMarker?: (
@@ -57,6 +58,8 @@ type Props = {
     y: number; // 0..1
     colorIndex: number; // 0..4
     angleDeg: number;
+    labelX?: number; // 0..1 (label center)
+    labelY?: number; // 0..1 (label center)
   }[];
   paletteHexColors?: string[];
   paletteLabels?: string[];
@@ -81,6 +84,13 @@ type Props = {
     markerId: string,
     angleDeg: number,
   ) => void;
+
+  onMovePaletteLabel?: (
+    photoId: string,
+    markerId: string,
+    xRel: number,
+    yRel: number,
+  ) => void;
 };
 
 export const SlideImageWithMarkers: React.FC<Props> = ({
@@ -90,6 +100,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   markers,
   editing,
   showLabels = true,
+  showPaletteLabels = true,
   moveOnly = false,
   settingsVersion,
   onMoveMarker,
@@ -101,6 +112,7 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   onMovePaletteMarker,
   onDropPaletteMarker,
   onSetPaletteMarkerAngle,
+  onMovePaletteLabel,
 }) => {
   type PaintBankPaint = { colorHex?: string; name?: string; brand?: string };
   const UNKNOWN_LABEL = 'Unknown';
@@ -111,6 +123,12 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     Record<string, { dx: number; dy: number }>
   >({});
   const dragOffsetByPaletteIdRef = React.useRef<
+    Record<string, { dx: number; dy: number }>
+  >({});
+  const dragOffsetByPaletteLabelIdRef = React.useRef<
+    Record<string, { dx: number; dy: number }>
+  >({});
+  const dragOffsetByColorLabelKeyRef = React.useRef<
     Record<string, { dx: number; dy: number }>
   >({});
   const [containerRect, setContainerRect] = React.useState<{
@@ -371,6 +389,21 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       delete dragOffsetByPaletteIdRef.current[markerId];
     };
 
+  const clampRelCenterToStayInside = React.useCallback(
+    (xRel: number, yRel: number, halfW: number, halfH: number) => {
+      const w = imageLayoutRect.width || width;
+      const h = imageLayoutRect.height || height;
+      if (w <= 0 || h <= 0) return { xRel: clamp01(xRel), yRel: clamp01(yRel) };
+      const padXRel = halfW / w;
+      const padYRel = halfH / h;
+      return {
+        xRel: clampBetween(clamp01(xRel), padXRel, 1 - padXRel),
+        yRel: clampBetween(clamp01(yRel), padYRel, 1 - padYRel),
+      };
+    },
+    [height, imageLayoutRect.height, imageLayoutRect.width, width],
+  );
+
   // Mapa HEX -> colorName (assets)
   const hexToName = React.useMemo(() => {
     const m = new Map<string, string>();
@@ -599,8 +632,17 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
   const [labelOverrides, setLabelOverrides] = React.useState<
     Record<string, { angleRad: number }>
   >({});
-  const setLabelAngle = (key: string, angleRad: number) =>
-    setLabelOverrides((prev) => ({ ...prev, [key]: { angleRad } }));
+
+  // NEW: free-drag positions for color labels (center in marker-local px)
+  const [labelFreeCenters, setLabelFreeCenters] = React.useState<
+    Record<string, { x: number; y: number }>
+  >({});
+  const setLabelFreeCenter = (key: string, x: number, y: number) =>
+    setLabelFreeCenters((prev) => {
+      const old = prev[key];
+      if (old && old.x === x && old.y === y) return prev;
+      return { ...prev, [key]: { x, y } };
+    });
 
   // NEW: title label angles (around a circle, in radians)
   const [titleAngles, setTitleAngles] = React.useState<Record<string, number>>(
@@ -622,16 +664,19 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           const parsed = JSON.parse(raw) as {
             angles?: Record<string, number>;
             labelOverrides?: Record<string, { angleRad: number }>;
+            labelFreeCenters?: Record<string, { x: number; y: number }>;
             titleAngles?: Record<string, number>;
             dotSizeIdxByKey?: Record<string, number>;
           };
           setAngles(parsed.angles ?? {});
           setLabelOverrides(parsed.labelOverrides ?? {});
+          setLabelFreeCenters(parsed.labelFreeCenters ?? {});
           setTitleAngles(parsed.titleAngles ?? {}); // NEW
           setDotSizeIdxByKey(parsed.dotSizeIdxByKey ?? {});
         } else {
           setAngles({});
           setLabelOverrides({});
+          setLabelFreeCenters({});
           setTitleAngles({}); // NEW
           setDotSizeIdxByKey({});
         }
@@ -646,17 +691,31 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
 
   // Persist state globally (debounce)
   React.useEffect(() => {
-    const payload = { angles, labelOverrides, titleAngles, dotSizeIdxByKey };
+    const payload = {
+      angles,
+      labelOverrides,
+      labelFreeCenters,
+      titleAngles,
+      dotSizeIdxByKey,
+    };
     const id = setTimeout(() => {
       AsyncStorage.setItem(storageKey, JSON.stringify(payload)).catch(() => {});
     }, 200);
     return () => clearTimeout(id);
-  }, [angles, labelOverrides, titleAngles, dotSizeIdxByKey, storageKey]);
+  }, [
+    angles,
+    labelOverrides,
+    labelFreeCenters,
+    titleAngles,
+    dotSizeIdxByKey,
+    storageKey,
+  ]);
 
   // Reset settings (for the current photo)
   const resetAdjustments = React.useCallback(() => {
     setAngles({});
     setLabelOverrides({});
+    setLabelFreeCenters({});
     setTitleAngles({}); // NEW
     setDotSizeIdxByKey({});
     AsyncStorage.removeItem(storageKey).catch(() => {});
@@ -669,6 +728,8 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
     groupLeft: number,
     groupTop: number,
     seedRects: { l: number; t: number; w: number; h: number }[] = [],
+    markerCenterAbsX: number,
+    markerCenterAbsY: number,
   ) => {
     const startOffset = START_OFFSET;
 
@@ -724,6 +785,69 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       ...seedRects,
     ];
 
+    const maxColorDotRadiusPx = Math.max(...COLOR_DOT_SIZES) / 2;
+
+    const clampLabelCenterToImage = (
+      centerX: number,
+      centerY: number,
+      w: number,
+      h: number,
+    ) => {
+      const imgLeftLocal = imageLayoutRect.left - groupLeft;
+      const imgTopLocal = imageLayoutRect.top - groupTop;
+      const imgRightLocal = imgLeftLocal + imageLayoutRect.width;
+      const imgBottomLocal = imgTopLocal + imageLayoutRect.height;
+
+      const minX = imgLeftLocal + w / 2;
+      const maxX = imgRightLocal - w / 2;
+      const minY = imgTopLocal + h / 2;
+      const maxY = imgBottomLocal - h / 2;
+
+      return {
+        x: clampBetween(centerX, minX, maxX),
+        y: clampBetween(centerY, minY, maxY),
+      };
+    };
+
+    const adjustLabelCenterAwayFromDots = (
+      centerX: number,
+      centerY: number,
+      w: number,
+      h: number,
+    ) => {
+      const labelRadiusPx = Math.sqrt((w / 2) * (w / 2) + (h / 2) * (h / 2));
+      const minDistPx = maxColorDotRadiusPx + labelRadiusPx + 6;
+
+      let x = centerX;
+      let y = centerY;
+
+      for (let iter = 0; iter < 8; iter++) {
+        let moved = false;
+
+        for (const [cxDot, cyDot] of allCircles) {
+          const dx = x - cxDot;
+          const dy = y - cyDot;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist >= minDistPx) continue;
+
+          const ux = dist > 0 ? dx / dist : 1;
+          const uy = dist > 0 ? dy / dist : 0;
+          const push = minDistPx - dist;
+          x += ux * push;
+          y += uy * push;
+          moved = true;
+        }
+
+        const clamped = clampLabelCenterToImage(x, y, w, h);
+        x = clamped.x;
+        y = clamped.y;
+
+        if (!moved) break;
+      }
+
+      return { x, y };
+    };
+
     return entries.map((entry, idx) => {
       const { kind, mainHex, mixes = [], note } = entry;
       const shift = startOffset + idx * MAIN_DOT_SPACING;
@@ -761,8 +885,10 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
       const override = labelOverrides[sizeKey];
       const preferredAngleRad = override?.angleRad ?? basePreferredAngleRad;
 
-      // label position: 5px from the main dot (anchor), without collisions
-      const { left: labelLeft, top: labelTop } = placeLabel(
+      // label position:
+      // - default: auto-placement (placeLabel)
+      // - when user drags: free position (center), clamped into image and pushed away from color dots
+      const autoPlaced = placeLabel(
         anchorCX,
         anchorCY,
         labelW,
@@ -773,7 +899,30 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         placedLabelRects,
       );
 
-      // register label rectangle
+      const autoCenterX = autoPlaced.left + labelW / 2;
+      const autoCenterY = autoPlaced.top + labelH / 2;
+
+      const rawCenter = labelFreeCenters[sizeKey]
+        ? { x: labelFreeCenters[sizeKey].x, y: labelFreeCenters[sizeKey].y }
+        : { x: autoCenterX, y: autoCenterY };
+
+      const clampedCenter = clampLabelCenterToImage(
+        rawCenter.x,
+        rawCenter.y,
+        labelW,
+        labelH,
+      );
+      const adjustedCenter = adjustLabelCenterAwayFromDots(
+        clampedCenter.x,
+        clampedCenter.y,
+        labelW,
+        labelH,
+      );
+
+      const labelLeft = adjustedCenter.x - labelW / 2;
+      const labelTop = adjustedCenter.y - labelH / 2;
+
+      // register label rectangle (only for auto layout collisions between labels)
       placedLabelRects.push({
         l: labelLeft,
         t: labelTop,
@@ -781,20 +930,33 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
         h: labelH,
       });
 
-      // label drag handler -> update angle relative to the MAIN dot
-      const handleLabelDrag = (e: GestureResponderEvent) => {
-        if (!moveOnly) return;
-        const { locationX, locationY } = e.nativeEvent;
+      const canDragLabel = !!moveOnly && !!activeRect;
 
-        // Compute in marker-local coordinates (no containerRect needed).
-        // Finger in marker-local coords = labelTopLeft + fingerInLabel.
-        const fingerX = labelLeft + locationX;
-        const fingerY = labelTop + locationY;
-        const dx = fingerX - anchorCX;
-        const dyMath = -(fingerY - anchorCY);
-        const phi = Math.atan2(dyMath, dx);
+      const handleLabelMove = (e: GestureResponderEvent) => {
+        if (!canDragLabel) return;
+        const { pageX, pageY } = e.nativeEvent;
 
-        setLabelAngle(sizeKey, phi);
+        const offset = dragOffsetByColorLabelKeyRef.current[sizeKey];
+        const centerAbsX = offset ? pageX - offset.dx : pageX;
+        const centerAbsY = offset ? pageY - offset.dy : pageY;
+
+        const nextCenterX = centerAbsX - markerCenterAbsX;
+        const nextCenterY = centerAbsY - markerCenterAbsY;
+
+        const nextClamped = clampLabelCenterToImage(
+          nextCenterX,
+          nextCenterY,
+          labelW,
+          labelH,
+        );
+        const nextAdjusted = adjustLabelCenterAwayFromDots(
+          nextClamped.x,
+          nextClamped.y,
+          labelW,
+          labelH,
+        );
+
+        setLabelFreeCenter(sizeKey, nextAdjusted.x, nextAdjusted.y);
       };
 
       return (
@@ -849,14 +1011,36 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           {showLabels && mainHex ? (
             <View
               pointerEvents={moveOnly ? 'auto' : 'none'}
-              onStartShouldSetResponder={() => moveOnly}
+              onStartShouldSetResponder={() => canDragLabel}
               onStartShouldSetResponderCapture={() => {
-                return moveOnly;
+                return canDragLabel;
               }}
-              onMoveShouldSetResponderCapture={() => moveOnly}
+              onMoveShouldSetResponderCapture={() => canDragLabel}
               onResponderTerminationRequest={() => false}
-              onResponderMove={handleLabelDrag}
-              onResponderRelease={handleLabelDrag}
+              onResponderGrant={(e: GestureResponderEvent) => {
+                if (!canDragLabel) return;
+                if (isActive) updateContainerRect();
+
+                const { pageX, pageY } = e.nativeEvent;
+
+                const labelCenterLocalX = labelLeft + labelW / 2;
+                const labelCenterLocalY = labelTop + labelH / 2;
+                const labelCenterAbsX = markerCenterAbsX + labelCenterLocalX;
+                const labelCenterAbsY = markerCenterAbsY + labelCenterLocalY;
+                dragOffsetByColorLabelKeyRef.current[sizeKey] = {
+                  dx: pageX - labelCenterAbsX,
+                  dy: pageY - labelCenterAbsY,
+                };
+              }}
+              onResponderMove={handleLabelMove}
+              onResponderRelease={(e: GestureResponderEvent) => {
+                handleLabelMove(e);
+                delete dragOffsetByColorLabelKeyRef.current[sizeKey];
+              }}
+              onResponderTerminate={(e: GestureResponderEvent) => {
+                handleLabelMove(e);
+                delete dragOffsetByColorLabelKeyRef.current[sizeKey];
+              }}
               onLayout={(e) =>
                 setLabelSize(
                   sizeKey,
@@ -1470,7 +1654,15 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
             ) : null}
 
             {/* color dots respecting the angle AND group position (color labels avoid the title) */}
-            {renderColorDots(m, angleDeg, cx, cy, seedRects)}
+            {renderColorDots(
+              m,
+              angleDeg,
+              cx,
+              cy,
+              seedRects,
+              markerCenterAbsX,
+              markerCenterAbsY,
+            )}
           </View>
         );
       })}
@@ -1506,29 +1698,11 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
               return { pm, safe, cxImg, cyImg, cx, cy, fill, label, angleDeg };
             });
 
-            const paletteDotCenters = items.map((it) => ({
+            const paletteDotCentersRel = items.map((it) => ({
               id: it.pm.id,
-              cx: it.cx,
-              cy: it.cy,
+              xRel: it.safe.xRel,
+              yRel: it.safe.yRel,
             }));
-
-            const collidesWithAnyDot = (
-              selfId: string,
-              rect: { x0: number; y0: number; x1: number; y1: number },
-            ) => {
-              const r = PALETTE_DOT_RADIUS + 2;
-              for (const d of paletteDotCenters) {
-                if (d.id === selfId) continue;
-                const x0 = d.cx - r;
-                const x1 = d.cx + r;
-                const y0 = d.cy - r;
-                const y1 = d.cy + r;
-                const overlap =
-                  rect.x0 < x1 && rect.x1 > x0 && rect.y0 < y1 && rect.y1 > y0;
-                if (overlap) return true;
-              }
-              return false;
-            };
 
             const pickLabelPos = (
               selfId: string,
@@ -1554,12 +1728,44 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                 },
               ];
 
-              const isWithin = (r: {
+              const imageLeft = imageLayoutRect.left;
+              const imageTop = imageLayoutRect.top;
+              const imageRight = imageLayoutRect.left + imageLayoutRect.width;
+              const imageBottom = imageLayoutRect.top + imageLayoutRect.height;
+
+              const isWithinImage = (r: {
                 x0: number;
                 y0: number;
                 x1: number;
                 y1: number;
-              }) => r.x0 >= 0 && r.y0 >= 0 && r.x1 <= width && r.y1 <= height;
+              }) =>
+                r.x0 >= imageLeft &&
+                r.y0 >= imageTop &&
+                r.x1 <= imageRight &&
+                r.y1 <= imageBottom;
+
+              const collidesWithAnyDot = (rect: {
+                x0: number;
+                y0: number;
+                x1: number;
+                y1: number;
+              }) => {
+                const r = PALETTE_DOT_RADIUS + 2;
+                for (const d of items) {
+                  if (d.pm.id === selfId) continue;
+                  const x0 = d.cx - r;
+                  const x1 = d.cx + r;
+                  const y0 = d.cy - r;
+                  const y1 = d.cy + r;
+                  const overlap =
+                    rect.x0 < x1 &&
+                    rect.x1 > x0 &&
+                    rect.y0 < y1 &&
+                    rect.y1 > y0;
+                  if (overlap) return true;
+                }
+                return false;
+              };
 
               for (const c of candidates) {
                 const rect = {
@@ -1568,8 +1774,8 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                   x1: cx + c.left + labelW,
                   y1: cy + c.top + labelBoxH,
                 };
-                if (!isWithin(rect)) continue;
-                if (collidesWithAnyDot(selfId, rect)) continue;
+                if (!isWithinImage(rect)) continue;
+                if (collidesWithAnyDot(rect)) continue;
                 return { left: c.left, top: c.top };
               }
 
@@ -1579,15 +1785,72 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                 -PALETTE_DOT_RADIUS - LABEL_GAP_PX - labelBoxH;
               const clampedGlobalX0 = clampBetween(
                 cx + unclampedLeft,
-                0,
-                Math.max(0, width - labelW),
+                imageLeft,
+                Math.max(imageLeft, imageRight - labelW),
               );
               const clampedGlobalY0 = clampBetween(
                 cy + unclampedTop,
-                0,
-                Math.max(0, height - labelBoxH),
+                imageTop,
+                Math.max(imageTop, imageBottom - labelBoxH),
               );
               return { left: clampedGlobalX0 - cx, top: clampedGlobalY0 - cy };
+            };
+
+            const adjustLabelCenterRel = (
+              xRel: number,
+              yRel: number,
+              labelW: number,
+              labelH: number,
+            ) => {
+              const wPx = imageLayoutRect.width || width;
+              const hPx = imageLayoutRect.height || height;
+              if (wPx <= 0 || hPx <= 0) {
+                return clampRelCenterToStayInside(
+                  xRel,
+                  yRel,
+                  labelW / 2,
+                  labelH / 2,
+                );
+              }
+
+              const labelRadiusPx = Math.sqrt(
+                (labelW / 2) * (labelW / 2) + (labelH / 2) * (labelH / 2),
+              );
+              const minDistPx = PALETTE_DOT_RADIUS + labelRadiusPx + 6;
+
+              let x = xRel;
+              let y = yRel;
+
+              for (let iter = 0; iter < 6; iter++) {
+                let moved = false;
+
+                for (const d of paletteDotCentersRel) {
+                  const dxPx = (x - d.xRel) * wPx;
+                  const dyPx = (y - d.yRel) * hPx;
+                  const distPx = Math.sqrt(dxPx * dxPx + dyPx * dyPx);
+                  if (distPx >= minDistPx) continue;
+
+                  const ux = distPx > 0 ? dxPx / distPx : 1;
+                  const uy = distPx > 0 ? dyPx / distPx : 0;
+                  const pushPx = minDistPx - distPx;
+                  x += (ux * pushPx) / wPx;
+                  y += (uy * pushPx) / hPx;
+                  moved = true;
+                }
+
+                const clamped = clampRelCenterToStayInside(
+                  x,
+                  y,
+                  labelW / 2,
+                  labelH / 2,
+                );
+                x = clamped.xRel;
+                y = clamped.yRel;
+
+                if (!moved) break;
+              }
+
+              return { xRel: x, yRel: y };
             };
 
             return items.map(
@@ -1626,6 +1889,122 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                   LABEL_MAX_W,
                 );
                 const labelPos = pickLabelPos(pm.id, cx, cy, labelW);
+
+                const defaultCenterRel =
+                  imageLayoutRect.width > 0 && imageLayoutRect.height > 0
+                    ? {
+                        xRel:
+                          (cx +
+                            labelPos.left +
+                            labelW / 2 -
+                            imageLayoutRect.left) /
+                          imageLayoutRect.width,
+                        yRel:
+                          (cy +
+                            labelPos.top +
+                            labelBoxH / 2 -
+                            imageLayoutRect.top) /
+                          imageLayoutRect.height,
+                      }
+                    : { xRel: 0.5, yRel: 0.5 };
+
+                const rawLabelCenterRel = {
+                  xRel:
+                    typeof pm.labelX === 'number'
+                      ? pm.labelX
+                      : defaultCenterRel.xRel,
+                  yRel:
+                    typeof pm.labelY === 'number'
+                      ? pm.labelY
+                      : defaultCenterRel.yRel,
+                };
+
+                const labelCenterRel = adjustLabelCenterRel(
+                  rawLabelCenterRel.xRel,
+                  rawLabelCenterRel.yRel,
+                  labelW,
+                  labelBoxH,
+                );
+
+                const labelLeft =
+                  imageLayoutRect.left +
+                  labelCenterRel.xRel * imageLayoutRect.width -
+                  labelW / 2;
+                const labelTop =
+                  imageLayoutRect.top +
+                  labelCenterRel.yRel * imageLayoutRect.height -
+                  labelBoxH / 2;
+
+                const labelLeftLocal = labelLeft - cx;
+                const labelTopLocal = labelTop - cy;
+
+                const canDragLabel =
+                  !!paletteMoveOnly && !!onMovePaletteLabel && !!activeRect;
+
+                const labelCenterAbsX =
+                  (activeRect?.x ?? 0) +
+                  labelCenterRel.xRel * (activeRect?.width ?? 0);
+                const labelCenterAbsY =
+                  (activeRect?.y ?? 0) +
+                  labelCenterRel.yRel * (activeRect?.height ?? 0);
+
+                const handleLabelMove = (e: GestureResponderEvent) => {
+                  if (!canDragLabel || !activeRect) return;
+                  const { pageX, pageY } = e.nativeEvent;
+
+                  const offset = dragOffsetByPaletteLabelIdRef.current[pm.id];
+                  const centerAbsX = offset ? pageX - offset.dx : pageX;
+                  const centerAbsY = offset ? pageY - offset.dy : pageY;
+
+                  const xRel = (centerAbsX - activeRect.x) / activeRect.width;
+                  const yRel = (centerAbsY - activeRect.y) / activeRect.height;
+
+                  const clamped = clampRelCenterToStayInside(
+                    xRel,
+                    yRel,
+                    labelW / 2,
+                    labelBoxH / 2,
+                  );
+
+                  const adjusted = adjustLabelCenterRel(
+                    clamped.xRel,
+                    clamped.yRel,
+                    labelW,
+                    labelBoxH,
+                  );
+
+                  onMovePaletteLabel(
+                    photo,
+                    pm.id,
+                    adjusted.xRel,
+                    adjusted.yRel,
+                  );
+                };
+
+                const labelPanHandlers = canDragLabel
+                  ? {
+                      onStartShouldSetResponder: () => true,
+                      onMoveShouldSetResponder: () => true,
+                      onResponderTerminationRequest: () => false,
+                      onResponderGrant: (e: GestureResponderEvent) => {
+                        if (isActive) updateContainerRect();
+                        const { pageX, pageY } = e.nativeEvent;
+                        dragOffsetByPaletteLabelIdRef.current[pm.id] = {
+                          dx: pageX - labelCenterAbsX,
+                          dy: pageY - labelCenterAbsY,
+                        };
+                      },
+                      onResponderMove: handleLabelMove,
+                      onResponderRelease: (e: GestureResponderEvent) => {
+                        handleLabelMove(e);
+                        delete dragOffsetByPaletteLabelIdRef.current[pm.id];
+                      },
+                      onResponderTerminate: (e: GestureResponderEvent) => {
+                        handleLabelMove(e);
+                        delete dragOffsetByPaletteLabelIdRef.current[pm.id];
+                      },
+                    }
+                  : null;
 
                 return (
                   <View
@@ -1762,16 +2141,16 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
                       }}
                     />
 
-                    {label ? (
+                    {showPaletteLabels && label ? (
                       <View
-                        pointerEvents="none"
+                        {...(labelPanHandlers ? labelPanHandlers : {})}
                         style={{
                           position: 'absolute',
-                          left: labelPos.left,
-                          top: labelPos.top,
+                          left: labelLeftLocal,
+                          top: labelTopLocal,
                           width: labelW,
-                          zIndex: 28,
-                          elevation: 28,
+                          zIndex: 29,
+                          elevation: 29,
                         }}
                       >
                         <View

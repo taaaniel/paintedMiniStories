@@ -195,7 +195,7 @@ export default function SettingsView() {
           <View style={styles.saveRow}>
             <RectangleGemButton
               label={buttonLabel}
-              width={180}
+              width={130}
               color="#A100C2"
               disabled={!canSave}
               onPress={handleSave}

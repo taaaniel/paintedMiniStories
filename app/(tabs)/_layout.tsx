@@ -15,17 +15,13 @@ export default function TabsLayout() {
       <Tabs.Screen name="projects" />
       <Tabs.Screen name="addNewProject" />
       <Tabs.Screen name="settings" />
-      <Tabs.Screen
-        name="paintBank"
-        options={{
-          href: null,
-        }}
-      />
+      <Tabs.Screen name="paintBank" />
       {/* Hide dynamic [id] route from tabs */}
       <Tabs.Screen
         name="projects/[id]"
         options={{
           href: null, // This removes it from tab navigation
+          tabBarStyle: { display: 'none' },
         }}
       />
     </Tabs>

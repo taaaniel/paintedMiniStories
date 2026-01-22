@@ -12,7 +12,7 @@ import {
 } from 'lucide-react-native';
 import React, { useMemo } from 'react';
 import type { ViewStyle } from 'react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -59,15 +59,12 @@ export default function GemTabBar({
   const router = useRouter();
   const segments = useSegments();
 
-  const barBottom = Math.max(0, insets.bottom) - 5;
+  const barBottom =
+    Platform.OS === 'android'
+      ? Math.max(insets.bottom, 12)
+      : Math.max(0, insets.bottom - 5);
 
   const segmentsKey = useMemo(() => segments.join('/'), [segments]);
-
-  // Hide main tab bar on project details screen: /(tabs)/projects/[id]
-  const isProjectDetail =
-    segments[0] === '(tabs)' &&
-    segments[1] === 'projects' &&
-    segments.length >= 3;
 
   const currentRouteName = state.routes[state.index]?.name as
     | string
@@ -285,9 +282,6 @@ export default function GemTabBar({
       </View>
     );
   }
-
-  // ✅ after hooks: safe to early-return
-  if (isProjectDetail) return null;
 
   return (
     <View

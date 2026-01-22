@@ -2,8 +2,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   DimensionValue,
   FlatList,
+  Modal,
   Pressable,
   ScrollView,
   StyleProp,
@@ -101,11 +103,18 @@ export default function SimplySelect({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [anchor, setAnchor] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   const instanceIdRef = useRef(
     `SimplySelect:${Math.random().toString(36).slice(2)}:${Date.now()}`,
   );
   const openRef = useRef(open);
+  const fieldRef = useRef<View | null>(null);
   useEffect(() => {
     openRef.current = open;
   }, [open]);
@@ -181,14 +190,52 @@ export default function SimplySelect({
     return v!.startsWith('#') ? v! : `#${v}`;
   };
 
+  const close = () => {
+    setOpen(false);
+    setQuery('');
+    setAnchor(null);
+    if (getGlobalOpenSelectId() === instanceIdRef.current) {
+      setGlobalOpenSelectId(null);
+    }
+  };
+
+  const measureAnchor = () => {
+    try {
+      fieldRef.current?.measureInWindow((x, y, w, h) => {
+        if (
+          typeof x !== 'number' ||
+          typeof y !== 'number' ||
+          typeof w !== 'number' ||
+          typeof h !== 'number'
+        ) {
+          setAnchor(null);
+          return;
+        }
+        setAnchor({ x, y, width: w, height: h });
+      });
+    } catch {
+      setAnchor(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    // Wait a frame so layout is settled.
+    requestAnimationFrame(() => {
+      measureAnchor();
+    });
+  }, [open]);
+
   return (
     <View style={[{ width, position: 'relative' }, style]}>
       {/* Field */}
       <Pressable
+        ref={fieldRef as any}
         onPress={() => {
           const nextOpen = !openRef.current;
           if (nextOpen) {
             setGlobalOpenSelectId(instanceIdRef.current);
+            measureAnchor();
           } else if (getGlobalOpenSelectId() === instanceIdRef.current) {
             setGlobalOpenSelectId(null);
             setQuery('');
@@ -282,7 +329,7 @@ export default function SimplySelect({
           numberOfLines={1}
         >
           {hasSelected
-            ? resolvedSelectedLabel ?? selected?.label ?? value
+            ? (resolvedSelectedLabel ?? selected?.label ?? value)
             : placeholder}
         </Text>
 
@@ -307,202 +354,205 @@ export default function SimplySelect({
         )}
       </Pressable>
 
-      {/* Dropdown */}
-      {open && (
-        <>
-          <Pressable
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: 0,
-              bottom: 0,
-            }}
-            onPress={() => {
-              setOpen(false);
-              setQuery('');
-              if (getGlobalOpenSelectId() === instanceIdRef.current) {
-                setGlobalOpenSelectId(null);
-              }
-            }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              top: fieldHeight + 6,
-              left: 0,
-              right: 0,
-              backgroundColor: '#EADFD7',
-              borderRadius: 8,
-              borderWidth: borderless ? 0 : 1,
-              borderColor,
-              overflow: 'hidden',
-              // lower stacking so BottomNavigation stays on top
-              zIndex: 40,
-              shadowColor: '#000',
-              shadowOpacity: 0.25,
-              shadowOffset: { width: 0, height: 6 },
-              shadowRadius: 8,
-              elevation: 4,
-            }}
-          >
-            {/* Search bar */}
-            {searchable && (
-              <View
-                style={{
-                  paddingHorizontal: 8,
-                  paddingTop: 8,
-                  paddingBottom: 4,
-                }}
-              >
-                <SimplyInput
-                  value={query}
-                  onChangeText={setQuery}
-                  placeholder={searchPlaceholder}
-                  width="100%"
-                  height={40}
-                  borderColor="#B9A89C"
-                  backgroundTint="#F3ECE7"
-                  leftIconName="magnify"
-                  placeholderTextColor="#6A5F58"
-                  fontSize={13}
-                  useLightBg={false}
+      {/* Dropdown (portal via Modal to avoid being covered by lists/sticky headers) */}
+      <Modal
+        visible={open}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        presentationStyle="overFullScreen"
+        onRequestClose={close}
+      >
+        <Pressable
+          style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}
+          onPress={close}
+        />
+
+        {(() => {
+          const win = Dimensions.get('window');
+          const x = Math.max(8, Math.min(anchor?.x ?? 0, win.width - 8));
+          const w = Math.max(
+            120,
+            Math.min(anchor?.width ?? win.width - 16, win.width - x - 8),
+          );
+          const desiredTop =
+            (anchor?.y ?? 0) + (anchor?.height ?? fieldHeight) + 6;
+          const maxTop = Math.max(8, win.height - computedMaxHeight - 16);
+          const top = Math.max(8, Math.min(desiredTop, maxTop));
+
+          return (
+            <View
+              style={{
+                position: 'absolute',
+                top,
+                left: x,
+                width: w,
+                backgroundColor: '#EADFD7',
+                borderRadius: 8,
+                borderWidth: borderless ? 0 : 1,
+                borderColor,
+                overflow: 'hidden',
+                shadowColor: '#000',
+                shadowOpacity: 0.25,
+                shadowOffset: { width: 0, height: 6 },
+                shadowRadius: 8,
+                elevation: 8,
+              }}
+            >
+              {/* Search bar */}
+              {searchable && (
+                <View
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingTop: 8,
+                    paddingBottom: 4,
+                  }}
+                >
+                  <SimplyInput
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder={searchPlaceholder}
+                    width="100%"
+                    height={40}
+                    borderColor="#B9A89C"
+                    backgroundTint="#F3ECE7"
+                    leftIconName="magnify"
+                    placeholderTextColor="#6A5F58"
+                    fontSize={13}
+                    useLightBg={false}
+                  />
+                </View>
+              )}
+
+              {/* Options / Loading */}
+              {loading ? (
+                <View
+                  style={{
+                    height: 60,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: 12,
+                  }}
+                >
+                  <ActivityIndicator
+                    size="small"
+                    color={loadingIndicatorColor}
+                  />
+                </View>
+              ) : useVirtualized ? (
+                <FlatList
+                  style={{ maxHeight: computedMaxHeight }}
+                  data={dataToRender}
+                  keyExtractor={(o, idx) => `${o.value}-${o.label}-${idx}`}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                  initialNumToRender={20}
+                  renderItem={({ item: o }) => {
+                    const active = o.value === value;
+                    const swatchBg = normalizeHex(o.value) ?? '#00000000';
+                    return (
+                      <Pressable
+                        onPress={() => {
+                          onChange(o.value);
+                          close();
+                        }}
+                        style={{
+                          height: itemHeight,
+                          paddingHorizontal: 12,
+                          justifyContent: 'center',
+                          backgroundColor: active ? '#D6CCC4' : 'transparent',
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: optionTextColor,
+                            fontSize: 14,
+                            fontWeight: active ? '700' : '500',
+                            paddingRight: showColorSwatch
+                              ? swatchSize + swatchMargin + 4
+                              : 0,
+                          }}
+                          numberOfLines={1}
+                        >
+                          {o.label}
+                        </Text>
+                        {showColorSwatch && (
+                          <View
+                            pointerEvents="none"
+                            style={{
+                              position: 'absolute',
+                              right: 12,
+                              top: itemSwatchTop,
+                              width: swatchSize,
+                              height: swatchSize,
+                              borderRadius: swatchSize / 2,
+                              backgroundColor: swatchBg,
+                              borderWidth: 1,
+                              borderColor: '#00000022',
+                            }}
+                          />
+                        )}
+                      </Pressable>
+                    );
+                  }}
                 />
-              </View>
-            )}
-            {/* Options / Loading */}
-            {loading ? (
-              <View
-                style={{
-                  height: 60,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: 12,
-                }}
-              >
-                <ActivityIndicator size="small" color={loadingIndicatorColor} />
-              </View>
-            ) : useVirtualized ? (
-              <FlatList
-                style={{ maxHeight: computedMaxHeight }}
-                data={dataToRender}
-                keyExtractor={(o, idx) => `${o.value}-${o.label}-${idx}`}
-                nestedScrollEnabled
-                keyboardShouldPersistTaps="handled"
-                initialNumToRender={20}
-                renderItem={({ item: o }) => {
-                  const active = o.value === value;
-                  const swatchBg = normalizeHex(o.value) ?? '#00000000';
-                  return (
-                    <Pressable
-                      onPress={() => {
-                        onChange(o.value);
-                        setOpen(false);
-                        setQuery('');
-                        if (getGlobalOpenSelectId() === instanceIdRef.current) {
-                          setGlobalOpenSelectId(null);
-                        }
-                      }}
-                      style={{
-                        height: itemHeight,
-                        paddingHorizontal: 12,
-                        justifyContent: 'center',
-                        backgroundColor: active ? '#D6CCC4' : 'transparent',
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: optionTextColor,
-                          fontSize: 14,
-                          fontWeight: active ? '700' : '500',
-                          paddingRight: showColorSwatch
-                            ? swatchSize + swatchMargin + 4
-                            : 0,
+              ) : (
+                <ScrollView style={{ maxHeight: computedMaxHeight }}>
+                  {dataToRender.map((o, idx) => {
+                    const active = o.value === value;
+                    const swatchBg = normalizeHex(o.value) ?? '#00000000';
+                    return (
+                      <Pressable
+                        key={`${o.value}-${o.label}-${idx}`}
+                        onPress={() => {
+                          onChange(o.value);
+                          close();
                         }}
-                        numberOfLines={1}
-                      >
-                        {o.label}
-                      </Text>
-                      {showColorSwatch && (
-                        <View
-                          pointerEvents="none"
-                          style={{
-                            position: 'absolute',
-                            right: 12,
-                            top: itemSwatchTop,
-                            width: swatchSize,
-                            height: swatchSize,
-                            borderRadius: swatchSize / 2,
-                            backgroundColor: swatchBg,
-                            borderWidth: 1,
-                            borderColor: '#00000022',
-                          }}
-                        />
-                      )}
-                    </Pressable>
-                  );
-                }}
-              />
-            ) : (
-              <ScrollView style={{ maxHeight: computedMaxHeight }}>
-                {dataToRender.map((o, idx) => {
-                  const active = o.value === value;
-                  const swatchBg = normalizeHex(o.value) ?? '#00000000';
-                  return (
-                    <Pressable
-                      key={`${o.value}-${o.label}-${idx}`}
-                      onPress={() => {
-                        onChange(o.value);
-                        setOpen(false);
-                        setQuery('');
-                        if (getGlobalOpenSelectId() === instanceIdRef.current) {
-                          setGlobalOpenSelectId(null);
-                        }
-                      }}
-                      style={{
-                        height: itemHeight,
-                        paddingHorizontal: 12,
-                        justifyContent: 'center',
-                        backgroundColor: active ? '#D6CCC4' : 'transparent',
-                      }}
-                    >
-                      <Text
                         style={{
-                          color: optionTextColor,
-                          fontSize: 14,
-                          fontWeight: active ? '700' : '500',
-                          paddingRight: showColorSwatch
-                            ? swatchSize + swatchMargin + 4
-                            : 0,
+                          height: itemHeight,
+                          paddingHorizontal: 12,
+                          justifyContent: 'center',
+                          backgroundColor: active ? '#D6CCC4' : 'transparent',
                         }}
-                        numberOfLines={1}
                       >
-                        {o.label}
-                      </Text>
-                      {showColorSwatch && (
-                        <View
-                          pointerEvents="none"
+                        <Text
                           style={{
-                            position: 'absolute',
-                            right: 12,
-                            top: itemSwatchTop,
-                            width: swatchSize,
-                            height: swatchSize,
-                            borderRadius: swatchSize / 2,
-                            backgroundColor: swatchBg,
-                            borderWidth: 1,
-                            borderColor: '#00000022',
+                            color: optionTextColor,
+                            fontSize: 14,
+                            fontWeight: active ? '700' : '500',
+                            paddingRight: showColorSwatch
+                              ? swatchSize + swatchMargin + 4
+                              : 0,
                           }}
-                        />
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            )}
-          </View>
-        </>
-      )}
+                          numberOfLines={1}
+                        >
+                          {o.label}
+                        </Text>
+                        {showColorSwatch && (
+                          <View
+                            pointerEvents="none"
+                            style={{
+                              position: 'absolute',
+                              right: 12,
+                              top: itemSwatchTop,
+                              width: swatchSize,
+                              height: swatchSize,
+                              borderRadius: swatchSize / 2,
+                              backgroundColor: swatchBg,
+                              borderWidth: 1,
+                              borderColor: '#00000022',
+                            }}
+                          />
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              )}
+            </View>
+          );
+        })()}
+      </Modal>
     </View>
   );
 }

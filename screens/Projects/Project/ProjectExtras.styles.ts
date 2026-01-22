@@ -33,13 +33,14 @@ export const extraStyles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: -20, // restore original offset
+    bottom: 8,
     paddingTop: 8,
     paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     backgroundColor: 'transparent',
-    zIndex: 60,
+    zIndex: 999,
+    elevation: 24,
   },
 });

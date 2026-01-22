@@ -228,7 +228,7 @@ export default function SingleProjectScreen() {
     useProjectPalette(project?.id);
 
   const paletteForActivePhoto: PaletteColor[] = activePhotoUri
-    ? paletteByPhoto[activePhotoUri] ?? []
+    ? (paletteByPhoto[activePhotoUri] ?? [])
     : [];
 
   const paletteHexColorsByPhoto = React.useMemo(() => {
@@ -502,6 +502,11 @@ export default function SingleProjectScreen() {
 
   // NEW: palette generation UI state (button lives near "Edit markers")
   const [isGeneratingPalette, setIsGeneratingPalette] = useState(false);
+
+  const [showPaletteLabels, setShowPaletteLabels] = useState(true);
+  const togglePaletteLabels = React.useCallback(() => {
+    setShowPaletteLabels((v) => !v);
+  }, []);
 
   // helper to adjust index
   const clampIndex = (i: number, arr: any[]) =>
@@ -850,7 +855,7 @@ export default function SingleProjectScreen() {
 
   const paletteEditorPhotoUri = paletteEditingPhotoMove;
   const paletteForEditorPhoto: PaletteColor[] = paletteEditorPhotoUri
-    ? paletteByPhoto[paletteEditorPhotoUri] ?? []
+    ? (paletteByPhoto[paletteEditorPhotoUri] ?? [])
     : [];
 
   return (
@@ -930,6 +935,8 @@ export default function SingleProjectScreen() {
                     onSetPaletteMarkerAngle={onSetPaletteMarkerAngle}
                     onGeneratePalette={onGeneratePalette}
                     isGeneratingPalette={isGeneratingPalette}
+                    showPaletteLabels={showPaletteLabels}
+                    onTogglePaletteLabels={togglePaletteLabels}
                   />
                 </ViewShot>
               </View>
@@ -1038,6 +1045,7 @@ export default function SingleProjectScreen() {
             visible={!!paletteEditorPhotoUri}
             photoUri={paletteEditorPhotoUri ?? activePhotoUri}
             palette={paletteForEditorPhoto}
+            showLabels={showPaletteLabels}
             onDone={(next) => {
               if (!paletteEditorPhotoUri) return;
               setPaletteForPhoto(paletteEditorPhotoUri, next);

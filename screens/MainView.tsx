@@ -162,19 +162,23 @@ export default function MainView({
       style={[styles.screen, { flex: 1, paddingTop: topInset }]}
     >
       <View style={[styles.paper, { flex: 1 }]}>
-        <MainFrame
-          width="100%"
-          height="100%"
-          preserveAspectRatio="none"
-          style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
+        <View
           pointerEvents="none"
-        />
-        <View style={[styles.paperContent, { flex: 1 }]}>
+          style={[StyleSheet.absoluteFill, { zIndex: 0 }]}
+        >
+          <MainFrame
+            width="100%"
+            height="100%"
+            preserveAspectRatio="none"
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+        <View style={[styles.paperContent, { flex: 1, zIndex: 1 }]}>
           <View style={{ position: 'relative', zIndex: 3 }}>
             <Header user={user} action={effectiveHeaderAction} />
           </View>
 
-          <View style={{ position: 'relative', zIndex: 1, flex: 1 }}>
+          <View style={{ position: 'relative', zIndex: 3, flex: 1 }}>
             {children}
           </View>
         </View>

@@ -135,6 +135,7 @@ function DashboardTile({
         height="100%"
         style={StyleSheet.absoluteFill}
         preserveAspectRatio="none"
+        pointerEvents="none"
       />
       <View style={tile.content}>
         {icon}

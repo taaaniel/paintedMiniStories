@@ -42,24 +42,37 @@ export const ComicButton: React.FC<ComicButtonProps> = ({
   useEffect(() => {
     let mounted = true;
     (async () => {
-      if (!soundEnabled) return;
-      const { sound } = await Audio.Sound.createAsync(resolvedSound, {
-        volume,
-      });
-      if (mounted) soundRef.current = sound;
+      try {
+        if (!soundEnabled) return;
+        const { sound } = await Audio.Sound.createAsync(resolvedSound, {
+          volume,
+        });
+        if (!mounted) {
+          await sound.unloadAsync().catch(() => {});
+          return;
+        }
+        soundRef.current = sound;
+      } catch {
+        // ignore audio errors — UI should work without sound
+      }
     })();
     return () => {
       mounted = false;
-      soundRef.current?.unloadAsync();
+      const s = soundRef.current;
+      soundRef.current = null;
+      if (s) s.unloadAsync().catch(() => {});
     };
   }, [resolvedSound, soundEnabled, volume]);
 
   const handlePress = async () => {
     try {
       if (soundEnabled) {
-        await soundRef.current?.stopAsync().catch(() => {});
-        await soundRef.current?.setPositionAsync(0);
-        await soundRef.current?.playAsync();
+        const s = soundRef.current;
+        if (s) {
+          await s.stopAsync().catch(() => {});
+          await s.setPositionAsync(0).catch(() => {});
+          await s.playAsync().catch(() => {});
+        }
       }
     } catch {}
     onPress();

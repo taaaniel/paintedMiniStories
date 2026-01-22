@@ -35,6 +35,8 @@ export function CarouselWithMarkers({
   onSetPaletteMarkerAngle,
   onGeneratePalette,
   isGeneratingPalette,
+  showPaletteLabels = true,
+  onTogglePaletteLabels,
 }: {
   photos: string[];
   activeIndex: number;
@@ -94,6 +96,8 @@ export function CarouselWithMarkers({
   ) => void;
   onGeneratePalette?: () => void;
   isGeneratingPalette?: boolean;
+  showPaletteLabels?: boolean;
+  onTogglePaletteLabels?: () => void;
 }) {
   const ADD_COLOR_SAFE_INSET_PX = 10;
 
@@ -126,10 +130,13 @@ export function CarouselWithMarkers({
           100,
         );
 
-  const paletteButtonsCount = 2;
+  const paletteButtonsCount = 3;
   const paletteGap = 10;
   const paletteButtonWidth = clamp(
-    Math.floor((controlsMaxWidth - paletteGap * (paletteButtonsCount - 1)) / 2),
+    Math.floor(
+      (controlsMaxWidth - paletteGap * (paletteButtonsCount - 1)) /
+        paletteButtonsCount,
+    ),
     0,
     120,
   );
@@ -152,8 +159,8 @@ export function CarouselWithMarkers({
   const controlsOverflowPx = exportMode
     ? 0
     : mode === 'palette'
-    ? Math.max(0, -paletteControlsBottom)
-    : 0;
+      ? Math.max(0, -paletteControlsBottom)
+      : 0;
 
   const activePhoto = photos[activeIndex] ?? '';
 
@@ -353,6 +360,9 @@ export function CarouselWithMarkers({
                       : false
                   }
                   showLabels={mode === 'colors' ? showLabels : false}
+                  showPaletteLabels={
+                    mode === 'palette' ? showPaletteLabels : false
+                  }
                   onMoveMarker={mode === 'colors' ? onMoveMarker : undefined}
                   moveOnly={
                     mode === 'colors' ? editingPhotoMove === item : false
@@ -456,8 +466,8 @@ export function CarouselWithMarkers({
         const modeText = paletteEditingPhotoMove
           ? 'Move palette marker mode: drag markers or the button to exit'
           : editingPhotoMove
-          ? 'Move marker mode: drag markers or the button to exit'
-          : 'Add colour mode: tap on the photo or use DONE to exit';
+            ? 'Move marker mode: drag markers or the button to exit'
+            : 'Add colour mode: tap on the photo or use DONE to exit';
         return (
           <View
             pointerEvents="none"
@@ -557,8 +567,8 @@ export function CarouselWithMarkers({
                   editingPhoto || editingPhotoMove
                     ? '#C2B39A'
                     : showLabels
-                    ? '#65dc25'
-                    : '#C2B39A'
+                      ? '#65dc25'
+                      : '#C2B39A'
                 }
                 onPress={
                   editingPhoto || editingPhotoMove
@@ -600,8 +610,8 @@ export function CarouselWithMarkers({
                       editingPhoto
                         ? '#C2B39A'
                         : editingPhotoMove === photos[activeIndex]
-                        ? '#65dc25'
-                        : '#0E2B6D'
+                          ? '#65dc25'
+                          : '#0E2B6D'
                     }
                     onPress={
                       editingPhoto
@@ -675,6 +685,13 @@ export function CarouselWithMarkers({
                         : activePhoto,
                     )
                   }
+                />
+                <RectangleGemButton
+                  width={paletteButtonWidth}
+                  fontSize={11}
+                  label={showPaletteLabels ? 'Hide labels' : 'Show labels'}
+                  color={showPaletteLabels ? '#65dc25' : '#C2B39A'}
+                  onPress={onTogglePaletteLabels}
                 />
               </View>
             </View>
