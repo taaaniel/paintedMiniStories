@@ -3,11 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import paletteColors from '../../../assets/data/palleteColors.json';
+
 import InputFieldBg from '../../../assets/images/InputField.svg';
 import GemButton from '../../../components/buttons/GemButton';
 import CustomDialog from '../../../components/CustomDialog/CustomDialog';
 import SimplyInput from '../../../components/inputs/SimplyInput';
 import SimplySelect from '../../../components/inputs/SimplySelect';
+import { getBrandShortName } from './brandShortName';
 import { markerListStyles } from './MarkerList.styles';
 
 type Marker = {
@@ -57,6 +59,15 @@ const MarkerList: React.FC<MarkerListProps> = ({
 }) => {
   type Paint = { id: string; name: string; colorHex: string; brand?: string };
 
+  const normalizeHex = (value?: string) => {
+    const hex = String(value ?? '')
+      .trim()
+      .replace(/^#/, '')
+      .toUpperCase();
+    if (!/^[0-9A-F]{6}$/.test(hex)) return '';
+    return `#${hex}`;
+  };
+
   const [includeAssets, setIncludeAssets] = React.useState(true);
   const [includeMyPaints, setIncludeMyPaints] = React.useState(false);
 
@@ -94,10 +105,17 @@ const MarkerList: React.FC<MarkerListProps> = ({
     const out: { label: string; value: string }[] = [];
 
     for (const c of paletteColors) {
-      const value = (c as any).colorHex as string;
+      const rawValue = (c as any).colorHex as string;
+      const value = normalizeHex(rawValue);
       if (!value || seen.has(value)) continue; // avoid duplicate keys inside SimplySelect
       seen.add(value);
-      out.push({ label: (c as any).colorName as string, value });
+
+      const colorName = String((c as any).colorName ?? '').trim();
+      const shortName = String((c as any).shortName ?? '').trim();
+      out.push({
+        label: shortName ? `${colorName} (${shortName})` : colorName,
+        value,
+      });
     }
 
     return out;
@@ -116,12 +134,16 @@ const MarkerList: React.FC<MarkerListProps> = ({
       const seen = new Set<string>();
       const out: { label: string; value: string }[] = [];
       for (const p of paints) {
-        const value = String((p as any)?.colorHex ?? '').trim();
+        const value = normalizeHex(String((p as any)?.colorHex ?? '').trim());
         const name = String((p as any)?.name ?? '').trim();
         const brand = String((p as any)?.brand ?? '').trim();
         if (!value || seen.has(value)) continue;
         seen.add(value);
-        out.push({ label: brand ? `${brand} - ${name}` : name, value });
+        const shortBrand = brand ? getBrandShortName(brand) : '';
+        out.push({
+          label: shortBrand ? `${name} (${shortBrand})` : name,
+          value,
+        });
       }
       setMyPaintOptions(out);
     } catch {
@@ -148,14 +170,20 @@ const MarkerList: React.FC<MarkerListProps> = ({
 
   const labelByValue = React.useMemo(() => {
     const map = new Map<string, string>();
-    for (const o of assetOptions) map.set(String(o.value).trim(), o.label);
-    for (const o of myPaintOptions) map.set(String(o.value).trim(), o.label);
+    for (const o of assetOptions) {
+      const key = normalizeHex(String(o.value).trim());
+      if (key) map.set(key, o.label);
+    }
+    for (const o of myPaintOptions) {
+      const key = normalizeHex(String(o.value).trim());
+      if (key) map.set(key, o.label);
+    }
     return map;
   }, [assetOptions, myPaintOptions]);
 
   const getLabelForHex = React.useCallback(
     (hex: string) => {
-      const key = String(hex).trim();
+      const key = normalizeHex(String(hex).trim());
       if (!key) return undefined;
       return labelByValue.get(key) ?? 'Unknown';
     },
@@ -314,19 +342,22 @@ const MarkerList: React.FC<MarkerListProps> = ({
         marginTop: 6,
       }}
     >
-      {colors.filter(Boolean).map((hex, i) => (
-        <View
-          key={`${hex}-${i}`} // stable key (no Math.random)
-          style={{
-            width: 16,
-            height: 16,
-            borderRadius: 8,
-            backgroundColor: hex,
-            borderWidth: 1,
-            borderColor: '#4A2E1B', // dark-brown border like in the dialog
-          }}
-        />
-      ))}
+      {colors
+        .map(normalizeHex)
+        .filter(Boolean)
+        .map((hex, i) => (
+          <View
+            key={`${hex}-${i}`} // stable key (no Math.random)
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: 8,
+              backgroundColor: hex,
+              borderWidth: 1,
+              borderColor: '#4A2E1B', // dark-brown border like in the dialog
+            }}
+          />
+        ))}
     </View>
   );
 
@@ -603,8 +634,12 @@ const MarkerList: React.FC<MarkerListProps> = ({
                         <SimplySelect
                           options={options}
                           getOptionLabel={getLabelForHex}
-                          value={mm.baseColor || ''}
-                          onChange={(hex) => setDraft(m.id, { baseColor: hex })}
+                          value={normalizeHex(mm.baseColor) || ''}
+                          onChange={(hex) =>
+                            setDraft(m.id, {
+                              baseColor: normalizeHex(hex) || undefined,
+                            })
+                          }
                           placeholder="Choose base color…"
                           arrowPosition="right"
                           searchable
@@ -662,10 +697,10 @@ const MarkerList: React.FC<MarkerListProps> = ({
                               <SimplySelect
                                 options={options}
                                 getOptionLabel={getLabelForHex}
-                                value={hex}
+                                value={normalizeHex(hex) || ''}
                                 onChange={(v) => {
                                   const next = [...baseMixes];
-                                  next[i] = v;
+                                  next[i] = normalizeHex(v) || '';
                                   setDraft(m.id, { mixBaseColors: next });
                                 }}
                                 placeholder="Choose mix colour…"
@@ -798,9 +833,11 @@ const MarkerList: React.FC<MarkerListProps> = ({
                         <SimplySelect
                           options={options}
                           getOptionLabel={getLabelForHex}
-                          value={mm.shadowColor || ''}
+                          value={normalizeHex(mm.shadowColor) || ''}
                           onChange={(hex) =>
-                            setDraft(m.id, { shadowColor: hex })
+                            setDraft(m.id, {
+                              shadowColor: normalizeHex(hex) || undefined,
+                            })
                           }
                           placeholder="Choose shadow color…"
                           arrowPosition="right"
@@ -859,10 +896,10 @@ const MarkerList: React.FC<MarkerListProps> = ({
                               <SimplySelect
                                 options={options}
                                 getOptionLabel={getLabelForHex}
-                                value={hex}
+                                value={normalizeHex(hex) || ''}
                                 onChange={(v) => {
                                   const next = [...shadowMixes];
-                                  next[i] = v;
+                                  next[i] = normalizeHex(v) || '';
                                   setDraft(m.id, { mixShadowColors: next });
                                 }}
                                 placeholder="Choose mix colour…"
@@ -998,9 +1035,11 @@ const MarkerList: React.FC<MarkerListProps> = ({
                         <SimplySelect
                           options={options}
                           getOptionLabel={getLabelForHex}
-                          value={mm.highlightColor || ''}
+                          value={normalizeHex(mm.highlightColor) || ''}
                           onChange={(hex) =>
-                            setDraft(m.id, { highlightColor: hex })
+                            setDraft(m.id, {
+                              highlightColor: normalizeHex(hex) || undefined,
+                            })
                           }
                           placeholder="Choose highlight color…"
                           arrowPosition="right"
@@ -1059,10 +1098,10 @@ const MarkerList: React.FC<MarkerListProps> = ({
                               <SimplySelect
                                 options={options}
                                 getOptionLabel={getLabelForHex}
-                                value={hex}
+                                value={normalizeHex(hex) || ''}
                                 onChange={(v) => {
                                   const next = [...highlightMixes];
-                                  next[i] = v;
+                                  next[i] = normalizeHex(v) || '';
                                   setDraft(m.id, {
                                     mixHighlightColors: next,
                                   });

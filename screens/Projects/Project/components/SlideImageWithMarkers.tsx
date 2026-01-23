@@ -5,6 +5,8 @@ import React from 'react';
 import { GestureResponderEvent, Pressable, Text, View } from 'react-native';
 import paletteColors from '../../../../assets/data/palleteColors.json';
 
+import { getBrandShortName } from '../brandShortName';
+
 const toHexKey = (hex?: string) => {
   const s = String(hex ?? '').trim();
   if (!s) return '';
@@ -448,7 +450,8 @@ export const SlideImageWithMarkers: React.FC<Props> = ({
           const name = String((p as any)?.name ?? '').trim();
           const brand = String((p as any)?.brand ?? '').trim();
           if (!key || !name) continue;
-          m.set(key, brand ? `${brand} - ${name}` : name);
+          const shortBrand = brand ? getBrandShortName(brand) : '';
+          m.set(key, shortBrand ? `${shortBrand} - ${name}` : name);
         }
 
         setPaintBankHexToName(m);

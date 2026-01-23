@@ -283,12 +283,14 @@ export default function SingleProjectScreen() {
   const assetPaints = React.useMemo<AssetPaint[]>(() => {
     return (Array.isArray(paletteColors) ? paletteColors : [])
       .map((c: any): AssetPaint | null => {
-        const brand = String(c.name ?? '').trim();
+        const brandId =
+          String(c.brand ?? '').trim() || String(c.name ?? '').trim();
+        const brand = String(c.shortName ?? c.name ?? brandId).trim();
         const name = String(c.colorName ?? '').trim();
         const colorHex = normalizeHex(String(c.colorHex ?? '').trim());
         if (!name || !colorHex) return null;
         return {
-          sourceId: `${brand}__${name}__${colorHex}`,
+          sourceId: `${brandId}__${name}__${colorHex}`,
           brand,
           name,
           colorHex,

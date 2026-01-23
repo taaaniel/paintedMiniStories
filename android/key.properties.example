@@ -1,0 +1,11 @@
+# Copy to android/key.properties (DO NOT COMMIT)
+#
+# storeFile can be relative to the android/ directory (recommended), e.g.:
+# storeFile=release.keystore
+#
+# Or an absolute path.
+
+storeFile=release.keystore
+storePassword=CHANGE_ME
+keyAlias=CHANGE_ME
+keyPassword=CHANGE_ME

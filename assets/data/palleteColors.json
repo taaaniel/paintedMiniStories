@@ -3,1271 +3,1480 @@
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Berserker Red",
-    "colorHex": "4a0a0d"
+    "colorHex": "4a0a0d",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Sanguine Scarlet",
-    "colorHex": "960c09"
+    "colorHex": "960c09",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Demon Red",
-    "colorHex": "d90d09"
+    "colorHex": "d90d09",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dark Sun Yellow",
-    "colorHex": "BE8544"
+    "colorHex": "BE8544",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Skulker Yellow",
-    "colorHex": "F99F23"
+    "colorHex": "F99F23",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Yellow Flame",
-    "colorHex": "FEB13C"
+    "colorHex": "FEB13C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Marine Blue",
-    "colorHex": "424D71"
+    "colorHex": "424D71",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Elysium Blue",
-    "colorHex": "547BAA"
+    "colorHex": "547BAA",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Celestial Blue",
-    "colorHex": "6592BD"
+    "colorHex": "6592BD",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Rust Orange",
-    "colorHex": "B75440"
+    "colorHex": "B75440",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Fanatic Orange",
-    "colorHex": "DA553B"
+    "colorHex": "DA553B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Orange Flare",
-    "colorHex": "F0784A"
+    "colorHex": "F0784A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Wyvern Green",
-    "colorHex": "3A4842"
+    "colorHex": "3A4842",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Emerald Green",
-    "colorHex": "375944"
+    "colorHex": "375944",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ethereal Green",
-    "colorHex": "55813B"
+    "colorHex": "55813B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Amethyst Rayne",
-    "colorHex": "4F456C"
+    "colorHex": "4F456C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Sorcerer's Cloak",
-    "colorHex": "765E90"
+    "colorHex": "765E90",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Runic Purple",
-    "colorHex": "948AAF"
+    "colorHex": "948AAF",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Doom Death Black",
-    "colorHex": "363636"
+    "colorHex": "363636",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Death Reaper",
-    "colorHex": "3D3E40"
+    "colorHex": "3D3E40",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dungeon Stone Grey",
-    "colorHex": "575C60"
+    "colorHex": "575C60",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Wizard Grey",
-    "colorHex": "676A6C"
+    "colorHex": "676A6C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Carcharodon Grey",
-    "colorHex": "8D9293"
+    "colorHex": "8D9293",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "White Star",
-    "colorHex": "F3F5F2"
+    "colorHex": "F3F5F2",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Barbarian Brawn",
-    "colorHex": "885E58"
+    "colorHex": "885E58",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dwarven Skin",
-    "colorHex": "AB7B64"
+    "colorHex": "AB7B64",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Elven Skin",
-    "colorHex": "BC9273"
+    "colorHex": "BC9273",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Cuirass Leather",
-    "colorHex": "4B3E3A"
+    "colorHex": "4B3E3A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Boar Hide",
-    "colorHex": "69433A"
+    "colorHex": "69433A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Fur Cloak",
-    "colorHex": "8A5450"
+    "colorHex": "8A5450",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dragon Fang",
-    "colorHex": "978163"
+    "colorHex": "978163",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Skeleton Legion",
-    "colorHex": "A9936F"
+    "colorHex": "A9936F",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Vampire Fang",
-    "colorHex": "C5B496"
+    "colorHex": "C5B496",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Griffon Claw",
-    "colorHex": "978B82"
+    "colorHex": "978B82",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ivory Tusk",
-    "colorHex": "CCC2B9"
+    "colorHex": "CCC2B9",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Trooper White",
-    "colorHex": "E9E7DB"
+    "colorHex": "E9E7DB",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dust Bowl",
-    "colorHex": "75604E"
+    "colorHex": "75604E",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Sandstone",
-    "colorHex": "897969"
+    "colorHex": "897969",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Temple Stone",
-    "colorHex": "9C8C79"
+    "colorHex": "9C8C79",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Sir Coates Silver",
-    "colorHex": "66686A"
+    "colorHex": "66686A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Plate Armour",
-    "colorHex": "8D9092"
+    "colorHex": "8D9092",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Mythril Blade",
-    "colorHex": "C2C6C8"
+    "colorHex": "C2C6C8",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Spartan Bronze",
-    "colorHex": "784F38"
+    "colorHex": "784F38",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dragon's Gold",
-    "colorHex": "EBB956"
+    "colorHex": "EBB956",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Glistening Gold",
-    "colorHex": "E5C390"
+    "colorHex": "E5C390",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Royal Cloak",
-    "colorHex": "534149"
+    "colorHex": "534149",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Sword Hilt Burgundy",
-    "colorHex": "703F4E"
+    "colorHex": "703F4E",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Glistening Gums",
-    "colorHex": "915B7A"
+    "colorHex": "915B7A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Cold Corpse Blue",
-    "colorHex": "4D555C"
+    "colorHex": "4D555C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Wolf Grey",
-    "colorHex": "607386"
+    "colorHex": "607386",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Gravestone Blue",
-    "colorHex": "768795"
+    "colorHex": "768795",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Scorched Earth",
-    "colorHex": "514A48"
+    "colorHex": "514A48",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ancient Forest",
-    "colorHex": "685852"
+    "colorHex": "685852",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Wasteland Brown",
-    "colorHex": "7C685D"
+    "colorHex": "7C685D",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Oblivion Black Wash",
-    "colorHex": "2C2B2B"
+    "colorHex": "2C2B2B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Battle Mud Wash",
-    "colorHex": "5D4D3E"
+    "colorHex": "5D4D3E",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Flesh Wash",
-    "colorHex": "8F6E57"
+    "colorHex": "8F6E57",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Orc Flesh Wash",
-    "colorHex": "0F702A"
+    "colorHex": "0F702A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Necrosis Green Wash",
-    "colorHex": "557049"
+    "colorHex": "557049",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Archaic Sepia Wash",
-    "colorHex": "B7945C"
+    "colorHex": "B7945C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Perisher Pink",
-    "colorHex": "BF6066"
+    "colorHex": "BF6066",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Hot Pink",
-    "colorHex": "E385A9"
+    "colorHex": "E385A9",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Neo Pink",
-    "colorHex": "FAC4E6"
+    "colorHex": "FAC4E6",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dread Red",
-    "colorHex": "784240"
+    "colorHex": "784240",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Asmodeus Red",
-    "colorHex": "954743"
+    "colorHex": "954743",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Evil Eye Red",
-    "colorHex": "E55445"
+    "colorHex": "E55445",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Sentient Turquoise",
-    "colorHex": "3B84A4"
+    "colorHex": "3B84A4",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Cursed Blue",
-    "colorHex": "4699B7"
+    "colorHex": "4699B7",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ray Gun Glow",
-    "colorHex": "50AFC5"
+    "colorHex": "50AFC5",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Abyss Blue",
-    "colorHex": "384967"
+    "colorHex": "384967",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Witching Hour blue",
-    "colorHex": "2F65BF"
+    "colorHex": "2F65BF",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Leviathan Blue",
-    "colorHex": "387ED3"
+    "colorHex": "387ED3",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Orc Hide",
-    "colorHex": "819D62"
+    "colorHex": "819D62",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Goblinoid Green",
-    "colorHex": "93B75F"
+    "colorHex": "93B75F",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Troll Snot Green",
-    "colorHex": "A8C46D"
+    "colorHex": "A8C46D",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Field Grey",
-    "colorHex": "77775F"
+    "colorHex": "77775F",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ranger Cloak",
-    "colorHex": "76714B"
+    "colorHex": "76714B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Kobold Grey",
-    "colorHex": "919177"
+    "colorHex": "919177",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Fury Green",
-    "colorHex": "89874E"
+    "colorHex": "89874E",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Gung-ho Green",
-    "colorHex": "B1A75F"
+    "colorHex": "B1A75F",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Green Beret",
-    "colorHex": "B5B289"
+    "colorHex": "B5B289",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Hydra Green",
-    "colorHex": "327764"
+    "colorHex": "327764",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Jade Green",
-    "colorHex": "327764"
+    "colorHex": "327764",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ghoul Green",
-    "colorHex": "5CB891"
+    "colorHex": "5CB891",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ashen Grey",
-    "colorHex": "57574B"
+    "colorHex": "57574B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Eidolon Grey",
-    "colorHex": "5D5A4B"
+    "colorHex": "5D5A4B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Rodent Grey",
-    "colorHex": "7B7867"
+    "colorHex": "7B7867",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Noble Steed Brown",
-    "colorHex": "805938"
+    "colorHex": "805938",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dry Rust Brown",
-    "colorHex": "BF7838"
+    "colorHex": "BF7838",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Satyr Brown",
-    "colorHex": "DA9A53"
+    "colorHex": "DA9A53",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Gyzmo Fur",
-    "colorHex": "D68B4A"
+    "colorHex": "D68B4A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Manticore Ochre",
-    "colorHex": "FAC4E6"
+    "colorHex": "FAC4E6",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Cerberus Brown",
-    "colorHex": "E5B352"
+    "colorHex": "E5B352",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Argonaut Skin",
-    "colorHex": "B1956E"
+    "colorHex": "B1956E",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Kronos Flesh",
-    "colorHex": "C8A271"
+    "colorHex": "C8A271",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ares Flesh",
-    "colorHex": "E4C889"
+    "colorHex": "E4C889",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Druid Flesh",
-    "colorHex": "5D4334"
+    "colorHex": "5D4334",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Paladin Flesh",
-    "colorHex": "815C4C"
+    "colorHex": "815C4C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Bard Skin",
-    "colorHex": "9F7664"
+    "colorHex": "9F7664",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Hellspawn Red",
-    "colorHex": "BD3122"
+    "colorHex": "BD3122",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Craven Yellow",
-    "colorHex": "F6F157"
+    "colorHex": "F6F157",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Gigawatt Blue",
-    "colorHex": "5DBCF6"
+    "colorHex": "5DBCF6",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Flaming Forge Orange",
-    "colorHex": "EBA738"
+    "colorHex": "EBA738",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Talisman Green",
-    "colorHex": "7FBE15"
+    "colorHex": "7FBE15",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Amulet Purple",
-    "colorHex": "CBB6DD"
+    "colorHex": "CBB6DD",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dwarven Iron",
-    "colorHex": "353A3E"
+    "colorHex": "353A3E",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Battle Axe Brass",
-    "colorHex": "9F815C"
+    "colorHex": "9F815C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Steampunk Copper",
-    "colorHex": "A58A66"
+    "colorHex": "A58A66",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Overlord Brass",
-    "colorHex": "924F29"
+    "colorHex": "924F29",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Top Brass",
-    "colorHex": "A68446"
+    "colorHex": "A68446",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Platinum Crown",
-    "colorHex": "D1C3A3"
+    "colorHex": "D1C3A3",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Hellion Red Wash",
-    "colorHex": "733335"
+    "colorHex": "733335",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Tempest Blue Wash",
-    "colorHex": "30455A"
+    "colorHex": "30455A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Magi Purple Wash",
-    "colorHex": "502D4B"
+    "colorHex": "502D4B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Red Glaze",
-    "colorHex": "F75234"
+    "colorHex": "F75234",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Yellow Glaze",
-    "colorHex": "FDF401"
+    "colorHex": "FDF401",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Blue Glaze",
-    "colorHex": "005CF7"
+    "colorHex": "005CF7",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Orange Glaze",
-    "colorHex": "FD810D"
+    "colorHex": "FD810D",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Green Glaze",
-    "colorHex": "52E206"
+    "colorHex": "52E206",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Purple Glaze",
-    "colorHex": "AD5592"
+    "colorHex": "AD5592",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Amphora Red",
-    "colorHex": "482025"
+    "colorHex": "482025",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Emperor Red",
-    "colorHex": "9F3140"
+    "colorHex": "9F3140",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Centurion Red",
-    "colorHex": "E73232"
+    "colorHex": "E73232",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Red Rage",
-    "colorHex": "6A342A"
+    "colorHex": "6A342A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Apocalypse Sky",
-    "colorHex": "E44D40"
+    "colorHex": "E44D40",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Inferno Orange",
-    "colorHex": "CE4A32"
+    "colorHex": "CE4A32",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Panzer Yellow",
-    "colorHex": "A58D43"
+    "colorHex": "A58D43",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Flak Gun Yellow",
-    "colorHex": "C5AA5B"
+    "colorHex": "C5AA5B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ambush Yellow",
-    "colorHex": "E4CC74"
+    "colorHex": "E4CC74",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Serpent Eye Yellow",
-    "colorHex": "F6D20D"
+    "colorHex": "F6D20D",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Sun Bleach Yellow",
-    "colorHex": "F6E453"
+    "colorHex": "F6E453",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Twin Suns Yellow",
-    "colorHex": "E6E7AE"
+    "colorHex": "E6E7AE",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "War Master Green",
-    "colorHex": "394041"
+    "colorHex": "394041",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Traitor Green",
-    "colorHex": "2F534F"
+    "colorHex": "2F534F",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Legion Green",
-    "colorHex": "2B6B66"
+    "colorHex": "2B6B66",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Contagion Green",
-    "colorHex": "8C9E7D"
+    "colorHex": "8C9E7D",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Zombie Rot",
-    "colorHex": "B2B77A"
+    "colorHex": "B2B77A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Pestilence Green",
-    "colorHex": "D4E096"
+    "colorHex": "D4E096",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Oxidation Green",
-    "colorHex": "34444C"
+    "colorHex": "34444C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Antiquity Green",
-    "colorHex": "377D7C"
+    "colorHex": "377D7C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Mythic Turquoise",
-    "colorHex": "599D9C"
+    "colorHex": "599D9C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Eldar Robe",
-    "colorHex": "2259A1"
+    "colorHex": "2259A1",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Relic Blue",
-    "colorHex": "2A7EBC"
+    "colorHex": "2A7EBC",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Seafarer Blue",
-    "colorHex": "4B9CC7"
+    "colorHex": "4B9CC7",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Faust Blue",
-    "colorHex": "47515B"
+    "colorHex": "47515B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Shadow Blue",
-    "colorHex": "4F636B"
+    "colorHex": "4F636B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Frost Blue",
-    "colorHex": "78969E"
+    "colorHex": "78969E",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Von Evile Purple",
-    "colorHex": "22012D"
+    "colorHex": "22012D",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Enchantress Purple",
-    "colorHex": "593663"
+    "colorHex": "593663",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Spectral Purple",
-    "colorHex": "99599A"
+    "colorHex": "99599A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Incubus Purple",
-    "colorHex": "6A696C"
+    "colorHex": "6A696C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Enticing Purple",
-    "colorHex": "7F7A8B"
+    "colorHex": "7F7A8B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Decadent Purple",
-    "colorHex": "C2BED4"
+    "colorHex": "C2BED4",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Scabbard Brown",
-    "colorHex": "7B5D47"
+    "colorHex": "7B5D47",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Boot Strap Brown",
-    "colorHex": "8E674B"
+    "colorHex": "8E674B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Vambrace brown",
-    "colorHex": "9D755C"
+    "colorHex": "9D755C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Cyber Pink",
-    "colorHex": "C64B8B"
+    "colorHex": "C64B8B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Elixir Green",
-    "colorHex": "7DC68F"
+    "colorHex": "7DC68F",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Solar Flare",
-    "colorHex": "F07F21"
+    "colorHex": "F07F21",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ion Blue",
-    "colorHex": "B7D6D8"
+    "colorHex": "B7D6D8",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Septic Green",
-    "colorHex": "ACB237"
+    "colorHex": "ACB237",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Pale Skin",
-    "colorHex": "CAAA7B"
+    "colorHex": "CAAA7B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Scarab Red",
-    "colorHex": "8F221B"
+    "colorHex": "8F221B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Omega Blue",
-    "colorHex": "3A9098"
+    "colorHex": "3A9098",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Enchantment Blue",
-    "colorHex": "1A588B"
+    "colorHex": "1A588B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Emperor's Purple",
-    "colorHex": "6E4C80"
+    "colorHex": "6E4C80",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Carapace Green",
-    "colorHex": "549B5B"
+    "colorHex": "549B5B",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Fire Opal",
-    "colorHex": "CC764F"
+    "colorHex": "CC764F",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ancient Gold",
-    "colorHex": "84714A"
+    "colorHex": "84714A",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Doom Metal",
-    "colorHex": "2B2623"
+    "colorHex": "2B2623",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Chaos Bronze",
-    "colorHex": "A48660"
+    "colorHex": "A48660",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Blue Steel",
-    "colorHex": "909EA7"
+    "colorHex": "909EA7",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Heirloom Gold",
-    "colorHex": "DDBB6E"
+    "colorHex": "DDBB6E",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Bitz O' Tin",
-    "colorHex": "7A6551"
+    "colorHex": "7A6551",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Smoke Grey Wash",
-    "colorHex": "AAA69C"
+    "colorHex": "AAA69C",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Hazard Yellow Wash",
-    "colorHex": "DC8E04"
+    "colorHex": "DC8E04",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Aztec Turquoise Wash",
-    "colorHex": "2E4C4F"
+    "colorHex": "2E4C4F",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Bone Wash",
-    "colorHex": "824F33"
+    "colorHex": "824F33",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Paint Name",
-    "colorHex": "HEX"
+    "colorHex": "HEX",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Paint Name",
-    "colorHex": "HEX"
+    "colorHex": "HEX",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Blood Red Sky",
-    "colorHex": "593e32"
+    "colorHex": "593e32",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Flayer Red",
-    "colorHex": "d84045"
+    "colorHex": "d84045",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Diablo Red",
-    "colorHex": "e74e24"
+    "colorHex": "e74e24",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Archon Orange",
-    "colorHex": "ec8433"
+    "colorHex": "ec8433",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Pustule Ochre",
-    "colorHex": "e6b230"
+    "colorHex": "e6b230",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Abhorrent Ochre",
-    "colorHex": "cca632"
+    "colorHex": "cca632",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Malign Yellow",
-    "colorHex": "d2b64f"
+    "colorHex": "d2b64f",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Cultmaster Green",
-    "colorHex": "48605c"
+    "colorHex": "48605c",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Betrayer Green",
-    "colorHex": "5d7966"
+    "colorHex": "5d7966",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Diabolical Green",
-    "colorHex": "3c4223"
+    "colorHex": "3c4223",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Crypt Grey",
-    "colorHex": "98a189"
+    "colorHex": "98a189",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Altar Ivory",
-    "colorHex": "ebeadb"
+    "colorHex": "ebeadb",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Grindhouse Orange",
-    "colorHex": "b56748"
+    "colorHex": "b56748",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Masque Flesh",
-    "colorHex": "c4876d"
+    "colorHex": "c4876d",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Noir Brown",
-    "colorHex": "594a37"
+    "colorHex": "594a37",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Cinderborn Brown",
-    "colorHex": "9a7462"
+    "colorHex": "9a7462",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Dystopian Dust",
-    "colorHex": "bda699"
+    "colorHex": "bda699",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Blight Cream",
-    "colorHex": "f1e7d1"
+    "colorHex": "f1e7d1",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Divination White",
-    "colorHex": "f1e7d1"
+    "colorHex": "f1e7d1",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Animus Black",
-    "colorHex": "222922"
+    "colorHex": "222922",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Cherubic White",
-    "colorHex": "ffffff"
+    "colorHex": "ffffff",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Old Brown Metal",
-    "colorHex": "9a8975"
+    "colorHex": "9a8975",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ancient Iron",
-    "colorHex": "ae8b6b"
+    "colorHex": "ae8b6b",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Ironclad Silver",
-    "colorHex": "b2a285"
+    "colorHex": "b2a285",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Brown Ink",
-    "colorHex": "2a1a10"
+    "colorHex": "2a1a10",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Warm Brown Ink",
-    "colorHex": "a72d23"
+    "colorHex": "a72d23",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Deep Red Ink",
-    "colorHex": "6f2518"
+    "colorHex": "6f2518",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Tobacco Ink",
-    "colorHex": "b9843d"
+    "colorHex": "b9843d",
+    "shortName": "Two Thin Coats"
   },
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "Black Ink",
-    "colorHex": "050608"
+    "colorHex": "050608",
+    "shortName": "Two Thin Coats"
   },
-
   {
     "brand": "twoThinCoatsPaints",
     "name": "Two Thin Coats Paints",
     "colorName": "White Ink",
-    "colorHex": "f6f7f8"
+    "colorHex": "f6f7f8",
+    "shortName": "Two Thin Coats"
   },
-
   {
     "brand": "greenStuffWorld",
     "name": "Green Stuff World",
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4109,
     "colorName": "Firethorn Brown",
-    "colorHex": "c05a47"
+    "colorHex": "c05a47",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1275,7 +1484,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4117,
     "colorName": "Primaris Red",
-    "colorHex": "dc5852"
+    "colorHex": "dc5852",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1283,7 +1493,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4119,
     "colorName": "Dark Rose Tan",
-    "colorHex": "cc8583"
+    "colorHex": "cc8583",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1291,7 +1502,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4120,
     "colorName": "Blazing Yellow",
-    "colorHex": "f5e671"
+    "colorHex": "f5e671",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1299,7 +1511,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4121,
     "colorName": "Golden Brown Orange",
-    "colorHex": "d4a346"
+    "colorHex": "d4a346",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1307,7 +1520,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4122,
     "colorName": "Orange",
-    "colorHex": "ee8763"
+    "colorHex": "ee8763",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1315,7 +1529,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4123,
     "colorName": "Green",
-    "colorHex": "777048"
+    "colorHex": "777048",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1323,7 +1538,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4124,
     "colorName": "Pickle Green",
-    "colorHex": "418d5b"
+    "colorHex": "418d5b",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1331,7 +1547,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4125,
     "colorName": "Terror Blue-Grey",
-    "colorHex": "656e7a"
+    "colorHex": "656e7a",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1339,7 +1556,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4126,
     "colorName": "Dark Concrete",
-    "colorHex": "797e82"
+    "colorHex": "797e82",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1347,7 +1565,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4129,
     "colorName": "Khaki Bone",
-    "colorHex": "e3d3aa"
+    "colorHex": "e3d3aa",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1355,7 +1574,8 @@
     "collectionLine": "Opaque Colors / Opaque Colors",
     "colorCode": 4130,
     "colorName": "Grey",
-    "colorHex": "c3c0b5"
+    "colorHex": "c3c0b5",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1363,7 +1583,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1860,
     "colorName": "Grey",
-    "colorHex": "a3aab1"
+    "colorHex": "a3aab1",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1371,7 +1592,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1862,
     "colorName": "Anthrax Metal",
-    "colorHex": "73797e"
+    "colorHex": "73797e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1379,7 +1601,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1863,
     "colorName": "White",
-    "colorHex": "ecedf0"
+    "colorHex": "ecedf0",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1387,7 +1610,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1864,
     "colorName": "Blue",
-    "colorHex": "b5dbef"
+    "colorHex": "b5dbef",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1395,7 +1619,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1865,
     "colorName": "Grey",
-    "colorHex": "b8a8a8"
+    "colorHex": "b8a8a8",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1403,7 +1628,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1866,
     "colorName": "Dark Elder Bronze",
-    "colorHex": "442f18"
+    "colorHex": "442f18",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1411,7 +1637,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1868,
     "colorName": "Steampunk Copper Shiny",
-    "colorHex": "e19975"
+    "colorHex": "e19975",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1419,7 +1646,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1869,
     "colorName": "Shiny Gold",
-    "colorHex": "bf9c1c"
+    "colorHex": "bf9c1c",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1427,7 +1655,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1870,
     "colorName": "E1Dorado Antique",
-    "colorHex": "bb8a0f"
+    "colorHex": "bb8a0f",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1435,7 +1664,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1871,
     "colorName": "Antique Gold",
-    "colorHex": "a58838"
+    "colorHex": "a58838",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1443,7 +1673,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1872,
     "colorName": "Neptunus Blue Sirensclale",
-    "colorHex": "64b1df"
+    "colorHex": "64b1df",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1451,7 +1682,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1873,
     "colorName": "Sirensclale Green",
-    "colorHex": "009d7c"
+    "colorHex": "009d7c",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1459,7 +1691,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1874,
     "colorName": "Caesar Red",
-    "colorHex": "c25664"
+    "colorHex": "c25664",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1467,7 +1700,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1875,
     "colorName": "Persian Violet",
-    "colorHex": "4a2e79"
+    "colorHex": "4a2e79",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1475,7 +1709,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Color",
     "colorCode": 1876,
     "colorName": "Aqua Turquoise Orchid",
-    "colorHex": "72bdbd"
+    "colorHex": "72bdbd",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1483,7 +1718,8 @@
     "collectionLine": "Metallic & Colorshift Paints",
     "colorCode": 2583,
     "colorName": "Purple interference Turquoise",
-    "colorHex": "493f8f"
+    "colorHex": "493f8f",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1491,7 +1727,8 @@
     "collectionLine": "Metallic & Colorshift Paints",
     "colorCode": 2584,
     "colorName": "Turquoise Interference Green",
-    "colorHex": "186177"
+    "colorHex": "186177",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1499,7 +1736,8 @@
     "collectionLine": "Metallic & Colorshift Paints",
     "colorCode": 2585,
     "colorName": "Green Interference",
-    "colorHex": "007532"
+    "colorHex": "007532",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1507,7 +1745,8 @@
     "collectionLine": "Metallic & Colorshift Paints",
     "colorCode": 2586,
     "colorName": "Gold interference",
-    "colorHex": "5c5400"
+    "colorHex": "5c5400",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1515,7 +1754,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Metal Filters",
     "colorCode": 2587,
     "colorName": "Red interference",
-    "colorHex": "ef0106"
+    "colorHex": "ef0106",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1523,7 +1763,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1552,
     "colorName": "Blue",
-    "colorHex": "326fb4"
+    "colorHex": "326fb4",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1531,7 +1772,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1553,
     "colorName": "Gold",
-    "colorHex": "ffee3b"
+    "colorHex": "ffee3b",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1539,7 +1781,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1554,
     "colorName": "Storm Surge Green Toxic",
-    "colorHex": "4d8c75"
+    "colorHex": "4d8c75",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1547,7 +1790,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1555,
     "colorName": "Toxic Purple ‘Tropical",
-    "colorHex": "74377d"
+    "colorHex": "74377d",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1555,7 +1799,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1556,
     "colorName": "‘Tropical Green",
-    "colorHex": "b3c40c"
+    "colorHex": "b3c40c",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1563,7 +1808,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1857,
     "colorName": "Psychotic illusions.",
-    "colorHex": "3a95a9"
+    "colorHex": "3a95a9",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1571,7 +1817,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1558,
     "colorName": "Nebula Copper Celestial",
-    "colorHex": "c13e43"
+    "colorHex": "c13e43",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1579,7 +1826,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1559,
     "colorName": "Celestial Azure",
-    "colorHex": "5ebfd1"
+    "colorHex": "5ebfd1",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1587,7 +1835,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1607,
     "colorName": "Martian Green",
-    "colorHex": "708d55"
+    "colorHex": "708d55",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1595,7 +1844,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1608,
     "colorName": "Goblin",
-    "colorHex": "769659"
+    "colorHex": "769659",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1603,7 +1853,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1609,
     "colorName": "Emerald",
-    "colorHex": "43af8c"
+    "colorHex": "43af8c",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1611,7 +1862,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1672,
     "colorName": "Blue",
-    "colorHex": "44b5b8"
+    "colorHex": "44b5b8",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1619,7 +1871,8 @@
     "collectionLine": "Metallic & Colorshift Paints / Colorshift",
     "colorCode": 1674,
     "colorName": "Evil Forest",
-    "colorHex": "590b10"
+    "colorHex": "590b10",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1627,7 +1880,8 @@
     "collectionLine": "Inks, Washes & Dyes / Colorshift",
     "colorCode": 1728,
     "colorName": "Darth Blue",
-    "colorHex": "3361a4"
+    "colorHex": "3361a4",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1635,7 +1889,8 @@
     "collectionLine": "Inks, Washes & Dyes / Colorshift",
     "colorCode": 1729,
     "colorName": "Borealis Green",
-    "colorHex": "016945"
+    "colorHex": "016945",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1643,7 +1898,8 @@
     "collectionLine": "Inks, Washes & Dyes / Wash Inks",
     "colorCode": 1711,
     "colorName": "Blush Red",
-    "colorHex": "f3a298"
+    "colorHex": "f3a298",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1651,7 +1907,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1712,
     "colorName": "Aether Blue",
-    "colorHex": "95a1c3"
+    "colorHex": "95a1c3",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1659,7 +1916,8 @@
     "collectionLine": "Inks, Washes & Dyes / Wash Inks",
     "colorCode": 1713,
     "colorName": "Pecatum Flesh",
-    "colorHex": "cc937a"
+    "colorHex": "cc937a",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1667,7 +1925,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1714,
     "colorName": "Vicious Purple",
-    "colorHex": "b194c0"
+    "colorHex": "b194c0",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1675,7 +1934,8 @@
     "collectionLine": "Inks, Washes & Dyes / Wash Inks",
     "colorCode": 1715,
     "colorName": "Moss Green",
-    "colorHex": "96c09b"
+    "colorHex": "96c09b",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1683,7 +1943,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1716,
     "colorName": "Andalusian Earth Ancient",
-    "colorHex": "988c84"
+    "colorHex": "988c84",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1691,7 +1952,8 @@
     "collectionLine": "Inks, Washes & Dyes / Wash Inks",
     "colorCode": 1717,
     "colorName": "Ancient Sepia",
-    "colorHex": "ccbf8e"
+    "colorHex": "ccbf8e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1699,7 +1961,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1720,
     "colorName": "Brown Crimson",
-    "colorHex": "b6593e"
+    "colorHex": "b6593e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1707,7 +1970,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1721,
     "colorName": "Crimson Magenta",
-    "colorHex": "ed738c"
+    "colorHex": "ed738c",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1715,7 +1979,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1722,
     "colorName": "Viridis Green",
-    "colorHex": "1c957d"
+    "colorHex": "1c957d",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1723,7 +1988,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1723,
     "colorName": "Hydromiel Yellow",
-    "colorHex": "ece47d"
+    "colorHex": "ece47d",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1731,7 +1997,8 @@
     "collectionLine": "Inks, Washes & Dyes / Intensity Inks",
     "colorCode": 1724,
     "colorName": "Phoenix Orange Sanguinem",
-    "colorHex": "f6a75e"
+    "colorHex": "f6a75e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1739,7 +2006,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1725,
     "colorName": "Sanguinem Red",
-    "colorHex": "ec6454"
+    "colorHex": "ec6454",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1747,7 +2015,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1730,
     "colorName": "Opulentus Black Sacra",
-    "colorHex": "342b26"
+    "colorHex": "342b26",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1755,7 +2024,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1731,
     "colorName": "Sacra Purple",
-    "colorHex": "8168aa"
+    "colorHex": "8168aa",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1763,7 +2033,8 @@
     "collectionLine": "Inks, Washes & Dyes / Intensity Inks",
     "colorCode": 1734,
     "colorName": "Brown Sepia",
-    "colorHex": "6c5747"
+    "colorHex": "6c5747",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1771,7 +2042,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1735,
     "colorName": "Sepia Vetus",
-    "colorHex": "a79a59"
+    "colorHex": "a79a59",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1779,7 +2051,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 3506,
     "colorName": "OSL",
-    "colorHex": "fafafa"
+    "colorHex": "fafafa",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1787,7 +2060,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1726,
     "colorName": "Amber Orange Jade",
-    "colorHex": "fde469"
+    "colorHex": "fde469",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1795,7 +2069,8 @@
     "collectionLine": "Inks, Washes & Dyes / Candy Inks",
     "colorCode": 1737,
     "colorName": "Jade Green",
-    "colorHex": "bed1bc"
+    "colorHex": "bed1bc",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1803,7 +2078,8 @@
     "collectionLine": "Inks, Washes & Dyes / Candy Inks",
     "colorCode": 1738,
     "colorName": "Amethyst Purple Sapphire",
-    "colorHex": "c091cb"
+    "colorHex": "c091cb",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1811,7 +2087,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1739,
     "colorName": "Sapphire Blue Tiger",
-    "colorHex": "bbc8d5"
+    "colorHex": "bbc8d5",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1819,7 +2096,8 @@
     "collectionLine": "Inks, Washes & Dyes / Candy Inks",
     "colorCode": 1755,
     "colorName": "Tiger Eye Brown",
-    "colorHex": "d5956e"
+    "colorHex": "d5956e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1827,7 +2105,8 @@
     "collectionLine": "Inks, Washes & Dyes / Candy Inks",
     "colorCode": 1756,
     "colorName": "Ruby Red",
-    "colorHex": "f57f48"
+    "colorHex": "f57f48",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1835,7 +2114,8 @@
     "collectionLine": "Inks, Washes & Dyes",
     "colorCode": 1757,
     "colorName": "Quartz Magenta Citrine",
-    "colorHex": "ee84ba"
+    "colorHex": "ee84ba",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1843,7 +2123,8 @@
     "collectionLine": "Inks, Washes & Dyes / Candy Inks",
     "colorCode": 1759,
     "colorName": "Citrine Yellow",
-    "colorHex": "f2ea7b"
+    "colorHex": "f2ea7b",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1851,7 +2132,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 1709,
     "colorName": "Coagulated Blood",
-    "colorHex": "200c0c"
+    "colorHex": "200c0c",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1859,7 +2141,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 1890,
     "colorName": "Ork Blood Tau",
-    "colorHex": "060d0a"
+    "colorHex": "060d0a",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1867,7 +2150,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 4147,
     "colorName": "Tau Prince Blood",
-    "colorHex": "080b17"
+    "colorHex": "080b17",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1875,7 +2159,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 4148,
     "colorName": "Demon Blood BileColor",
-    "colorHex": "140b1b"
+    "colorHex": "140b1b",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1883,7 +2168,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 2399,
     "colorName": "Vomit Color",
-    "colorHex": "55ad34"
+    "colorHex": "55ad34",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1891,7 +2177,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 1744,
     "colorName": "Gloss Varnish",
-    "colorHex": "cfd4d5"
+    "colorHex": "cfd4d5",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1899,7 +2186,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 1878,
     "colorName": "Satin Varnish",
-    "colorHex": "e6ebf1"
+    "colorHex": "e6ebf1",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1907,7 +2195,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 2639,
     "colorName": "‘Maxx Matte",
-    "colorHex": "bcbcbc"
+    "colorHex": "bcbcbc",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1915,7 +2204,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 1746,
     "colorName": "‘2411 Master Me im Matt",
-    "colorHex": "dbdbdb"
+    "colorHex": "dbdbdb",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1923,7 +2213,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 1751,
     "colorName": "Decal Softener",
-    "colorHex": "b4d4e2"
+    "colorHex": "b4d4e2",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1931,7 +2222,8 @@
     "collectionLine": "Auxiliary Paints & Effects / Auxiliary",
     "colorCode": 1889,
     "colorName": "ing Medium",
-    "colorHex": "f1f0f0"
+    "colorHex": "f1f0f0",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1939,7 +2231,8 @@
     "collectionLine": "Auxiliary Paints & Effects",
     "colorCode": 2985,
     "colorName": "Bond Enforcing Dust Stencil",
-    "colorHex": "4a6877"
+    "colorHex": "4a6877",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1947,7 +2240,8 @@
     "collectionLine": "UV Resins",
     "colorCode": 2100,
     "colorName": "Conductive paint",
-    "colorHex": "104990"
+    "colorHex": "104990",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1955,7 +2249,8 @@
     "collectionLine": "UV Resins",
     "colorCode": 2019,
     "colorName": "Water Effect",
-    "colorHex": "f5f9fb"
+    "colorHex": "f5f9fb",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1963,7 +2258,8 @@
     "collectionLine": "UV Resins",
     "colorCode": 3514,
     "colorName": "Orange",
-    "colorHex": "fee491"
+    "colorHex": "fee491",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1971,7 +2267,8 @@
     "collectionLine": "UV Resins",
     "colorCode": 3515,
     "colorName": "Glow Light Orange",
-    "colorHex": "d8e17e"
+    "colorHex": "d8e17e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1979,7 +2276,8 @@
     "collectionLine": "UV Resins / UV Glow",
     "colorCode": 3516,
     "colorName": "Glow Blue",
-    "colorHex": "a8d4f1"
+    "colorHex": "a8d4f1",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1987,7 +2285,8 @@
     "collectionLine": "UV Resins / UV Glow",
     "colorCode": 3617,
     "colorName": "Glow Lime",
-    "colorHex": "bad47e"
+    "colorHex": "bad47e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -1995,7 +2294,8 @@
     "collectionLine": "UV Resins",
     "colorCode": 3518,
     "colorName": "Glow Yellow",
-    "colorHex": "bdd683"
+    "colorHex": "bdd683",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2003,7 +2303,8 @@
     "collectionLine": "UV Resins",
     "colorCode": 3519,
     "colorName": "Glow Green",
-    "colorHex": "b8d592"
+    "colorHex": "b8d592",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2011,7 +2312,8 @@
     "collectionLine": "Liquid Pigments / Liquid Pigments",
     "colorCode": 2286,
     "colorName": "Orange Rust Light",
-    "colorHex": "993c1e"
+    "colorHex": "993c1e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2019,7 +2321,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2287,
     "colorName": "Light Rust",
-    "colorHex": "6a261a"
+    "colorHex": "6a261a",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2027,7 +2330,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2288,
     "colorName": "Rust Dark",
-    "colorHex": "532019"
+    "colorHex": "532019",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2035,7 +2339,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2289,
     "colorName": "Dark Rust Verdigris",
-    "colorHex": "180c0c"
+    "colorHex": "180c0c",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2043,7 +2348,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2290,
     "colorName": "Verdigris Turquoise",
-    "colorHex": "3c715e"
+    "colorHex": "3c715e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2051,7 +2357,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2291,
     "colorName": "Turquoise Oxide",
-    "colorHex": "026f8d"
+    "colorHex": "026f8d",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2059,7 +2366,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2292,
     "colorName": "Ochre",
-    "colorHex": "b1855d"
+    "colorHex": "b1855d",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2067,7 +2375,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2293,
     "colorName": "Ochre Light",
-    "colorHex": "c09d43"
+    "colorHex": "c09d43",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2075,7 +2384,8 @@
     "collectionLine": "Liquid Pigments / Liquid Pigments",
     "colorCode": 2294,
     "colorName": "Light Earth",
-    "colorHex": "71441f"
+    "colorHex": "71441f",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2083,7 +2393,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2295,
     "colorName": "Medium Dark",
-    "colorHex": "3a2315"
+    "colorHex": "3a2315",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2091,7 +2402,8 @@
     "collectionLine": "Liquid Pigments / Liquid Pigments",
     "colorCode": 2296,
     "colorName": "Dark Earth",
-    "colorHex": "2b2616"
+    "colorHex": "2b2616",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2099,7 +2411,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2297,
     "colorName": "Black",
-    "colorHex": "3f2625"
+    "colorHex": "3f2625",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2107,7 +2420,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2298,
     "colorName": "Black Soot",
-    "colorHex": "1d2025"
+    "colorHex": "1d2025",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2115,7 +2429,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2300,
     "colorName": "Industrial Dust Dark",
-    "colorHex": "3b3b3d"
+    "colorHex": "3b3b3d",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2123,7 +2438,8 @@
     "collectionLine": "Liquid Pigments",
     "colorCode": 2301,
     "colorName": "Dark Dust Dark",
-    "colorHex": "818387"
+    "colorHex": "818387",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2131,7 +2447,8 @@
     "collectionLine": "Liquid Pigments / Liquid Pigments",
     "colorCode": 2303,
     "colorName": "Light Green Dust",
-    "colorHex": "20874a"
+    "colorHex": "20874a",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2139,7 +2456,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4273,
     "colorName": "Orange Transparent",
-    "colorHex": "de4312"
+    "colorHex": "de4312",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2147,7 +2465,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4274,
     "colorName": "Transparent Red",
-    "colorHex": "cb1417"
+    "colorHex": "cb1417",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2155,7 +2474,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4275,
     "colorName": "Transparent Magenta Transparent",
-    "colorHex": "c0133c"
+    "colorHex": "c0133c",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2163,7 +2483,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4276,
     "colorName": "Transparent",
-    "colorHex": "193e7a"
+    "colorHex": "193e7a",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2171,7 +2492,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4277,
     "colorName": "Transparent Transparent",
-    "colorHex": "006d44"
+    "colorHex": "006d44",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2179,7 +2501,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4278,
     "colorName": "Transparent",
-    "colorHex": "0f8235"
+    "colorHex": "0f8235",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2187,7 +2510,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4279,
     "colorName": "Transparent Purple Transparent",
-    "colorHex": "3d2772"
+    "colorHex": "3d2772",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2195,7 +2519,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4280,
     "colorName": "Transparent",
-    "colorHex": "6e1130"
+    "colorHex": "6e1130",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2203,7 +2528,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4281,
     "colorName": "Transparent Yellow Transparent",
-    "colorHex": "fdc804"
+    "colorHex": "fdc804",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2211,7 +2537,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4282,
     "colorName": "Transparent",
-    "colorHex": "966114"
+    "colorHex": "966114",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2219,7 +2546,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4283,
     "colorName": "Transparent",
-    "colorHex": "4e2110"
+    "colorHex": "4e2110",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2227,7 +2555,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4285,
     "colorName": "OSLWhite",
-    "colorHex": "fefefe"
+    "colorHex": "fefefe",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2235,7 +2564,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4286,
     "colorName": "Turquoise",
-    "colorHex": "000000"
+    "colorHex": "000000",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2243,7 +2573,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4287,
     "colorName": "Turquoise",
-    "colorHex": "043f43"
+    "colorHex": "043f43",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2251,7 +2582,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4288,
     "colorName": "Orange",
-    "colorHex": "dd3614"
+    "colorHex": "dd3614",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2259,7 +2591,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4290,
     "colorName": "Light",
-    "colorHex": "222c59"
+    "colorHex": "222c59",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2267,7 +2600,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4291,
     "colorName": "Light Brown",
-    "colorHex": "a54916"
+    "colorHex": "a54916",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2275,7 +2609,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 4293,
     "colorName": "Green",
-    "colorHex": "0a642e"
+    "colorHex": "0a642e",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2283,7 +2618,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 5095,
     "colorName": "Siena",
-    "colorHex": "883d30"
+    "colorHex": "883d30",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2291,7 +2627,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 5096,
     "colorName": "Fluor Yellow",
-    "colorHex": "f4e849"
+    "colorHex": "f4e849",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2299,7 +2636,8 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 5097,
     "colorName": "Fluor Green",
-    "colorHex": "6bba7b"
+    "colorHex": "6bba7b",
+    "shortName": "GSW"
   },
   {
     "brand": "greenStuffWorld",
@@ -2307,6 +2645,7 @@
     "collectionLine": "Acrylic Inks / Acrylic Inks",
     "colorCode": 5998,
     "colorName": "Fluor Orange",
-    "colorHex": "ef7c51"
+    "colorHex": "ef7c51",
+    "shortName": "GSW"
   }
 ]

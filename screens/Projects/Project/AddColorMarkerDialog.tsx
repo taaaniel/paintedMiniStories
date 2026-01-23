@@ -3,11 +3,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import { Dimensions, Pressable, ScrollView, Text, View } from 'react-native';
 import paletteColors from '../../../assets/data/palleteColors.json';
+
 import CustomDialog from '../../../components/CustomDialog/CustomDialog';
 import SimplyButton from '../../../components/buttons/SimplyButton';
 import SimplyInput from '../../../components/inputs/SimplyInput';
 import SimplySelect from '../../../components/inputs/SimplySelect';
 import { dialogStyles } from './AddColorMarkerDialog.styles';
+import { getBrandShortName } from './brandShortName';
+
+const normalizeHex = (v: string): string => {
+  const raw = String(v ?? '').trim();
+  if (!raw) return '';
+  const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+  return withHash.toUpperCase();
+};
 
 interface AddColorMarkerDialogProps {
   visible: boolean;
@@ -312,11 +321,17 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
     const out: { label: string; value: string }[] = [];
 
     for (const c of paletteColors as any[]) {
-      const value = String(c?.colorHex ?? '').trim();
+      const value = normalizeHex(String(c?.colorHex ?? '').trim());
       const label = String(c?.colorName ?? '').trim();
+      const shortBrand = String(
+        c?.shortName ?? getBrandShortName(String(c?.brand ?? c?.name ?? '')),
+      ).trim();
       if (!value || seen.has(value)) continue;
       seen.add(value);
-      out.push({ label, value });
+      out.push({
+        label: shortBrand ? `${label} (${shortBrand})` : label,
+        value,
+      });
     }
 
     return out;
@@ -337,12 +352,16 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
       const out: { label: string; value: string }[] = [];
 
       for (const p of paints) {
-        const value = String((p as any)?.colorHex ?? '').trim();
+        const value = normalizeHex(String((p as any)?.colorHex ?? '').trim());
         const name = String((p as any)?.name ?? '').trim();
         const brand = String((p as any)?.brand ?? '').trim();
         if (!value || seen.has(value)) continue;
         seen.add(value);
-        out.push({ label: brand ? `${brand} - ${name}` : name, value });
+        const shortBrand = brand ? getBrandShortName(brand) : '';
+        out.push({
+          label: shortBrand ? `${name} (${shortBrand})` : name,
+          value,
+        });
       }
 
       setMyPaintOptions(out);
@@ -390,7 +409,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
 
   const getLabelForHex = React.useCallback(
     (hex: string) => {
-      const key = String(hex).trim();
+      const key = normalizeHex(String(hex).trim());
       if (!key) return undefined;
       return labelByValue.get(key) ?? 'Unknown';
     },
@@ -408,7 +427,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
             width: 16,
             height: 16,
             borderRadius: 8,
-            backgroundColor: hex,
+            backgroundColor: normalizeHex(hex),
             borderWidth: 1,
             borderColor: '#4A2E1B',
           }}
@@ -549,7 +568,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                   getOptionLabel={getLabelForHex}
                   loading={loadingColors}
                   value={mBase}
-                  onChange={(hex) => setMBase(hex)}
+                  onChange={(hex) => setMBase(normalizeHex(hex))}
                   placeholder="Choose color…"
                   placeholderTextColor="#ffffff"
                   arrowPosition="right"
@@ -620,7 +639,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                         value={mix}
                         onChange={(hex) => {
                           const next = [...baseMixesV];
-                          next[idx] = hex;
+                          next[idx] = normalizeHex(hex);
                           setBaseMixesV(next);
                         }}
                         placeholder="Choose blend…"
@@ -738,7 +757,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                   getOptionLabel={getLabelForHex}
                   loading={loadingColors}
                   value={mShadow}
-                  onChange={(hex) => setMShadow(hex)}
+                  onChange={(hex) => setMShadow(normalizeHex(hex))}
                   placeholder="Choose color…"
                   placeholderTextColor="#ffffff"
                   arrowPosition="right"
@@ -811,7 +830,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                         value={mix}
                         onChange={(hex) => {
                           const next = [...shadowMixesV];
-                          next[idx] = hex;
+                          next[idx] = normalizeHex(hex);
                           setShadowMixesV(next);
                         }}
                         placeholder="Choose blend…"
@@ -956,7 +975,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                   getOptionLabel={getLabelForHex}
                   loading={loadingColors}
                   value={mHighlight}
-                  onChange={(hex) => setMHighlight(hex)}
+                  onChange={(hex) => setMHighlight(normalizeHex(hex))}
                   placeholder="Choose color…"
                   placeholderTextColor="#ffffff"
                   arrowPosition="right"
@@ -1027,7 +1046,7 @@ const AddColorMarkerDialog: React.FC<AddColorMarkerDialogProps> = ({
                         value={mix}
                         onChange={(hex) => {
                           const next = [...highlightMixesV];
-                          next[idx] = hex;
+                          next[idx] = normalizeHex(hex);
                           setHighlightMixesV(next);
                         }}
                         placeholder="Choose blend…"

@@ -55,6 +55,11 @@ const BRAND_META: Record<string, BrandMeta> = {
     logo: require('../../assets/images/brands/gsw_brand.png'),
     copyright: '© 2026 Green Stuff World. All rights reserved.',
   },
+  greenStuffWorld2: {
+    label: 'Green Stuff World',
+    logo: require('../../assets/images/brands/gsw_brand.png'),
+    copyright: '© 2026 Green Stuff World. All rights reserved.',
+  },
   twoThinCoatsPaints: {
     label: 'Two Thin Coats Paints',
     logo: require('../../assets/images/brands/twoThinCoats_brand.png'),
@@ -603,9 +608,7 @@ export default function PaintBankScreen() {
         {/* Keep both tabs mounted to avoid resetting inputs */}
         <View style={{ width: '100%', flex: 1 }}>
           {/* Paint List */}
-          <View
-            style={{ display: activeTab === 'list' ? 'flex' : 'none', flex: 1 }}
-          >
+          {activeTab === 'list' ? (
             <SectionList
               ref={listRef}
               sections={listAccordionSections}
@@ -750,7 +753,7 @@ export default function PaintBankScreen() {
                 );
               }}
             />
-          </View>
+          ) : null}
 
           {/* My PaintBank */}
           <View
@@ -1088,8 +1091,10 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     paddingHorizontal: 2,
     alignItems: 'center',
-    zIndex: 0,
-    elevation: 0,
+    // Sticky headers need to stay above list rows (and not disappear under them)
+    // especially for the first brand right under the ListHeaderComponent.
+    zIndex: 5,
+    elevation: 5,
   },
   brandLogo: {
     width: 70,

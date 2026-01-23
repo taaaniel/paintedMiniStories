@@ -34,6 +34,7 @@ type Props = {
   visible: boolean;
   photoUri: string;
   palette: PaletteColor[];
+  showLabels?: boolean;
   onDone: (next: PaletteColor[]) => void;
 };
 
@@ -215,6 +216,7 @@ export default function PaletteMarkerEditorModal({
   visible,
   photoUri,
   palette,
+  showLabels = true,
   onDone,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -973,7 +975,9 @@ export default function PaletteMarkerEditorModal({
                         angleDeg={angleSv[idx]}
                         fillHex={String(c.hex || '#C2B39A')}
                         label={
-                          String(c.label || '').trim() || `Color ${idx + 1}`
+                          showLabels
+                            ? String(c.label || '').trim() || `Color ${idx + 1}`
+                            : ''
                         }
                         showGrabHandle={interactionMode === 'move-marker'}
                       />
